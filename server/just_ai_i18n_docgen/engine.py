@@ -33,9 +33,23 @@ class EngineNotConfigured(RuntimeError):
     fix in the message, never a silent fallback to some other engine."""
 
 
-def resolve_engine(feature: str = "translate"):
-    """(adapter, preset) for a feature, or a loud failure naming what is missing."""
-    preset = resolve_feature_preset(feature)
+def resolve_engine(feature: str = "translate", preset_id: str | None = None):
+    """(adapter, preset) for a feature, or a loud failure naming what is missing.
+
+    `preset_id` is the ESCALATION door: re-doing flagged keys with a stronger engine
+    means pointing at a specific preset rather than the feature's assigned one — the
+    old `--escalate <profile>` became "escalate to a preset", same one-resolver rule."""
+    if preset_id:
+        from llm_runner.llm import stores
+
+        preset = next((p for p in stores.get_engine_preset_store().list()
+                       if p.id == preset_id), None)
+        if preset is None:
+            raise EngineNotConfigured(
+                f'no engine preset with id "{preset_id}" — list them on the AI-features page.'
+            )
+    else:
+        preset = resolve_feature_preset(feature)
     if preset is None:
         raise EngineNotConfigured(
             f'feature "{feature}" resolves to no engine preset — assign one on the '
@@ -66,7 +80,7 @@ def structured_extra(provider_type: str) -> dict:
     }
 
 
-def make_send(feature: str = "translate") -> Callable[[str, str], str]:
+def make_send(feature: str = "translate", preset_id: str | None = None) -> Callable[[str, str], str]:
     """The loop's `send(system, user) -> str`, built from the resolved preset.
 
     Resolution happens PER CALL, not at closure build: a preset edited mid-run (or a
@@ -74,7 +88,7 @@ def make_send(feature: str = "translate") -> Callable[[str, str], str]:
     stale adapter reference across an hour-long catalogue."""
 
     def send(system: str, user: str) -> str:
-        adapter, preset = resolve_engine(feature)
+        adapter, preset = resolve_engine(feature, preset_id)
         response = adapter.chat(
             [LLMMessage(role="user", content=user)],
             model=preset.model or None,

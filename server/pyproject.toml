@@ -29,6 +29,9 @@ dev = ["pytest>=8", "ruff>=0.6", "httpx>=0.27"]
 # The `-server` suffix exists ONLY because a console script named like the app itself
 # would make Windows spawn the Tauri binary instead (recorded in the design decision).
 just-ai-i18n-docgen-server = "just_ai_i18n_docgen.serve:main"
+# The CLI door — translate/check/escalate/accept; `check` is what you run before you
+# ship (offline, deterministic, no engine). Same service functions the workspace calls.
+just-ai-i18n-docgen = "just_ai_i18n_docgen.cli:main"
 
 [build-system]
 requires = ["setuptools>=68", "wheel"]
