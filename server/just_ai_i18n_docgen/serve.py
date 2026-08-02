@@ -15,8 +15,11 @@ def main() -> None:
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=PORT)
     ap.add_argument("--data-dir", default=None, help=f"default: {default_data_dir()}")
+    ap.add_argument("--config", default=None,
+                    help="pre-load a project config (else use the setup screen)")
     args = ap.parse_args()
-    uvicorn.run(create_app(args.data_dir), host=args.host, port=args.port)
+    uvicorn.run(create_app(args.data_dir, config_path=args.config),
+                host=args.host, port=args.port)
 
 
 if __name__ == "__main__":

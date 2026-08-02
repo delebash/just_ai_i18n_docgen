@@ -1,0 +1,240 @@
+# SPDX-License-Identifier: MIT
+"""The review workspace API — the flows ported from server.test.js that carry the
+design's promises: a job writes ONLY proposals, one call is one undo, an acceptance can
+be revisited, setup works with NO project, and every write path retires the machine
+opinions that were about the old text."""
+
+from __future__ import annotations
+
+import json
+import re
+
+import pytest
+from fastapi.testclient import TestClient
+from llm_runner.llm import seed
+from llm_runner.runner import lifecycle
+
+from just_ai_i18n_docgen.app import create_app
+
+EN = {"greet": "Hello {name}", "sidebar": {"books": "Books"}, "common": {"no": "No"}}
+
+
+def make_project(tmp_path):
+    app_dir = tmp_path / "myapp"
+    (app_dir / "src" / "locales").mkdir(parents=True)
+    (app_dir / "package.json").write_text("{}", encoding="utf-8")
+    (app_dir / "src" / "locales" / "en.json").write_text(json.dumps(EN), encoding="utf-8")
+    (app_dir / "src" / "locales" / "es.json").write_text(json.dumps({
+        "greet": "Hola {name}", "sidebar": {"books": "Libros"}, "common": {"no": "No"},
+    }), encoding="utf-8")
+    (app_dir / "just-ai-help").mkdir()
+    config = app_dir / "just-ai-help" / "config.json"
+    config.write_text(json.dumps({
+        "source": "../src/locales/en.json", "targets": ["es"], "context": "a test app",
+    }), encoding="utf-8")
+    return config
+
+
+@pytest.fixture
+def client(tmp_path, monkeypatch):
+    monkeypatch.setattr(lifecycle, "_service", None)
+    monkeypatch.setattr(seed, "_APP", dict(seed._APP))
+    config = make_project(tmp_path)
+    app = create_app(tmp_path / "data", config_path=config)
+    c = TestClient(app)
+    c.config_path = config
+    return c
+
+
+def test_state_reports_langs_progress_and_no_job(client):
+    s = client.get("/api/state").json()
+    assert s["langs"] == ["es"] and s["job"] is None
+    assert s["progress"]["es"] == {"reviewed": 0, "skipped": 0}
+
+
+def test_rows_carry_the_cognate_finding_and_missing_keys(client):
+    # Delete one key from es.json so `missing` shows too.
+    es_path = client.config_path.parent.parent / "src" / "locales" / "es.json"
+    es = json.loads(es_path.read_text(encoding="utf-8"))
+    del es["greet"]
+    es_path.write_text(json.dumps(es), encoding="utf-8")
+
+    body = client.get("/api/rows").json()
+    by_key = {r["key"]: r for r in body["rows"]}
+    assert "untranslated" in [f["code"] for f in by_key["common.no"]["flags"]]
+    assert by_key["greet"]["flags"][0]["code"] == "missing"
+    assert body["counts"]["missing"] == 1
+
+
+def test_save_writes_the_locale_rechecks_and_records_an_undoable_edit(client):
+    r = client.post("/api/save", json={"lang": "es", "key": "sidebar.books",
+                                       "value": "Los libros"})
+    assert r.status_code == 200
+    es = json.loads((client.config_path.parent.parent / "src" / "locales" / "es.json")
+                    .read_text(encoding="utf-8"))
+    assert es["sidebar"]["books"] == "Los libros"
+
+    # Undo puts the previous value back.
+    client.post("/api/undo", json={})
+    es = json.loads((client.config_path.parent.parent / "src" / "locales" / "es.json")
+                    .read_text(encoding="utf-8"))
+    assert es["sidebar"]["books"] == "Libros"
+
+
+def test_save_to_an_unknown_key_is_404(client):
+    assert client.post("/api/save", json={"lang": "es", "key": "nope",
+                                          "value": "x"}).status_code == 404
+
+
+def test_bulk_accept_is_one_undo_and_unaccept_can_revisit(client):
+    r = client.post("/api/accept", json={"lang": "es", "keys": ["common.no"]})
+    assert r.status_code == 200 and r.json()["recorded"] == 1
+    assert client.get("/api/rows").json()["counts"].get("untranslated") is None
+    accepted = client.get("/api/accepted", params={"lang": "es"}).json()["entries"]
+    assert len(accepted) == 1
+    # Unclaimed reviewer: the entry says "unknown" rather than borrowing a name.
+    assert accepted[0]["by"] == "unknown"
+
+    # Unaccept — the fix for the one-way complaint.
+    r = client.request("DELETE", "/api/accept", json={"lang": "es", "key": "common.no"})
+    assert r.json()["removed"] == 1
+    assert client.get("/api/rows").json()["counts"]["untranslated"] == 1
+
+    # Undo the unaccept: the entries come back.
+    client.post("/api/undo", json={})
+    assert len(client.get("/api/accepted", params={"lang": "es"}).json()["entries"]) == 1
+
+
+def test_reviewer_is_stored_in_the_app_db_and_stamps_acceptances(client):
+    client.put("/api/reviewer", json={"reviewer": "dana"})
+    assert client.get("/api/reviewer").json()["reviewer"] == "dana"
+    client.post("/api/accept", json={"lang": "es", "keys": ["common.no"]})
+    entries = client.get("/api/accepted", params={"lang": "es"}).json()["entries"]
+    assert entries[0]["by"] == "dana"
+
+
+def test_notes_roundtrip_and_undo(client):
+    client.put("/api/notes", json={"lang": "es", "key": "common.no",
+                                   "note": "a label, not a question"})
+    rows = client.get("/api/rows").json()["rows"]
+    row = next(r for r in rows if r["key"] == "common.no")
+    assert row["note"] == "a label, not a question"
+    client.post("/api/undo", json={})
+    row = next(r for r in client.get("/api/rows").json()["rows"] if r["key"] == "common.no")
+    assert row["note"] is None
+
+
+def test_siblings_show_the_namespace_neighbours(client):
+    body = client.get("/api/siblings", params={"lang": "es", "key": "sidebar.books"}).json()
+    assert body["namespace"] == "sidebar"
+
+
+def test_a_job_stages_proposals_and_never_touches_the_locale_file(client, monkeypatch):
+    """RULE 1 of jobs.js, the governing principle: the locale file is byte-identical
+    when a run finishes; engine output is staged and applied by a person."""
+    def fake_send(system, user):
+        items = json.loads(re.search(r"Translate items: (\[.*\])$", user, re.DOTALL).group(1))
+        return json.dumps({"items": [
+            {"id": it["id"], "translation": f"NUEVO {it['text']}"} for it in items
+        ]})
+
+    from just_ai_i18n_docgen import workspace as ws_mod
+
+    monkeypatch.setattr(ws_mod, "make_send", lambda *a, **k: fake_send)
+
+    es_path = client.config_path.parent.parent / "src" / "locales" / "es.json"
+    before = es_path.read_text(encoding="utf-8")
+
+    r = client.post("/api/jobs", json={"lang": "es", "scope": "all"})
+    assert r.status_code == 202
+    ws = client.app.state.workspace
+    ws.jobs.settled()
+    assert ws.jobs.status()["state"] == "done"
+
+    assert es_path.read_text(encoding="utf-8") == before, (
+        "a job must write ONLY proposals — the locale file is untouched"
+    )
+    props = client.get("/api/proposals", params={"lang": "es"}).json()["proposals"]
+    assert len(props) == len(EN["sidebar"]) + 2  # every key staged
+
+    # Applying is the explicit human action that writes the file.
+    r = client.post("/api/proposals/apply", json={"lang": "es", "keys": ["common.no"]})
+    assert r.json()["applied"] == ["common.no"]
+    es = json.loads(es_path.read_text(encoding="utf-8"))
+    assert es["common"]["no"].startswith("NUEVO")
+
+
+def test_an_unknown_scope_must_not_start_a_job(client):
+    r = client.post("/api/jobs", json={"lang": "es", "scope": "everythingish"})
+    assert r.status_code == 400
+    assert "unknown scope" in r.json()["detail"]
+
+
+def test_an_edit_retires_the_stale_machine_opinions(client):
+    """The writeKey contract: probe entry, cached reference, staged proposal and
+    confirmation verdict were all ABOUT the old text."""
+    p = client.app.state.workspace.project
+    # Stage a probe entry + a proposal + a reference for the key.
+    (p.paths.probe_file("es")).write_text(json.dumps({"common": {"no": "Nop"}}),
+                                          encoding="utf-8")
+    from just_ai_i18n_docgen.state import get_reference, proposals, put_proposal, put_reference
+
+    put_proposal(p.state, lang="es", key="common.no", engine="e", value="old proposal")
+    put_reference(p.state, lang="es", key="common.no", engine="backtranslate", value="No")
+
+    client.post("/api/save", json={"lang": "es", "key": "common.no", "value": "Núm."})
+
+    probe = json.loads(p.paths.probe_file("es").read_text(encoding="utf-8"))
+    assert probe == {}, "the probe entry about the old text is gone"
+    assert proposals(p.state, lang="es", key="common.no") == []
+    assert get_reference(p.state, lang="es", key="common.no", engine="backtranslate") is None
+
+
+def test_setup_flow_no_project_then_inspect_then_save_goes_live(tmp_path, monkeypatch):
+    monkeypatch.setattr(lifecycle, "_service", None)
+    monkeypatch.setattr(seed, "_APP", dict(seed._APP))
+    config = make_project(tmp_path)
+    en_path = config.parent.parent / "src" / "locales" / "en.json"
+    config.unlink()  # no project yet
+
+    client = TestClient(create_app(tmp_path / "data"))
+    # Project routes refuse with needsSetup; setup routes work.
+    r = client.get("/api/state")
+    assert r.status_code == 409 and r.json()["detail"]["needsSetup"] is True
+    assert client.get("/api/setup/state").json()["loaded"] is False
+
+    # Inspect reports what it found and writes NOTHING.
+    r = client.post("/api/setup/inspect", json={"path": str(en_path)})
+    body = r.json()
+    assert body["keyCount"] == 3
+    assert body["locales"][0]["code"] == "es"
+    assert not config.exists()
+
+    # Save writes the config and the page goes live WITHOUT a restart.
+    r = client.post("/api/setup/save", json={"path": str(en_path), "targets": ["es"],
+                                             "context": "a test app"})
+    assert r.json()["ok"] is True
+    assert client.get("/api/state").json()["langs"] == ["es"]
+    cfg = json.loads(config.read_text(encoding="utf-8"))
+    assert cfg["source"] == "../src/locales/en.json"
+    assert "engine" not in cfg, "engines are presets in the shared DB now, never config"
+
+
+def test_setup_save_preserves_fields_it_does_not_manage(tmp_path, monkeypatch):
+    monkeypatch.setattr(lifecycle, "_service", None)
+    monkeypatch.setattr(seed, "_APP", dict(seed._APP))
+    config = make_project(tmp_path)
+    cfg = json.loads(config.read_text(encoding="utf-8"))
+    cfg["myCustomField"] = {"kept": True}
+    config.write_text(json.dumps(cfg), encoding="utf-8")
+
+    client = TestClient(create_app(tmp_path / "data", config_path=config))
+    en_path = config.parent.parent / "src" / "locales" / "en.json"
+    client.post("/api/setup/save", json={"path": str(en_path), "targets": ["es"]})
+    after = json.loads(config.read_text(encoding="utf-8"))
+    assert after["myCustomField"] == {"kept": True}, "the UI is a writer, never an owner"
+
+
+def test_terms_endpoint_answers_by_term(client):
+    body = client.get("/api/terms", params={"lang": "es", "term": "books"}).json()
+    assert body["term"] == "books"

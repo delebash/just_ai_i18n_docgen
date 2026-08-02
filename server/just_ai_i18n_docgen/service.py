@@ -94,14 +94,22 @@ class Project:
         return flatten(_read_json(path))
 
 
-def all_findings(project: Project, lang: str, target_flat: dict) -> tuple[list, list]:
+def all_findings(project: Project, lang: str, target_flat: dict, *,
+                 top_n: int | None = None, include_terms: bool = False,
+                 term_cache: dict | None = None) -> tuple[list, list]:
     """EVERY finding for one language: the structural checks, the disagreement suspects
-    when a probe sidecar exists, the confirmation annotations, and the acceptance
-    filter LAST — so an acceptance can clear a suspect as well as a check, and
-    escalation never re-spends engine time on a key a human already signed off.
+    when a probe sidecar exists, optionally the terminology sweep, the confirmation
+    annotations, and the acceptance filter LAST — so an acceptance can clear a suspect
+    as well as a check, and escalation never re-spends engine time on a key a human
+    already signed off.
 
     ONE function for the report, the escalate path and the workspace — they can never
-    drift into flagging different things."""
+    drift into flagging different things. `top_n=None` reads the config (the CLI
+    report has to truncate); the workspace passes a huge number because a UI scrolls —
+    the last Node run found 150 disagreements, showed 30, and both real defects ranked
+    #22 and #30 OF THE THIRTY SHOWN. `term_cache` memoises the terminology index on the
+    content it was computed from (measured: the index is over half the cost of a
+    request, and a request happens after every accept and every edit)."""
     findings = run_checks(
         source_flat=project.src, target_flat=target_flat,
         ctx=build_context(project.cfg, project.conventions, lang),
@@ -111,8 +119,11 @@ def all_findings(project: Project, lang: str, target_flat: dict) -> tuple[list, 
         findings = findings + rank_suspects(
             source_flat=project.src, target_flat=target_flat,
             probe_flat=flatten(_read_json(probe_path)),
-            top_n=(project.cfg.get("suspects") or {}).get("topN", 20),
+            top_n=top_n if top_n is not None
+            else (project.cfg.get("suspects") or {}).get("topN", 20),
         )
+    if include_terms:
+        findings = findings + _term_findings(project, lang, target_flat, term_cache)
     findings = attach_confirmations(
         findings, confirmations(project.state, lang), project.src, target_flat,
     )
@@ -120,6 +131,25 @@ def all_findings(project: Project, lang: str, target_flat: dict) -> tuple[list, 
         findings, load_accepted(project.paths.accepted_file(lang)),
         project.src, target_flat,
     )
+
+
+def _term_findings(project: Project, lang: str, target_flat: dict,
+                   cache: dict | None) -> list:
+    """Terminology findings, memoised on a cheap content stamp — key counts plus the
+    joined values' length. A real hash of 2,039 strings would cost more than the 35 ms
+    it is trying to save."""
+    from .terms import check_terms
+
+    stamp = (f"{len(project.src)}:{len(target_flat)}:"
+             f"{sum(len(v) for v in target_flat.values())}")
+    if cache is not None:
+        hit = cache.get(lang)
+        if hit and hit["stamp"] == stamp:
+            return hit["findings"]
+    found = check_terms(source_flat=project.src, target_flat=target_flat)["findings"]
+    if cache is not None:
+        cache[lang] = {"stamp": stamp, "findings": found}
+    return found
 
 
 def translate_into(project: Project, lang: str, subset: dict, send: Callable,

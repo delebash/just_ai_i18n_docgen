@@ -86,7 +86,8 @@ def default_data_dir() -> Path:
     return Path(user_data_dir("just-ai-i18n-docgen", appauthor=False))
 
 
-def create_app(data_dir: Path | None = None) -> FastAPI:
+def create_app(data_dir: Path | None = None,
+               config_path: str | Path | None = None) -> FastAPI:
     data_dir = Path(data_dir) if data_dir else default_data_dir()
     data_dir.mkdir(parents=True, exist_ok=True)
 
@@ -112,5 +113,19 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
     )
     seed_llm()
     load_from_configs(stores.get_provider_store().list())
+
+    # The app's OWN table (reviewer identity) on its OWN Base — one database, two
+    # Bases, the documented family pattern.
+    from .appmeta import configure_app_storage
+
+    configure_app_storage(session_factory, engine)
+
+    # The review workspace: starts with NO project (the setup screen creates one);
+    # `config_path` pre-loads one for the CLI / a configured desktop launch.
+    from .workspace import Workspace, make_workspace_router
+
+    workspace = Workspace(config_path)
+    app.include_router(make_workspace_router(workspace))
+    app.state.workspace = workspace  # the test/CLI handle, follows a later setup-load
 
     return app
