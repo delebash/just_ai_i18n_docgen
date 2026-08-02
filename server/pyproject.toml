@@ -35,7 +35,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+include = ["just_ai_i18n_docgen*"]
 
 [tool.setuptools.package-data]
 "just_ai_i18n_docgen" = ["config/*.json"]

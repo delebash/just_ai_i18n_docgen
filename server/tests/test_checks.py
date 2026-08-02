@@ -14,7 +14,7 @@ from pathlib import Path
 from just_ai_i18n_docgen.checks import build_context, check_one, run_checks
 
 CONVENTIONS = json.loads(
-    (Path(__file__).parent.parent / "src/just_ai_i18n_docgen/config/conventions.json")
+    (Path(__file__).parent.parent / "just_ai_i18n_docgen/config/conventions.json")
     .read_text(encoding="utf-8")
 )
 
