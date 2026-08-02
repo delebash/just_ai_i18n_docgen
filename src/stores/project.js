@@ -10,20 +10,37 @@ export const useProjectStore = defineStore("project", {
     configPath: null,
     source: null,
     langs: [],
+    context: "",
+    glossary: [],
     reviewer: null,
     languages: [],
     inspect: null,      // the last /v1/setup/inspect result
     inspectError: "",
     saving: false,
+    summary: null,      // /v1/summary — the dashboard's per-language counts
   }),
+  getters: {
+    // "myapp" out of …/myapp/just-ai-help/config.json — the catalogue's human name.
+    appName: (s) => {
+      const parts = (s.configPath || "").split(/[\\/]/).filter(Boolean);
+      return parts.length >= 3 ? parts[parts.length - 3] : "your app";
+    },
+  },
   actions: {
     async refresh() {
       const s = await safeRequest("/v1/setup/state", null);
       if (!s) return;
       Object.assign(this, {
         loaded: s.loaded, configPath: s.configPath, source: s.source,
-        langs: s.langs, reviewer: s.reviewer, languages: s.languages,
+        langs: s.langs, context: s.context, glossary: s.glossary,
+        reviewer: s.reviewer, languages: s.languages,
       });
+    },
+    async fetchSummary() {
+      // 409 (no project yet) comes back as null — the dashboard shows its
+      // point-me-at-a-catalogue empty state instead.
+      this.summary = await safeRequest("/v1/summary", null);
+      return this.summary;
     },
     async inspectPath(path) {
       this.inspectError = "";
@@ -31,7 +48,14 @@ export const useProjectStore = defineStore("project", {
         this.inspect = await post("/v1/setup/inspect", { path });
       } catch (e) {
         this.inspect = null;
-        this.inspectError = e?.message || String(e);
+        // Show the server's `detail` sentence, not the raw JSON envelope.
+        const m = String(e?.message || e);
+        const brace = m.indexOf("{");
+        let msg = m;
+        if (brace >= 0) {
+          try { msg = JSON.parse(m.slice(brace)).detail ?? m; } catch { /* raw */ }
+        }
+        this.inspectError = typeof msg === "string" ? msg : JSON.stringify(msg);
       }
       return this.inspect;
     },

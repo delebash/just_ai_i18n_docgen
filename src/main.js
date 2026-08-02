@@ -4,6 +4,7 @@ import { createPinia } from "pinia";
 import { configureLlmUi, configureServerApi, makeOriginAwareResolver } from "@delebash/llm-ui";
 import App from "./App.vue";
 import { router } from "./router";
+import { useUiStore } from "./stores/ui";
 import "./styles/tokens.css";
 import "./styles/styles.css";
 
@@ -15,4 +16,7 @@ configureServerApi({
 });
 configureLlmUi({});
 
-createApp(App).use(createPinia()).use(router).mount("#app");
+const pinia = createPinia();
+const app = createApp(App).use(pinia).use(router);
+useUiStore(pinia).boot(); // theme before first paint — no flash of the wrong mode
+app.mount("#app");

@@ -30,6 +30,8 @@ from pathlib import Path
 
 import llm_runner
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from llm_runner.llm import install_llm, load_from_configs, stores
 from llm_runner.llm.routing_api import FeatureCatalogEntry
 from llm_runner.llm.seed import seed_llm
@@ -155,6 +157,35 @@ def boot_llm_stack(data_dir: Path | None = None, app: FastAPI | None = None) -> 
 def create_app(data_dir: Path | None = None,
                config_path: str | Path | None = None) -> FastAPI:
     app = FastAPI(title=PRODUCT, version="0.1.0")
+
+    # Catch-all error envelope — registered BEFORE CORSMiddleware so an unhandled
+    # exception becomes a JSON 500 that flows OUT through CORS and reaches the
+    # browser as a real error (a bare exception runs in Starlette's
+    # ServerErrorMiddleware, OUTSIDE CORS, so the browser would see a CORS block
+    # instead). JW parity — verified the hard way in JV, 2026-06-12.
+    @app.middleware("http")
+    async def _error_envelope(request, call_next):  # noqa: ANN001
+        try:
+            return await call_next(request)
+        except Exception as exc:  # noqa: BLE001 — envelope everything
+            log.exception("unhandled error on %s %s", request.method, request.url.path)
+            return JSONResponse(
+                status_code=500,
+                content={"title": "Internal Server Error", "detail": str(exc)[:300]},
+            )
+
+    # CORS — allow-all, JW's local + dev + headless fallback: the kit's
+    # origin-aware resolver hits :8742 DIRECTLY from Vite dev (:1420), so without
+    # this every dev request dies as a silent CORS block (found live 2026-08-02 —
+    # no test can see it: TestClient is same-origin). A loopback server for one
+    # user; JW's settings-driven origin lockdown can come with a settings surface.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
     boot_llm_stack(data_dir, app=app)
 
     # The review workspace: starts with NO project (the setup screen creates one);

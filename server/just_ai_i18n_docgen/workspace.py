@@ -63,8 +63,10 @@ from .terms import check_key_terms, check_terms, term_usage
 
 # The only scopes a run may have. Anything else is a typo, and a typo must not start a
 # job — found by driving the real catalogue: an unrecognised scope fell through to the
-# flagged branch and started a 154-key run.
-SCOPES = {"flagged", "unsure", "all", "keys"}
+# flagged branch and started a 154-key run. `pending` is the dashboard's button: keys
+# with no translation at all PLUS flagged ones — `flagged` alone selects nothing on a
+# fresh language, because a key that is missing has no finding to flag.
+SCOPES = {"flagged", "unsure", "all", "keys", "pending"}
 
 _UNLIMITED = 10**9  # a UI scrolls; a CLI report has to truncate
 
@@ -217,6 +219,10 @@ def make_workspace_router(ws: Workspace) -> APIRouter:
             "configPath": str(p.config_path) if p else None,
             "source": str(p.paths.source_file) if p else None,
             "langs": p.targets if p else [],
+            # Prefill, not decoration: an edit screen that shows blanks over a
+            # configured project invites "save" to feel like it erased something.
+            "context": (p.cfg.get("context") or "") if p else "",
+            "glossary": (p.cfg.get("glossary") or []) if p else [],
             "reviewer": appmeta.get_reviewer(),
             # Codes only. The display name is derived in the browser from
             # Intl.DisplayNames, so the menu reads in the user's own language and no
@@ -313,6 +319,40 @@ def make_workspace_router(ws: Workspace) -> APIRouter:
     def rows(lang: str | None = None) -> dict:
         project()
         return ws.build_rows(lang)
+
+    @router.get("/summary")
+    def summary() -> dict:
+        """The dashboard's one call: per-language done/total, findings, review state
+        and the last run — light enough to refresh after every job. Counts only;
+        /rows is the page that carries the strings."""
+        from .state import run_history
+
+        p = project()
+        langs = []
+        for lg in p.targets:
+            target_flat = p.target_flat(lg) or {}
+            _t, findings, accepted = ws.findings_for(lg)
+            statuses = review_statuses(p.state, lg)
+            translated = {k for k in p.src
+                          if isinstance(target_flat.get(k), str) and target_flat[k] != ""}
+            # Findings are about TRANSLATED content — a key with no translation yet
+            # is backlog (total - done), not a defect; counting it both ways made
+            # the header shout "36 findings" over rows saying "not yet translated".
+            flagged = {f["key"] for f in findings if f["key"] in translated}
+            done = len(translated)
+            unreviewed = sum(1 for k in flagged
+                             if (statuses.get(k) or {}).get("status") != "reviewed")
+            runs_ = run_history(p.state, lang=lg, limit=1)
+            langs.append({
+                "code": lg, "total": len(p.src), "done": done,
+                "findings": len(flagged), "unreviewed": unreviewed,
+                "accepted": len(accepted),
+                "staged": proposal_count(p.state, lg),
+                "lastRun": runs_[0] if runs_ else None,
+            })
+        return {"source": p.cfg.get("sourceLanguage"), "keyCount": len(p.src),
+                "configPath": str(p.config_path), "langs": langs,
+                "job": ws.jobs.status()}
 
     @router.get("/accepted")
     def accepted_list(lang: str | None = None) -> dict:
@@ -589,6 +629,11 @@ def make_workspace_router(ws: Workspace) -> APIRouter:
             _t, findings, _a = ws.findings_for(lang)
             wanted = sorted({f["key"] for f in findings
                              if scope != "unsure" or f["code"] == "disagreement"})
+            if scope == "pending":
+                tflat = p.target_flat(lang) or {}
+                wanted = sorted(set(wanted) | {
+                    k for k in p.src
+                    if not (isinstance(tflat.get(k), str) and tflat[k] != "")})
         subset = {k: p.src[k] for k in wanted if k in p.src}
         if not subset:
             raise HTTPException(400, "that scope selected no keys")

@@ -10,6 +10,8 @@ export const useJobsStore = defineStore("jobs", {
     runs: [],
     starting: false,
     error: "",
+    queue: [],          // languages still waiting when a multi-select run goes sequential
+    queueScope: null,
     _source: null,
   }),
   actions: {
@@ -34,6 +36,24 @@ export const useJobsStore = defineStore("jobs", {
         this.starting = false;
       }
     },
+    // The dashboard's multi-select: the server runs ONE job at a time (by design —
+    // one engine, one queue), so extra languages wait client-side and each `done`
+    // event starts the next.
+    async startMany(langs, scope) {
+      const [first, ...rest] = langs;
+      this.queue = rest;
+      this.queueScope = scope;
+      return this.start({ lang: first, scope });
+    },
+    async _advanceQueue() {
+      if (!this.queue.length || this.job?.state === "running") return;
+      const lang = this.queue.shift();
+      try {
+        await this.start({ lang, scope: this.queueScope || "pending" });
+      } catch {
+        this.queue = []; // a failed start must not strand a silent queue
+      }
+    },
     watch() {
       this.unwatch();
       try {
@@ -51,7 +71,11 @@ export const useJobsStore = defineStore("jobs", {
         for (const t of ["hello", "start", "progress", "done", "cancelling", "error"]) {
           es.addEventListener(t, update);
         }
-        es.addEventListener("done", () => { this.unwatch(); this.refresh(); });
+        es.addEventListener("done", async () => {
+          this.unwatch();
+          await this.refresh();
+          this._advanceQueue();
+        });
         es.onerror = () => { this.unwatch(); };
       } catch {
         // SSE unavailable — poll instead.
@@ -69,6 +93,7 @@ export const useJobsStore = defineStore("jobs", {
       }
     },
     async cancel() {
+      this.queue = []; // cancelling means stop — never auto-start the next language
       const out = await post("/v1/jobs/cancel", {});
       this.job = out.job ?? this.job;
     },

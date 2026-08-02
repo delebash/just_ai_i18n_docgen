@@ -1,0 +1,159 @@
+<h2>The dashboard, designed for 20+ languages</h2>
+<p class="subtitle">No stacked cards. One <strong>compact table</strong> — a language is a row, so 3 or 40 languages is the same page. Header + toolbar stay pinned; only the table scrolls; a filter box handles big sets. Checkboxes select languages for bulk actions; clicking a row opens that language's Review. Below it: the same page while a translate job runs.</p>
+
+<style>
+  .lm { --font: "Inter", ui-sans-serif, system-ui, sans-serif;
+        --bg:#f4f5f7; --side:#fff; --card:#fff; --bd:#e4e6eb; --ink:#1a1d23; --ink2:#4b5563;
+        --mut:#8a919e; --trk:#eceef2; --acc:#4f46e5; --accs:#eef0fe; --acci:#3f38c9;
+        --dgr:#b42318; --dgrb:#fee4e2; --ok:#067647; --okb:#d9f2e5;
+        display:flex; height:600px; border-radius:10px; overflow:hidden; border:1px solid var(--bd);
+        background:var(--bg); box-shadow:0 8px 30px rgba(0,0,0,.12); font-family:var(--font); color:var(--ink); }
+  .lm * { box-sizing:border-box; }
+  .lm.short { height:330px; }
+  .lm-side { width:160px; flex-shrink:0; background:var(--side); border-right:1px solid var(--bd); padding:14px 10px; display:flex; flex-direction:column; gap:3px; }
+  .lm-brand { font-weight:700; font-size:12.5px; padding:2px 10px 12px; display:flex; align-items:center; gap:7px; }
+  .lm-logo { width:18px; height:18px; border-radius:5px; background:var(--acc); color:#fff; font-size:10px; display:inline-flex; align-items:center; justify-content:center; }
+  .lm-nav { font-size:12.5px; padding:6px 10px; border-radius:7px; color:var(--ink2); display:flex; gap:8px; }
+  .lm-nav.act { background:var(--accs); color:var(--acci); font-weight:600; }
+  .lm-main { flex:1; display:flex; flex-direction:column; min-width:0; padding:16px 20px 12px; }
+  .lm-head { display:flex; align-items:baseline; gap:10px; }
+  .lm-h1 { font-size:18px; font-weight:700; margin:0; }
+  .lm-sub { font-size:11.5px; color:var(--mut); }
+  .lm-head .sp { flex:1; }
+  .lm-status { font-size:11px; color:var(--ink2); background:var(--card); border:1px solid var(--bd); border-radius:99px; padding:3px 10px; }
+  .lm-status .dot { color:#16a34a; }
+  .lm-tools { display:flex; gap:8px; align-items:center; margin:12px 0 10px; }
+  .lm-filter { flex:0 0 200px; font-size:12px; color:var(--mut); background:var(--card); border:1px solid var(--bd); border-radius:8px; padding:6px 10px; }
+  .lm-tools .sp { flex:1; }
+  .lm-btn { font-size:12px; font-weight:600; padding:6.5px 14px; border-radius:8px; border:1px solid var(--bd); background:var(--card); color:var(--ink); }
+  .lm-btn.pri { background:var(--acc); border-color:var(--acc); color:#fff; }
+  .lm-tablewrap { flex:1; min-height:0; overflow:hidden; position:relative; border:1px solid var(--bd); border-radius:10px; background:var(--card); }
+  .lm-fade { position:absolute; left:0; right:0; bottom:0; height:34px; background:linear-gradient(transparent, var(--card)); display:flex; align-items:flex-end; justify-content:center; font-size:10.5px; color:var(--mut); padding-bottom:4px; }
+  table.lmt { width:100%; border-collapse:collapse; font-size:12.5px; }
+  .lmt th { text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.4px; color:var(--mut); font-weight:600; padding:8px 10px; border-bottom:1px solid var(--bd); position:sticky; top:0; background:var(--card); }
+  .lmt td { padding:7px 10px; border-bottom:1px solid var(--trk); white-space:nowrap; }
+  .lmt tr.sel td { background:var(--accs); }
+  .lmt .cb { width:26px; text-align:center; color:var(--mut); }
+  .lmt .cb.on { color:var(--acc); font-weight:700; }
+  .lmt .lang b { font-weight:600; }
+  .lmt .lang span { color:var(--mut); font-size:11px; margin-left:6px; }
+  .lmt .num { font-variant-numeric:tabular-nums; color:var(--ink2); font-size:11.5px; }
+  .lm-bar { display:inline-block; width:86px; height:6px; border-radius:3px; background:var(--trk); overflow:hidden; vertical-align:middle; margin-right:8px; }
+  .lm-bar i { display:block; height:100%; background:var(--acc); border-radius:3px; }
+  .lm-bar i.full { background:#16a34a; }
+  .chip { font-size:10px; font-weight:600; padding:1.5px 8px; border-radius:99px; }
+  .chip.d { background:var(--dgrb); color:var(--dgr); }
+  .chip.g { background:var(--okb); color:var(--ok); }
+  .chip.m { background:var(--trk); color:var(--mut); font-weight:500; }
+  .lmt .age { color:var(--mut); font-size:11px; }
+  .lmt .go { color:var(--mut); }
+  .lm-recent { display:flex; gap:14px; font-size:11px; color:var(--mut); padding-top:9px; }
+  .lm-recent b { color:var(--ink2); font-weight:600; }
+  /* running-job strip */
+  .lm-job { display:flex; align-items:center; gap:12px; background:var(--accs); border:1px solid #d9ddfb; border-radius:10px; padding:9px 14px; margin:12px 0 10px; font-size:12px; }
+  .lm-jobbar { flex:1; height:7px; border-radius:4px; background:#dfe3fc; overflow:hidden; }
+  .lm-jobbar i { display:block; height:100%; width:66%; background:var(--acc); border-radius:4px; }
+  .lm-cancel { font-size:11.5px; font-weight:600; color:var(--dgr); background:transparent; border:none; }
+  .spin { display:inline-block; width:10px; height:10px; border:2px solid var(--acc); border-top-color:transparent; border-radius:50%; animation:sp 1s linear infinite; vertical-align:-1px; margin-right:6px; }
+  @keyframes sp { to { transform:rotate(360deg); } }
+</style>
+
+<div class="section">
+  <div class="lm">
+    <div class="lm-side">
+      <div class="lm-brand"><span class="lm-logo">i18</span> i18n &amp; Docgen</div>
+      <div class="lm-nav act">⌂ Home</div>
+      <div class="lm-nav">⚏ Review</div>
+      <div class="lm-nav">▷ Runs</div>
+      <div class="lm-nav">✎ Docs</div>
+      <div class="lm-nav">⚙ Setup</div>
+    </div>
+    <div class="lm-main">
+      <div class="lm-head">
+        <h1 class="lm-h1">JustWrite catalogue</h1>
+        <span class="lm-sub">1,965 keys · source en · 14 languages</span>
+        <span class="sp"></span>
+        <span class="lm-status"><span class="dot">●</span> ollama · gemma-4-26b</span>
+      </div>
+      <div class="lm-tools">
+        <span class="lm-filter">⌕ Filter languages…</span>
+        <span class="sp"></span>
+        <span class="lm-btn">✓ Check</span>
+        <span class="lm-btn">⇄ Probe</span>
+        <span class="lm-btn pri">▶ Translate (2 selected)</span>
+      </div>
+      <div class="lm-tablewrap">
+        <table class="lmt">
+          <thead><tr><th></th><th>Language</th><th>Progress</th><th>Findings</th><th>Last activity</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="cb">☐</td><td class="lang"><b>Spanish</b><span>es</span></td><td><span class="lm-bar"><i style="width:96%"></i></span><span class="num">1,890 / 1,965</span></td><td><span class="chip d">12 findings</span> <span class="chip m">3 unreviewed</span></td><td class="age">2 min ago</td><td class="go">›</td></tr>
+            <tr><td class="cb">☐</td><td class="lang"><b>French</b><span>fr</span></td><td><span class="lm-bar"><i class="full" style="width:100%"></i></span><span class="num">1,965 / 1,965</span></td><td><span class="chip g">clean</span></td><td class="age">1 h ago</td><td class="go">›</td></tr>
+            <tr class="sel"><td class="cb on">☑</td><td class="lang"><b>German</b><span>de</span></td><td><span class="lm-bar"><i style="width:91%"></i></span><span class="num">1,790 / 1,965</span></td><td><span class="chip m">175 pending</span></td><td class="age">yesterday</td><td class="go">›</td></tr>
+            <tr><td class="cb">☐</td><td class="lang"><b>Italian</b><span>it</span></td><td><span class="lm-bar"><i style="width:92%"></i></span><span class="num">1,802 / 1,965</span></td><td><span class="chip d">7 findings</span></td><td class="age">3 d ago</td><td class="go">›</td></tr>
+            <tr><td class="cb">☐</td><td class="lang"><b>Portuguese (BR)</b><span>pt-BR</span></td><td><span class="lm-bar"><i class="full" style="width:100%"></i></span><span class="num">1,965 / 1,965</span></td><td><span class="chip g">clean</span></td><td class="age">3 d ago</td><td class="go">›</td></tr>
+            <tr><td class="cb">☐</td><td class="lang"><b>Japanese</b><span>ja</span></td><td><span class="lm-bar"><i class="full" style="width:100%"></i></span><span class="num">1,965 / 1,965</span></td><td><span class="chip d">21 findings</span> <span class="chip m">21 unreviewed</span></td><td class="age">4 d ago</td><td class="go">›</td></tr>
+            <tr class="sel"><td class="cb on">☑</td><td class="lang"><b>Polish</b><span>pl</span></td><td><span class="lm-bar"><i style="width:0%"></i></span><span class="num">0 / 1,965</span></td><td><span class="chip m">not yet translated</span></td><td class="age">—</td><td class="go">›</td></tr>
+            <tr><td class="cb">☐</td><td class="lang"><b>Dutch</b><span>nl</span></td><td><span class="lm-bar"><i style="width:48%"></i></span><span class="num">950 / 1,965</span></td><td><span class="chip m">1,015 pending</span></td><td class="age">2 w ago</td><td class="go">›</td></tr>
+            <tr><td class="cb">☐</td><td class="lang"><b>Korean</b><span>ko</span></td><td><span class="lm-bar"><i style="width:96%"></i></span><span class="num">1,880 / 1,965</span></td><td><span class="chip m">85 pending</span></td><td class="age">2 w ago</td><td class="go">›</td></tr>
+            <tr><td class="cb">☐</td><td class="lang"><b>Chinese (Simplified)</b><span>zh-CN</span></td><td><span class="lm-bar"><i class="full" style="width:100%"></i></span><span class="num">1,965 / 1,965</span></td><td><span class="chip g">clean</span></td><td class="age">3 w ago</td><td class="go">›</td></tr>
+            <tr><td class="cb">☐</td><td class="lang"><b>Russian</b><span>ru</span></td><td><span class="lm-bar"><i class="full" style="width:100%"></i></span><span class="num">1,965 / 1,965</span></td><td><span class="chip d">3 findings</span></td><td class="age">3 w ago</td><td class="go">›</td></tr>
+            <tr><td class="cb">☐</td><td class="lang"><b>Swedish</b><span>sv</span></td><td><span class="lm-bar"><i class="full" style="width:100%"></i></span><span class="num">1,965 / 1,965</span></td><td><span class="chip g">clean</span></td><td class="age">1 mo ago</td><td class="go">›</td></tr>
+          </tbody>
+        </table>
+        <div class="lm-fade">… 2 more — the table scrolls, the page never does</div>
+      </div>
+      <div class="lm-recent">Recent: <b>translate es</b> · 43 keys · 2 min ago ✓ &nbsp;·&nbsp; <b>check all</b> · 1 h ago ✓ &nbsp;·&nbsp; <b>translate nl</b> · 2 w ago ✗ 2 keys exhausted &nbsp;·&nbsp; <span style="color:var(--acci)">all runs ›</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Same page while a job runs</h3>
+  <p class="subtitle">The toolbar swaps for a live progress strip (SSE-fed); the working language row shows its own state. Nothing navigates away — you watch it from where you launched it.</p>
+  <div class="lm short">
+    <div class="lm-side">
+      <div class="lm-brand"><span class="lm-logo">i18</span> i18n &amp; Docgen</div>
+      <div class="lm-nav act">⌂ Home</div>
+      <div class="lm-nav">⚏ Review</div>
+      <div class="lm-nav">▷ Runs</div>
+      <div class="lm-nav">✎ Docs</div>
+      <div class="lm-nav">⚙ Setup</div>
+    </div>
+    <div class="lm-main">
+      <div class="lm-head">
+        <h1 class="lm-h1">JustWrite catalogue</h1>
+        <span class="lm-sub">1,965 keys · source en · 14 languages</span>
+        <span class="sp"></span>
+        <span class="lm-status"><span class="dot">●</span> ollama · gemma-4-26b</span>
+      </div>
+      <div class="lm-job">
+        <span><span class="spin"></span><b>Translating German</b></span>
+        <span class="lm-jobbar"><i></i></span>
+        <span class="num">214 / 321 changed keys · 3:12 elapsed · then Polish</span>
+        <span class="lm-cancel">✕ Cancel</span>
+      </div>
+      <div class="lm-tablewrap">
+        <table class="lmt">
+          <thead><tr><th></th><th>Language</th><th>Progress</th><th>Findings</th><th>Last activity</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="cb">☐</td><td class="lang"><b>Spanish</b><span>es</span></td><td><span class="lm-bar"><i style="width:96%"></i></span><span class="num">1,890 / 1,965</span></td><td><span class="chip d">12 findings</span></td><td class="age">2 min ago</td><td class="go">›</td></tr>
+            <tr class="sel"><td class="cb"><span class="spin"></span></td><td class="lang"><b>German</b><span>de</span></td><td><span class="lm-bar"><i style="width:93%"></i></span><span class="num">translating · 214 / 321</span></td><td><span class="chip m">queued checks</span></td><td class="age">now</td><td class="go">›</td></tr>
+            <tr><td class="cb">◔</td><td class="lang"><b>Polish</b><span>pl</span></td><td><span class="lm-bar"><i style="width:0%"></i></span><span class="num">0 / 1,965</span></td><td><span class="chip m">queued</span></td><td class="age">—</td><td class="go">›</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3>Does this layout work?</h3>
+<div class="options">
+  <div class="option" data-choice="table-dashboard" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content"><h3>Yes — table dashboard</h3><p>Row per language, bulk-select + toolbar actions, row click opens Review, pinned header, only the table scrolls.</p></div>
+  </div>
+  <div class="option" data-choice="adjust" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content"><h3>Close — adjust it</h3><p>Tell me in the terminal what to change (columns, actions, density, what a row click does…).</p></div>
+  </div>
+</div>

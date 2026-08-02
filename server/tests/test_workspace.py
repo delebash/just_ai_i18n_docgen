@@ -170,6 +170,55 @@ def test_an_unknown_scope_must_not_start_a_job(client):
     assert "unknown scope" in r.json()["detail"]
 
 
+def test_summary_reports_per_language_counts(client):
+    """The dashboard's one call: counts per language, never the strings."""
+    es_path = client.config_path.parent.parent / "src" / "locales" / "es.json"
+    es = json.loads(es_path.read_text(encoding="utf-8"))
+    del es["greet"]  # one missing key → done < total
+    es_path.write_text(json.dumps(es), encoding="utf-8")
+
+    body = client.get("/v1/summary").json()
+    assert body["keyCount"] == 3 and body["source"] == "en"
+    (lang,) = body["langs"]
+    assert lang["code"] == "es"
+    assert (lang["done"], lang["total"]) == (2, 3)
+    # "No" is byte-identical to its source → at least the untranslated finding,
+    # none of it reviewed yet, nothing accepted, no run recorded.
+    assert lang["findings"] >= 1 and lang["unreviewed"] >= 1
+    assert lang["accepted"] == 0 and lang["staged"] == 0 and lang["lastRun"] is None
+
+
+def test_pending_scope_selects_missing_plus_flagged_keys(client, monkeypatch):
+    """`flagged` alone selects NOTHING on a never-translated key — a missing key has
+    no finding. `pending` is missing ∪ flagged, which is what the dashboard's
+    Translate button means."""
+    def fake_send(system, user):
+        items = json.loads(re.search(r"Translate items: (\[.*\])$", user, re.DOTALL).group(1))
+        return json.dumps({"items": [
+            {"id": it["id"], "translation": f"NUEVO {it['text']}"} for it in items
+        ]})
+
+    from just_ai_i18n_docgen import workspace as ws_mod
+
+    monkeypatch.setattr(ws_mod, "make_send", lambda *a, **k: fake_send)
+
+    es_path = client.config_path.parent.parent / "src" / "locales" / "es.json"
+    es = json.loads(es_path.read_text(encoding="utf-8"))
+    del es["greet"]  # missing — invisible to `flagged`
+    es_path.write_text(json.dumps(es), encoding="utf-8")
+
+    r = client.post("/v1/jobs", json={"lang": "es", "scope": "pending"})
+    assert r.status_code == 202
+    ws = client.app.state.workspace
+    ws.jobs.settled()
+    assert ws.jobs.status()["state"] == "done"
+
+    staged = {p["key"] for p in
+              client.get("/v1/proposals", params={"lang": "es"}).json()["proposals"]}
+    assert "greet" in staged, "the missing key must be in a pending run"
+    assert "common.no" in staged, "the flagged key must be in a pending run"
+
+
 def test_an_edit_retires_the_stale_machine_opinions(client):
     """The writeKey contract: probe entry, cached reference, staged proposal and
     confirmation verdict were all ABOUT the old text."""

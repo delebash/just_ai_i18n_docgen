@@ -1,22 +1,23 @@
 <script setup>
 // SPDX-License-Identifier: MIT
-// Setup — a path box with LIVE validation, never a file picker: a browser file input
-// hands JS a File and no path, so real "Browse…" means a directory-listing API over
-// localhost (ruled against in the Node repo; still true here). You paste the path and
-// the server says immediately what it found — the part that actually prevents mistakes.
-//
-// The LANGUAGE PICKER is the kit's UiMultiSelect — the component this app caused to be
-// born in @delebash/llm-ui. Display names come from Intl.DisplayNames in YOUR locale,
-// so no English name can go stale on the server.
+// Setup — a settings page, not the front door. Two rules, both user-ruled 2026-08-02:
+//   1. NOTHING is hidden until a path is entered — the whole form is always visible.
+//   2. The path is checked by an explicit button, never automatically on mount.
+// A path box with server-side validation, never a file picker: a browser file input
+// hands JS a File and no path — that ruling from the Node repo still holds.
 import { computed, onMounted, ref } from "vue";
-import { UiButton, UiCheckbox, UiField, UiInput, UiMultiSelect, pushToast } from "@delebash/llm-ui";
+import { UiButton, UiCheckbox, UiChip, UiInput, UiMultiSelect, pushToast } from "@delebash/llm-ui";
+import { useRouter } from "vue-router";
 import { useProjectStore } from "../stores/project";
 
 const project = useProjectStore();
+const router = useRouter();
 const path = ref("");
 const context = ref("");
 const targets = ref([]);
 const glossary = ref([]);
+const glossaryDraft = ref("");
+const checking = ref(false);
 
 const display = new Intl.DisplayNames(undefined, { type: "language" });
 const languageOptions = computed(() =>
@@ -24,141 +25,198 @@ const languageOptions = computed(() =>
     let label = code;
     try { label = `${display.of(code)} (${code})`; } catch { /* raw code */ }
     return { label, value: code };
-  })
+  }),
 );
 
 onMounted(async () => {
+  // Prefill from the loaded project — but never check the path for you.
   await project.refresh();
-  if (project.loaded && project.source) {
-    path.value = project.source;
-    await inspect();
+  if (project.loaded) {
+    path.value = project.source ?? "";
     targets.value = [...project.langs];
+    context.value = project.context ?? "";
+    glossary.value = [...project.glossary];
   }
 });
 
-async function inspect() {
-  const plan = await project.inspectPath(path.value);
-  if (plan) {
+async function check() {
+  checking.value = true;
+  try {
+    const plan = await project.inspectPath(path.value);
     // Existing locale files are FACTS about the folder, offered — not pre-decided.
-    if (!targets.value.length) targets.value = plan.locales.map((l) => l.code);
+    if (plan && !targets.value.length) targets.value = plan.locales.map((l) => l.code);
+  } finally {
+    checking.value = false;
   }
 }
 
-function toggleCandidate(word, on) {
-  glossary.value = on
-    ? [...new Set([...glossary.value, word])]
-    : glossary.value.filter((w) => w !== word);
+function addGlossary(word) {
+  const w = (word ?? glossaryDraft.value).trim();
+  if (w && !glossary.value.includes(w)) glossary.value = [...glossary.value, w];
+  glossaryDraft.value = "";
+}
+function dropGlossary(word) {
+  glossary.value = glossary.value.filter((x) => x !== word);
 }
 
 async function save() {
-  await project.save({
-    path: path.value, targets: targets.value,
-    context: context.value, glossary: glossary.value,
-  });
-  pushToast({ kind: "success", title: "Project saved", description: "The workspace is live." });
+  try {
+    await project.save({
+      path: path.value, targets: targets.value,
+      context: context.value, glossary: glossary.value,
+    });
+    pushToast({ kind: "success", title: "Project saved", description: "The dashboard is live." });
+    router.push("/");
+  } catch (e) {
+    pushToast({ kind: "error", title: "Could not save", description: String(e?.message || e) });
+  }
 }
 </script>
 
 <template>
-  <div>
-    <div class="card">
-      <h2>Point at your catalogue</h2>
-      <p class="hint">
-        The path to your source locale file (usually en.json). Its folder is the locale
-        folder and its name is the source language — one fact, nothing to disagree with.
-      </p>
-      <div class="row">
-        <UiInput v-model="path" placeholder="E:\\your-app\\src\\i18n\\locales\\en.json"
-                 width="path" @keydown.enter="inspect" />
-        <UiButton intent="secondary" label="Inspect" @click="inspect" />
+  <div class="setup">
+    <header class="page-head">
+      <div>
+        <h1>Setup</h1>
+        <p class="page-sub">Point the tool at your app's catalogue. Nothing here runs an engine.</p>
       </div>
-      <p v-if="project.inspectError" class="mono" style="color: var(--danger)">
-        {{ project.inspectError }}
-      </p>
-    </div>
+      <span class="spacer" />
+      <span v-if="project.loaded" class="mono muted">{{ project.configPath }}</span>
+    </header>
 
-    <template v-if="project.inspect">
-      <div class="card">
-        <h2>What the tool understood</h2>
+    <div class="setup__grid">
+      <section class="card">
+        <h2>Catalogue path</h2>
         <p class="hint">
-          Seeing this is what proves the path is right before an hour of engine time
-          proves it was not.
+          The path to your source locale file (usually en.json). Its folder is the locale
+          folder and its name is the source language — one fact, nothing to disagree with.
         </p>
-        <table class="plain">
+        <div class="row">
+          <UiInput
+            v-model="path" width="path"
+            placeholder="E:\your-app\src\i18n\locales\en.json"
+            @keydown.enter="check"
+          />
+          <UiButton
+            intent="secondary" :label="checking ? 'Checking…' : 'Check path'"
+            :disabled="checking || !path.trim()" @click="check"
+          />
+        </div>
+        <p v-if="project.inspectError" class="mono setup__error">{{ project.inspectError }}</p>
+
+        <table class="plain" style="margin-top: 12px">
           <tbody>
-            <tr><th>Keys</th><td>{{ project.inspect.keyCount }}</td></tr>
-            <tr><th>Source language</th><td class="mono">{{ project.inspect.sourceLanguage }}</td></tr>
+            <tr>
+              <th>Keys</th>
+              <td>{{ project.inspect ? project.inspect.keyCount : "—" }}</td>
+            </tr>
+            <tr>
+              <th>Source language</th>
+              <td class="mono">{{ project.inspect ? project.inspect.sourceLanguage : "—" }}</td>
+            </tr>
             <tr>
               <th>Placeholders</th>
-              <td class="mono">{{ project.inspect.placeholder.prefix }}…{{ project.inspect.placeholder.suffix }}</td>
+              <td class="mono">
+                {{ project.inspect
+                  ? `${project.inspect.placeholder.prefix}…${project.inspect.placeholder.suffix}` : "—" }}
+              </td>
             </tr>
             <tr>
               <th>Plural separator</th>
-              <td class="mono">{{ project.inspect.pluralSeparator ?? "none" }}</td>
+              <td class="mono">{{ project.inspect ? (project.inspect.pluralSeparator ?? "none") : "—" }}</td>
             </tr>
-            <tr v-for="l in project.inspect.locales" :key="l.code">
+            <tr v-for="l in project.inspect?.locales ?? []" :key="l.code">
               <th>{{ l.code }}.json</th>
               <td>{{ l.done }}/{{ l.total }} translated, {{ l.missing }} missing</td>
             </tr>
           </tbody>
         </table>
-      </div>
+        <p v-if="!project.inspect" class="hint" style="margin: 8px 0 0">
+          Press <b>Check path</b> and the tool reports what it found — the part that
+          catches a wrong path before an hour of engine time does.
+        </p>
+      </section>
 
-      <div class="card">
+      <section class="card">
         <h2>Target languages</h2>
-        <p class="hint">Which languages to translate into. Existing files are offered, never pre-decided.</p>
-        <UiMultiSelect v-model="targets" :options="languageOptions"
-                       placeholder="Pick target languages…" width="prose" />
-      </div>
+        <p class="hint">Which languages to translate into. Existing files are offered after a check, never pre-decided.</p>
+        <UiMultiSelect
+          v-model="targets" :options="languageOptions"
+          placeholder="Pick target languages…" width="prose"
+        />
+      </section>
 
-      <div class="card">
+      <section class="card">
         <h2>Context</h2>
         <p class="hint">One sentence about the app — the one thing only you know.</p>
-        <UiInput v-model="context" width="prose"
-                 placeholder="e.g. JustWrite, a desktop app for writing novels" />
-      </div>
+        <UiInput
+          v-model="context" width="prose"
+          placeholder="e.g. JustWrite, a desktop app for writing novels"
+        />
+      </section>
 
-      <div class="card">
-        <h2>Glossary candidates</h2>
+      <section class="card">
+        <h2>Glossary — never translate these</h2>
         <p class="hint">
-          Words that recur capitalised mid-sentence. SUGGESTIONS ONLY — every glossary
-          term is also a blanket "never translate this", and on a real catalogue one
-          wrong term turned 48 correct translations into findings. Tick what is truly a
-          brand or product name.
+          A term here is a BLANKET rule for every string. On a real catalogue one wrong
+          term turned 48 correct translations into findings — add only true brand and
+          product names. A word that is a label in one string and prose in another
+          belongs in review acceptances, not here.
         </p>
-        <div class="row">
-          <UiCheckbox
-            v-for="w in project.inspect.candidates" :key="w"
-            :model-value="glossary.includes(w)" :label="w"
-            @update:model-value="(on) => toggleCandidate(w, on)"
+        <div class="row" v-if="glossary.length" style="margin-bottom: 8px">
+          <UiChip
+            v-for="w in glossary" :key="w" :label="`${w} ✕`"
+            :title="`Remove ${w}`" @click="dropGlossary(w)"
           />
-          <span v-if="!project.inspect.candidates.length" class="muted">none suggested</span>
         </div>
-      </div>
+        <div class="row">
+          <UiInput
+            v-model="glossaryDraft" width="name" placeholder="add a term…"
+            @keydown.enter="addGlossary()"
+          />
+          <UiButton intent="ghost" label="Add" :disabled="!glossaryDraft.trim()" @click="addGlossary()" />
+        </div>
+        <template v-if="project.inspect?.candidates?.length">
+          <p class="hint" style="margin: 12px 0 6px">
+            Suggested from your catalogue (words recurring capitalised mid-sentence) — tick to add:
+          </p>
+          <div class="row">
+            <UiCheckbox
+              v-for="w in project.inspect.candidates" :key="w"
+              :model-value="glossary.includes(w)" :label="w"
+              @update:model-value="(on) => (on ? addGlossary(w) : dropGlossary(w))"
+            />
+          </div>
+        </template>
+        <p v-else-if="project.inspect" class="hint" style="margin: 12px 0 0">No candidates suggested.</p>
+      </section>
 
-      <div class="card">
+      <section class="card">
         <h2>Reviewer</h2>
         <p class="hint">
           Your name, stamped on every acceptance — so a verdict can say who made it.
           Never taken from the OS.
         </p>
-        <div class="row">
-          <UiInput :model-value="project.reviewer || ''" width="name" placeholder="your name"
-                   @update:model-value="(v) => project.setReviewer(v)" />
-        </div>
-      </div>
+        <UiInput
+          :model-value="project.reviewer || ''" width="name" placeholder="your name"
+          @update:model-value="(v) => project.setReviewer(v)"
+        />
+      </section>
 
-      <div class="row">
-        <UiButton intent="primary" :label="project.saving ? 'Saving…' : 'Save project'"
-                  :disabled="project.saving || !targets.length" @click="save" />
-        <span v-if="project.loaded" class="muted mono">{{ project.configPath }}</span>
-      </div>
-
-      <div class="card" style="margin-top: 16px">
-        <h2>Add to your app's .gitignore</h2>
+      <section class="card">
+        <h2>Your app's .gitignore</h2>
         <p class="hint">Workshop files a re-run rebuilds. Your decisions (config, accepted, notes) stay committed.</p>
-        <pre class="mono" style="margin: 0">{{ project.inspect.gitignore.join("\n") }}</pre>
-      </div>
-    </template>
+        <pre v-if="project.inspect" class="mono setup__pre">{{ project.inspect.gitignore.join("\n") }}</pre>
+        <p v-else class="hint" style="margin: 0">Shown after a path check.</p>
+      </section>
+    </div>
+
+    <div class="setup__actions">
+      <UiButton
+        intent="primary" :label="project.saving ? 'Saving…' : 'Save project'"
+        :disabled="project.saving || !path.trim() || !targets.length" @click="save"
+      />
+      <span class="hint" style="margin: 0">Saving writes config.json beside your locales and loads it — no restart.</span>
+    </div>
   </div>
 </template>

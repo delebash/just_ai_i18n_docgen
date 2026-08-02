@@ -49,3 +49,13 @@ def test_the_runner_cache_lands_in_the_app_data_dir(client, tmp_path):
     # The delete-the-app-delete-the-weights guarantee: data_dir was passed, so the
     # runner's cache root is inside it, not in ~/.cache.
     assert str(lifecycle.get_service().cache_root) == str(tmp_path / "ai-cache")
+
+
+def test_a_browser_origin_gets_cors_headers(client):
+    """Vite dev (:1420) hits :8742 DIRECTLY (the kit's origin-aware resolver), so
+    without CORSMiddleware every browser dev request dies as a silent block.
+    Found live 2026-08-02 — TestClient is same-origin, which is why only an
+    explicit Origin header can make a test see it."""
+    r = client.get("/v1/setup/state", headers={"Origin": "http://localhost:1420"})
+    assert r.status_code == 200
+    assert r.headers.get("access-control-allow-origin") == "*"

@@ -2,9 +2,9 @@
 /* just-ai-i18n-docgen tokens — the kit's token contract, retuned.
    Contract reference: @delebash/llm-ui common/tokens.contract.css. */
 :root {
-  --accent: #3a6ea5;
-  --accent-soft: #e7eef7;
-  --accent-ink: #2a5680;
+  --accent: #4f46e5;
+  --accent-soft: #eef0fe;
+  --accent-ink: #4338ca;
   --on-accent: #fff;
   --ink: #1a1a1a;
   --ink-2: #4a4a4a;
@@ -36,9 +36,9 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --accent: #6ba3d6;
-    --accent-soft: #22303e;
-    --accent-ink: #9cc4e8;
+    --accent: #818cf8;
+    --accent-soft: #272a44;
+    --accent-ink: #a5b0fa;
     --ink: #e6e6e6;
     --ink-2: #b8b8b8;
     --ink-3: #8a8a8a;

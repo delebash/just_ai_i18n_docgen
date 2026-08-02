@@ -6,18 +6,22 @@
 // signs off, and a suggestion is shown, never applied by anyone but you.
 import { computed, onMounted, ref, watch } from "vue";
 import { UiButton, UiSelect, pushToast } from "@delebash/llm-ui";
+import { useRoute } from "vue-router";
 import { useProjectStore } from "../stores/project";
 import { useReviewStore } from "../stores/review";
 
 const project = useProjectStore();
 const review = useReviewStore();
+const route = useRoute();
 const draft = ref("");
 const noteDraft = ref("");
 const filter = ref(null);
 
 onMounted(async () => {
   await project.refresh();
-  await review.refresh(project.langs[0] ?? null);
+  // The dashboard's row click lands here with ?lang= — honour it.
+  const wanted = typeof route.query.lang === "string" ? route.query.lang : null;
+  await review.refresh(wanted ?? review.lang ?? project.langs[0] ?? null);
 });
 
 watch(() => review.activeRow, (row) => {

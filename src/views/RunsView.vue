@@ -13,7 +13,7 @@ import { useProjectStore } from "../stores/project";
 const project = useProjectStore();
 const jobs = useJobsStore();
 const lang = ref(null);
-const scope = ref("flagged");
+const scope = ref("pending");
 
 onMounted(async () => {
   await project.refresh();
@@ -41,13 +41,13 @@ async function start() {
     <div class="card">
       <h2>Start a run</h2>
       <p class="hint">
-        A run stages proposals — it NEVER writes your locale files. flagged = every key
-        the checks or the probe flagged · unsure = probe disagreements only · all = the
-        whole catalogue.
+        A run stages proposals — it NEVER writes your locale files. pending = missing +
+        flagged (the dashboard's button) · flagged = every key the checks or the probe
+        flagged · unsure = probe disagreements only · all = the whole catalogue.
       </p>
       <div class="row">
         <UiSelect v-model="lang" :options="project.langs" width="token" />
-        <UiSelect v-model="scope" :options="['flagged', 'unsure', 'all']" width="token" />
+        <UiSelect v-model="scope" :options="['pending', 'flagged', 'unsure', 'all']" width="token" />
         <UiButton intent="primary" :label="jobs.starting ? 'Starting…' : 'Translate'"
                   :disabled="running || jobs.starting || !lang" @click="start" />
         <UiButton v-if="running" intent="danger-outline" label="Cancel (keeps staged work)"
