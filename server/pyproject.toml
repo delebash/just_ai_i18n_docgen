@@ -49,3 +49,8 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+[tool.ruff.lint.per-file-ignores]
+# FLY002 wants `"\n".join(["---", "lede: x", …])` rewritten as an f-string; for the
+# extract tests those joined line-lists ARE the readable form of a fixture doc.
+"tests/*" = ["FLY002"]

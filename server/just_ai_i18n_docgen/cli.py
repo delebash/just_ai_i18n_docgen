@@ -11,6 +11,8 @@ never drift between doors.
                                                          Run this before you ship.
     just-ai-i18n-docgen escalate config.json <preset-id> re-do ONLY flagged keys
     just-ai-i18n-docgen accept config.json k1,k2 --by me record findings as reviewed-correct
+    just-ai-i18n-docgen extract config.json              docs front-matter -> locale keys
+    just-ai-i18n-docgen extract config.json --check      fail if stale, write nothing
 """
 
 from __future__ import annotations
@@ -45,6 +47,11 @@ def main(argv: list[str] | None = None) -> int:
     p_ac.add_argument("--by", default=os.environ.get("JAH_REVIEWER", ""),
                       help="who is signing these off (or set JAH_REVIEWER)")
 
+    p_ex = sub.add_parser("extract", help="docs front-matter -> locale keys in the source file")
+    p_ex.add_argument("config")
+    p_ex.add_argument("--check", action="store_true",
+                      help="fail if the locale is stale against the docs; write nothing")
+
     args = ap.parse_args(argv)
 
     from .service import Project, accept_keys, run_check, run_escalate, run_translate
@@ -74,6 +81,12 @@ def main(argv: list[str] | None = None) -> int:
         keys = [k.strip() for k in args.keys.split(",") if k.strip()]
         accept_keys(project, keys, by=args.by)
         return 0
+
+    if args.command == "extract":
+        from .extract import run_extract
+
+        result = run_extract(project, check=args.check)
+        return 1 if result["stale"] else 0
 
     return 2  # unreachable: subparsers are required
 
