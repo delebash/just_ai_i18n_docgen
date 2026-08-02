@@ -102,5 +102,5 @@ def acceptance_entry(*, key: str, code: str, src: str, dst: str,
         "src": src,
         "dst": dst,
         "by": by or UNKNOWN_REVIEWER,
-        "at": at or _dt.date.today().isoformat(),
+        "at": at or _dt.datetime.now(tz=_dt.timezone.utc).date().isoformat(),
     }
