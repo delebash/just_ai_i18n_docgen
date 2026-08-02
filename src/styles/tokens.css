@@ -1,0 +1,60 @@
+/* SPDX-License-Identifier: MIT */
+/* just-ai-i18n-docgen tokens — the kit's token contract, retuned.
+   Contract reference: @delebash/llm-ui common/tokens.contract.css. */
+:root {
+  --accent: #3a6ea5;
+  --accent-soft: #e7eef7;
+  --accent-ink: #2a5680;
+  --on-accent: #fff;
+  --ink: #1a1a1a;
+  --ink-2: #4a4a4a;
+  --ink-3: #777;
+  --muted: #888;
+  --surface: #fff;
+  --surface-2: #f7f8fa;
+  --surface-3: #eff1f4;
+  --border: #e2e4e8;
+  --border-strong: #c9ccd3;
+  --line: var(--border);
+  --danger: #a8442e;
+  --danger-bg: #fbecea;
+  --success: #3a7d63;
+  --success-bg: #e8f0eb;
+  --info: #2f74b5;
+  --info-bg: #e8f0f8;
+  --warn-bg: #f8f2e2;
+  --gold: #c89a3a;
+  --r-sm: 6px;
+  --btn-radius: 8px;
+  --font-ui: system-ui, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --w-num: 84px; --w-token: 110px; --w-id: 180px; --w-name: 280px;
+  --w-url: 360px; --w-path: 480px; --w-prose: 640px; --w-edit: 880px;
+  --tag-border-width: 0;
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, .14);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent: #6ba3d6;
+    --accent-soft: #22303e;
+    --accent-ink: #9cc4e8;
+    --ink: #e6e6e6;
+    --ink-2: #b8b8b8;
+    --ink-3: #8a8a8a;
+    --muted: #7d7d7d;
+    --surface: #1d2126;
+    --surface-2: #22272d;
+    --surface-3: #2a3038;
+    --border: #343a42;
+    --border-strong: #4a515b;
+    --danger: #d06a53;
+    --danger-bg: #3a2622;
+    --success: #5aa886;
+    --success-bg: #223129;
+    --info: #6ba3d6;
+    --info-bg: #202c38;
+    --warn-bg: #38311f;
+    --shadow-2: 0 8px 24px rgba(0, 0, 0, .5);
+  }
+}

@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# committed dist: the server serves it headless and users need no npm install —
+# the family pattern. node_modules stays out.

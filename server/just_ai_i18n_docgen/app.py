@@ -128,4 +128,14 @@ def create_app(data_dir: Path | None = None,
     app.include_router(make_workspace_router(workspace))
     app.state.workspace = workspace  # the test/CLI handle, follows a later setup-load
 
+    # Headless UI — serve the Vite build so `just-ai-i18n-docgen-server` + a browser
+    # gives the full app WITHOUT the Tauri shell (the kit's origin-aware serverApi
+    # targets window.location.origin). Uniform with JW/JV. Mounted LAST so every
+    # /api/* and /v1/* route wins first.
+    dist = Path(__file__).resolve().parent.parent.parent / "dist"
+    if dist.is_dir():
+        from fastapi.staticfiles import StaticFiles
+
+        app.mount("/", StaticFiles(directory=dist, html=True), name="ui")
+
     return app

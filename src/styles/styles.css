@@ -1,0 +1,76 @@
+/* SPDX-License-Identifier: MIT */
+/* App shell — the family rules: a height:100% chain (NEVER 100vh), one scroller
+   per area. The kit ships control styles; this file owns layout + app surfaces. */
+
+* { box-sizing: border-box; }
+html, body, #app { height: 100%; margin: 0; }
+body {
+  font: 14px/1.5 var(--font-ui);
+  color: var(--ink);
+  background: var(--surface-2);
+}
+
+.shell { display: flex; height: 100%; }
+.shell-nav {
+  width: 180px; flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 12px 8px;
+  background: var(--surface); border-right: 1px solid var(--border);
+}
+.shell-brand { font-weight: 700; font-size: 13px; padding: 4px 10px 12px; color: var(--ink-2); }
+.shell-nav a {
+  display: block; padding: 7px 10px; border-radius: var(--r-sm);
+  color: var(--ink-2); text-decoration: none; font-weight: 500;
+}
+.shell-nav a:hover { background: var(--surface-3); }
+.shell-nav a.router-link-active { background: var(--accent-soft); color: var(--accent-ink); }
+.shell-main { flex: 1; min-width: 0; overflow-y: auto; padding: 20px 24px; }
+
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px; margin-bottom: 16px;
+}
+.card h2 { margin: 0 0 4px; font-size: 15px; }
+.card .hint { color: var(--muted); font-size: 12.5px; margin: 0 0 12px; }
+.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.grid { display: grid; gap: 12px; }
+.mono { font-family: var(--font-mono); font-size: 12.5px; }
+.muted { color: var(--muted); }
+.spacer { flex: 1; }
+
+/* Review: two panes, each its own scroller. */
+.review { display: flex; gap: 16px; height: 100%; min-height: 0; }
+.review-list { width: 380px; flex-shrink: 0; display: flex; flex-direction: column; min-height: 0; }
+.review-rows { flex: 1; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.review-detail { flex: 1; min-width: 0; overflow-y: auto; }
+.rowitem {
+  padding: 8px 12px; border-bottom: 1px solid var(--border); cursor: pointer;
+}
+.rowitem:hover { background: var(--surface-2); }
+.rowitem.active { background: var(--accent-soft); }
+.rowitem .key { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-2); }
+.rowitem .src { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.flagchips { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 3px; }
+.flagchip {
+  font-size: 10.5px; padding: 1px 7px; border-radius: 99px;
+  background: var(--danger-bg); color: var(--danger); font-weight: 600;
+}
+.flagchip.advisory { background: var(--info-bg); color: var(--info); }
+.flagchip.confirmed { background: var(--success-bg); color: var(--success); }
+
+.detail-text { width: 100%; min-height: 70px; font: 13.5px/1.5 var(--font-ui);
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--r-sm);
+  background: var(--surface); color: var(--ink); resize: vertical; }
+.finding { padding: 8px 10px; border-left: 3px solid var(--danger); background: var(--surface-2);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0; margin-bottom: 6px; font-size: 12.5px; }
+.finding.advisory { border-left-color: var(--info); }
+.finding .code { font-weight: 700; margin-right: 6px; }
+.sib { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 4px 0;
+  border-bottom: 1px dashed var(--border); font-size: 12.5px; }
+
+.progressbar { height: 6px; background: var(--surface-3); border-radius: 3px; overflow: hidden; }
+.progressbar > div { height: 100%; background: var(--accent); transition: width .3s; }
+
+table.plain { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.plain th, table.plain td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+table.plain th { color: var(--muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; }
