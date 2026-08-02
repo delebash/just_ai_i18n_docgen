@@ -25,3 +25,6 @@ dist-ssr
 
 # committed dist: the server serves it headless and users need no npm install —
 # the family pattern. node_modules stays out.
+
+# brainstorming companion workshop (session-local, never shipped)
+.superpowers/
