@@ -65,13 +65,19 @@ def resolve_engine(feature: str = "translate", preset_id: str | None = None):
     return adapter, preset
 
 
-def structured_extra(provider_type: str) -> dict:
-    """The structured-output knob, shaped per provider family — the same fork the Node
-    `buildRequest` had, now expressed as ONE `extra` dict the shared adapter routes:
-    Ollama's native endpoint takes the schema in `format`; every OpenAI-shaped endpoint
-    (llama-server, cloud compat) takes `response_format.json_schema`."""
-    if provider_type == "ollama":
-        return {"format": RESPONSE_SCHEMA}
+def structured_extra(provider_type: str = "") -> dict:
+    """The structured-output knob — ONE shape for every provider: OpenAI-style
+    `response_format.json_schema`. The ADAPTERS own the per-provider translation
+    (Ollama's converts it to its native `format` field itself).
+
+    This function used to fork per provider like the Node `buildRequest` did — and the
+    live E2E (2026-08-02) proved that wrong in one run: the hand-built raw `format` key
+    fell into the Ollama adapter's sampling-params branch, landed inside `options`
+    where Ollama ignores it, and the model freestyled non-schema JSON — 15 requests, 6
+    keys exhausted, exit 1 (correctly loud). The fork was not just unnecessary, it
+    DEFEATED the adapter's own routing. `provider_type` is kept for signature
+    stability and deliberately unused."""
+    del provider_type
     return {
         "response_format": {
             "type": "json_schema",

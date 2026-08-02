@@ -86,31 +86,56 @@ def default_data_dir() -> Path:
     return Path(user_data_dir("just-ai-i18n-docgen", appauthor=False))
 
 
-def create_app(data_dir: Path | None = None,
-               config_path: str | Path | None = None) -> FastAPI:
+def boot_llm_stack(data_dir: Path | None = None, app: FastAPI | None = None) -> Path:
+    """The stack WITHOUT the routes — storage, seed, registry, the app's own table.
+
+    Split from create_app because the CLI needs it too: `make_send` resolves presets
+    through the shared stores, which do not exist until storage is configured. The CLI
+    calling service functions with no boot died at "LLM storage not configured" — found
+    by the E2E, exactly the class of gap it exists to find. When `app` is given, the
+    routers are mounted as well (create_app's path)."""
     data_dir = Path(data_dir) if data_dir else default_data_dir()
     data_dir.mkdir(parents=True, exist_ok=True)
 
     engine = create_engine(f"sqlite:///{data_dir / 'app.db'}")
     session_factory = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
-    app = FastAPI(title=PRODUCT, version="0.1.0")
+    if app is not None:
+        # The standard (just-llm-runner README, "Consume it"): the host mounts the
+        # runner's process API, install_llm mounts the rest — JW's exact order.
+        app.include_router(llm_runner.router)
+        install_llm(
+            app,
+            engine=engine,
+            session_factory=session_factory,
+            feature_catalog=FEATURE_CATALOG,
+            feature_prompts={},  # prompts are OURS — see the module docstring
+            engine_presets=DEFAULT_ENGINE_PRESETS,
+            feature_presets=DEFAULT_FEATURE_PRESETS,
+            default_preset_id=DEFAULT_PRESET_ID,
+            data_dir=data_dir,
+        )
+    else:
+        # Routeless boot: same wiring minus FastAPI (the CLI door). One code path for
+        # the DB/seed halves either way — install_llm's own storage steps, inlined per
+        # its contract: configure, create, register app data, wire the runner catalog.
+        from llm_runner.llm import db as _db
+        from llm_runner.llm import seed as _seed
+        from llm_runner.llm.install import _wire_runner_catalog
+        from llm_runner.llm.usage import set_ledger
+        from llm_runner.llm.usage_sink import DbUsageSink
 
-    # The standard (just-llm-runner README, "Consume it"): the host mounts the runner's
-    # process API, install_llm mounts the rest, seed_llm fills the defaults, and the
-    # registry boots from the DB store — JW's exact order.
-    app.include_router(llm_runner.router)
-    install_llm(
-        app,
-        engine=engine,
-        session_factory=session_factory,
-        feature_catalog=FEATURE_CATALOG,
-        feature_prompts={},  # prompts are OURS — see the module docstring
-        engine_presets=DEFAULT_ENGINE_PRESETS,
-        feature_presets=DEFAULT_FEATURE_PRESETS,
-        default_preset_id=DEFAULT_PRESET_ID,
-        data_dir=data_dir,
-    )
+        _db.configure_storage(session_factory)
+        _db.create_all(engine)
+        _seed.configure_app_seed(
+            feature_catalog=FEATURE_CATALOG, feature_prompts={},
+            engine_presets=DEFAULT_ENGINE_PRESETS,
+            feature_presets=DEFAULT_FEATURE_PRESETS,
+            default_preset_id=DEFAULT_PRESET_ID,
+        )
+        set_ledger(DbUsageSink())
+        _wire_runner_catalog(data_dir)
+
     seed_llm()
     load_from_configs(stores.get_provider_store().list())
 
@@ -119,6 +144,13 @@ def create_app(data_dir: Path | None = None,
     from .appmeta import configure_app_storage
 
     configure_app_storage(session_factory, engine)
+    return data_dir
+
+
+def create_app(data_dir: Path | None = None,
+               config_path: str | Path | None = None) -> FastAPI:
+    app = FastAPI(title=PRODUCT, version="0.1.0")
+    boot_llm_stack(data_dir, app=app)
 
     # The review workspace: starts with NO project (the setup screen creates one);
     # `config_path` pre-loads one for the CLI / a configured desktop launch.

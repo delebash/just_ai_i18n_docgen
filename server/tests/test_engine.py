@@ -77,13 +77,17 @@ def test_send_carries_the_seeded_preset_to_the_adapter(wired):
     assert call["extra"]["response_format"]["json_schema"]["schema"]["required"] == ["items"]
 
 
-def test_structured_output_forks_per_provider_family():
-    # The same fork the Node buildRequest had: Ollama native takes `format`,
-    # every OpenAI-shaped endpoint takes `response_format`.
-    assert "format" in structured_extra("ollama")
-    assert "response_format" not in structured_extra("ollama")
-    for t in ("local-llamacpp", "openai-compat", "openai", "gemini"):
-        assert "response_format" in structured_extra(t), t
+def test_structured_output_is_one_shape_the_adapters_translate():
+    # ONE OpenAI-style response_format for every provider — the adapters own the
+    # per-provider translation (Ollama's converts it to `format` itself). The old
+    # per-provider fork here put a raw `format` key into the adapter's sampling-params
+    # branch, where it landed in `options` and Ollama ignored it — found LIVE by the
+    # first real E2E run: 6 of 6 keys exhausted every retry.
+    for t in ("ollama", "local-llamacpp", "openai-compat", "openai", "gemini"):
+        extra = structured_extra(t)
+        assert "response_format" in extra, t
+        assert "format" not in extra, t
+        assert extra["response_format"]["json_schema"]["schema"]["required"] == ["items"]
 
 
 def test_empty_engine_reply_fails_loudly_naming_the_think_toggle(wired):

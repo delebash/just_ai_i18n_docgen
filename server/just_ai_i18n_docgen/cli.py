@@ -52,7 +52,16 @@ def main(argv: list[str] | None = None) -> int:
     p_ex.add_argument("--check", action="store_true",
                       help="fail if the locale is stale against the docs; write nothing")
 
+    ap.add_argument("--data-dir", default=None,
+                    help="the app data dir (providers/presets DB); default: the OS one")
+
     args = ap.parse_args(argv)
+
+    # The CLI door boots the SAME stack the server does — make_send resolves presets
+    # through the shared stores, which do not exist until storage is configured.
+    from .app import boot_llm_stack
+
+    boot_llm_stack(args.data_dir)
 
     from .service import Project, accept_keys, run_check, run_escalate, run_translate
 
