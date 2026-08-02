@@ -4,9 +4,14 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
+    "dev": "tauri dev",
+    "dev:vite": "vite",
+    "build": "tauri build",
+    "build:vite": "vite build",
+    "preview:vite": "vite preview",
+    "server": "cd server && node ../scripts/py.js -m just_ai_i18n_docgen.serve serve",
+    "test:server": "cd server && node ../scripts/py.js -m pytest -q",
+    "lint": "biome check src",
     "tauri": "tauri"
   },
   "dependencies": {
@@ -25,6 +30,7 @@
   "devDependencies": {
     "@tauri-apps/cli": "^2",
     "@vitejs/plugin-vue": "^5.2.1",
-    "vite": "^6.0.3"
+    "vite": "^6.0.3",
+    "@biomejs/biome": "^2.4.0"
   }
 }

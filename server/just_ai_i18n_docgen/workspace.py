@@ -192,7 +192,9 @@ class Workspace:
 
 
 def make_workspace_router(ws: Workspace) -> APIRouter:
-    router = APIRouter(tags=["workspace"], prefix="/api")
+    # /v1 like every family route — JW and JV put their OWN app routes under /v1
+    # beside the shared stack's; /api was a Node-era habit, corrected 2026-08-02.
+    router = APIRouter(tags=["workspace"], prefix="/v1")
 
     def project() -> Project:
         if ws.project is None:

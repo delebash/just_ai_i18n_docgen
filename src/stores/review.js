@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// The review queue — rows from /api/rows, mutations through the endpoints that carry
+// The review queue — rows from /v1/rows, mutations through the endpoints that carry
 // the design's promises (bulk accept = one undo; unaccept can revisit; save re-checks).
 import { defineStore } from "pinia";
 import { del, get, post, put, safeRequest } from "@delebash/llm-ui";
@@ -23,7 +23,7 @@ export const useReviewStore = defineStore("review", {
       this.loading = true;
       try {
         const body = await safeRequest(
-          lang ? `/api/rows?lang=${encodeURIComponent(lang)}` : "/api/rows", null);
+          lang ? `/v1/rows?lang=${encodeURIComponent(lang)}` : "/v1/rows", null);
         if (!body) return;
         this.rows = body.rows;
         this.counts = body.counts;
@@ -40,49 +40,49 @@ export const useReviewStore = defineStore("review", {
       if (!row) return;
       this.detail = { siblings: [], reference: null, english: null };
       const sib = await safeRequest(
-        `/api/siblings?lang=${row.lang}&key=${encodeURIComponent(key)}`, null);
+        `/v1/siblings?lang=${row.lang}&key=${encodeURIComponent(key)}`, null);
       if (sib && this.activeKey === key) this.detail.siblings = sib.siblings;
     },
     async save(row, value) {
-      const out = await post("/api/save", { lang: row.lang, key: row.key, value });
+      const out = await post("/v1/save", { lang: row.lang, key: row.key, value });
       await this.refresh();
       return out;
     },
     async accept(row) {
-      await post("/api/accept", { lang: row.lang, keys: [row.key] });
+      await post("/v1/accept", { lang: row.lang, keys: [row.key] });
       await this.refresh();
     },
     async acceptMany(lang, keys) {
-      const out = await post("/api/accept", { lang, keys });
+      const out = await post("/v1/accept", { lang, keys });
       await this.refresh();
       return out;
     },
     async unaccept(lang, key) {
-      await del("/api/accept", {
+      await del("/v1/accept", {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lang, key }),
       });
       await this.refresh();
     },
     async undo() {
-      await post("/api/undo", {});
+      await post("/v1/undo", {});
       await this.refresh();
     },
     async setNote(row, note) {
-      await put("/api/notes", { lang: row.lang, key: row.key, note });
+      await put("/v1/notes", { lang: row.lang, key: row.key, note });
       await this.refresh();
     },
     async backtranslate(row) {
-      const out = await post("/api/backtranslate", { lang: row.lang, key: row.key });
+      const out = await post("/v1/backtranslate", { lang: row.lang, key: row.key });
       if (this.detail && this.activeKey === row.key) this.detail.english = out.english;
       return out;
     },
     async applyProposal(row) {
-      await post("/api/proposals/apply", { lang: row.lang, keys: [row.key] });
+      await post("/v1/proposals/apply", { lang: row.lang, keys: [row.key] });
       await this.refresh();
     },
     async state() {
-      return get("/api/state");
+      return get("/v1/state");
     },
   },
 });

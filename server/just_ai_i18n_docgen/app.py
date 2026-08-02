@@ -83,6 +83,14 @@ DEFAULT_PRESET_ID: str = "p_translate"
 
 
 def default_data_dir() -> Path:
+    """JW parity: the desktop shell resolves the (portable) data root and hands it to
+    the server via the env var — same contract as JUSTWRITE_DATA_DIR. A CLI flag still
+    wins; the OS app-data dir is the no-shell fallback."""
+    import os
+
+    env = os.environ.get("JUST_AI_I18N_DOCGEN_DATA_DIR")
+    if env:
+        return Path(env)
     return Path(user_data_dir("just-ai-i18n-docgen", appauthor=False))
 
 
@@ -163,7 +171,7 @@ def create_app(data_dir: Path | None = None,
     # Headless UI — serve the Vite build so `just-ai-i18n-docgen-server` + a browser
     # gives the full app WITHOUT the Tauri shell (the kit's origin-aware serverApi
     # targets window.location.origin). Uniform with JW/JV. Mounted LAST so every
-    # /api/* and /v1/* route wins first.
+    # /v1/* route wins first.
     dist = Path(__file__).resolve().parent.parent.parent / "dist"
     if dist.is_dir():
         from fastapi.staticfiles import StaticFiles

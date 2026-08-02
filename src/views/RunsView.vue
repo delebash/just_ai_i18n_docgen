@@ -25,7 +25,7 @@ onUnmounted(() => jobs.unwatch());
 
 const running = computed(() => jobs.job?.state === "running");
 const pct = computed(() =>
-  jobs.job && jobs.job.total ? Math.round((jobs.job.done / jobs.job.total) * 100) : 0);
+  jobs.job?.total ? Math.round((jobs.job.done / jobs.job.total) * 100) : 0);
 
 async function start() {
   try {

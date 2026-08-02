@@ -1,0 +1,72 @@
+# just_ai_i18n_docgen
+
+Translate standard i18n JSON locale folders with a local or online AI engine, VERIFY
+every string that was written, and author help docs whose front-matter becomes locale
+keys — with a human review workspace where nothing ships unseen. The Python rewrite of
+`just-ai-help`, embedding `just-llm-runner` for everything engine-shaped.
+
+**The family structure standard lives in `../just-llm-runner/docs/app-structure.md` —
+read it before changing layout, scripts, ports, or the shell. This app is the standard's
+reference implementation.**
+
+## Commands
+
+```bash
+npm run dev            # THE APP — desktop window; spawns the Python server itself
+npm run dev:vite       # browser-only dev at :1420 (start the server yourself: npm run server)
+npm run server         # the Python server on :8742 (venv-resolved via scripts/py.js)
+npm run test:server    # pytest — 119 tests
+npm run build:vite     # the web build (committed dist/)
+npm run lint           # biome over src/
+cd server && .venv/Scripts/python -m ruff check just_ai_i18n_docgen tests
+
+# The CLI door (same service functions as the workspace — one resolver, two doors):
+server/.venv/Scripts/just-ai-i18n-docgen translate|check|escalate|accept|extract <config>
+```
+
+## What bites
+
+- **A job writes ONLY proposals.** The locale file is byte-identical when a run
+  finishes; applying is a human's click. One job at a time; cancel keeps staged work.
+- **The engine never signs off.** The confirmation pass PRE-TICKS rows in workshop
+  state; `<lang>.accepted.json` is the human record, hash-expiring over
+  (key, code, source, target), reviewer named — never the OS username.
+- **Shielding is a substitution, not an instruction** (`shieldlib.py`). A restored
+  string missing a token is a FAILURE routed to retry; keys are never silently
+  skipped — the exhausted ones are NAMED and the exit code is non-zero.
+- **One resolver.** `engine.make_send` resolves the feature's ENGINE PRESET (shared
+  DB, one-source: provider+model+temperature/think). Configs carry NO engine field.
+  The probe's temperature-0 guard reads the RESOLVED preset.
+- **Hand adapters the OpenAI `response_format` shape** — they own per-provider
+  translation. A hand-built `format` key was routed into Ollama's `options` and
+  ignored; found live, 6/6 keys exhausted (2026-08-02).
+- **Every path anchors to the CONFIG FILE**, never the cwd (`paths.py` — the
+  27-minute/464-key cache lesson). Committed per-project text: `config.json`,
+  `<lang>.accepted.json`, `<lang>.notes.json`. Workshop state: `.jah-state.json`
+  (atomic writes; a corrupt file costs state, never work).
+- **`install_llm` never gets a single-shared-connection test DB** — the backfill
+  daemon thread interleaves with seeding and silently rolls it back. File-backed
+  SQLite in tests.
+- **Everything is `/v1/*`** — app routes beside the shared stack's, the family
+  convention. `/api` was a Node-era habit, corrected 2026-08-02.
+- **`checks.py` carries the NUL-byte war story** — the separator is the four-char
+  escape `\x00`; a literal NUL made the JS original binary-to-git and then broke this
+  port's first write too. Python's compiler is the tripwire now.
+
+## Layout
+
+Per the standard: untouched create-tauri-app root (`index.html`, `src/`, `src-tauri/`),
+Python in `server/just_ai_i18n_docgen/` (flat — the user's explicit ruling), tests in
+`server/tests/`, kit consumed via the Vite alias to `../just-llm-runner/ui/src`.
+Port **8742** (JW 17495 · JV 8741). Data-dir env: `JUST_AI_I18N_DOCGEN_DATA_DIR`.
+
+## Where to look
+
+| For | Read |
+|---|---|
+| The family structure standard (layout/scripts/shell/ports) | `../just-llm-runner/docs/app-structure.md` |
+| Adopting the shared LLM stack | `../just-llm-runner/README.md` "Consume it" |
+| The measured evidence behind every check and rule | the Node original `../just-ai-help` (docs/HANDOFF.md; being retired) |
+| The review workspace API surface | `server/just_ai_i18n_docgen/workspace.py` |
+
+Read branch and working-tree state from git, never from a doc.

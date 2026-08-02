@@ -47,7 +47,7 @@ def client(tmp_path, monkeypatch):
 
 
 def test_state_reports_langs_progress_and_no_job(client):
-    s = client.get("/api/state").json()
+    s = client.get("/v1/state").json()
     assert s["langs"] == ["es"] and s["job"] is None
     assert s["progress"]["es"] == {"reviewed": 0, "skipped": 0}
 
@@ -59,7 +59,7 @@ def test_rows_carry_the_cognate_finding_and_missing_keys(client):
     del es["greet"]
     es_path.write_text(json.dumps(es), encoding="utf-8")
 
-    body = client.get("/api/rows").json()
+    body = client.get("/v1/rows").json()
     by_key = {r["key"]: r for r in body["rows"]}
     assert "untranslated" in [f["code"] for f in by_key["common.no"]["flags"]]
     assert by_key["greet"]["flags"][0]["code"] == "missing"
@@ -67,7 +67,7 @@ def test_rows_carry_the_cognate_finding_and_missing_keys(client):
 
 
 def test_save_writes_the_locale_rechecks_and_records_an_undoable_edit(client):
-    r = client.post("/api/save", json={"lang": "es", "key": "sidebar.books",
+    r = client.post("/v1/save", json={"lang": "es", "key": "sidebar.books",
                                        "value": "Los libros"})
     assert r.status_code == 200
     es = json.loads((client.config_path.parent.parent / "src" / "locales" / "es.json")
@@ -75,57 +75,57 @@ def test_save_writes_the_locale_rechecks_and_records_an_undoable_edit(client):
     assert es["sidebar"]["books"] == "Los libros"
 
     # Undo puts the previous value back.
-    client.post("/api/undo", json={})
+    client.post("/v1/undo", json={})
     es = json.loads((client.config_path.parent.parent / "src" / "locales" / "es.json")
                     .read_text(encoding="utf-8"))
     assert es["sidebar"]["books"] == "Libros"
 
 
 def test_save_to_an_unknown_key_is_404(client):
-    assert client.post("/api/save", json={"lang": "es", "key": "nope",
+    assert client.post("/v1/save", json={"lang": "es", "key": "nope",
                                           "value": "x"}).status_code == 404
 
 
 def test_bulk_accept_is_one_undo_and_unaccept_can_revisit(client):
-    r = client.post("/api/accept", json={"lang": "es", "keys": ["common.no"]})
+    r = client.post("/v1/accept", json={"lang": "es", "keys": ["common.no"]})
     assert r.status_code == 200 and r.json()["recorded"] == 1
-    assert client.get("/api/rows").json()["counts"].get("untranslated") is None
-    accepted = client.get("/api/accepted", params={"lang": "es"}).json()["entries"]
+    assert client.get("/v1/rows").json()["counts"].get("untranslated") is None
+    accepted = client.get("/v1/accepted", params={"lang": "es"}).json()["entries"]
     assert len(accepted) == 1
     # Unclaimed reviewer: the entry says "unknown" rather than borrowing a name.
     assert accepted[0]["by"] == "unknown"
 
     # Unaccept — the fix for the one-way complaint.
-    r = client.request("DELETE", "/api/accept", json={"lang": "es", "key": "common.no"})
+    r = client.request("DELETE", "/v1/accept", json={"lang": "es", "key": "common.no"})
     assert r.json()["removed"] == 1
-    assert client.get("/api/rows").json()["counts"]["untranslated"] == 1
+    assert client.get("/v1/rows").json()["counts"]["untranslated"] == 1
 
     # Undo the unaccept: the entries come back.
-    client.post("/api/undo", json={})
-    assert len(client.get("/api/accepted", params={"lang": "es"}).json()["entries"]) == 1
+    client.post("/v1/undo", json={})
+    assert len(client.get("/v1/accepted", params={"lang": "es"}).json()["entries"]) == 1
 
 
 def test_reviewer_is_stored_in_the_app_db_and_stamps_acceptances(client):
-    client.put("/api/reviewer", json={"reviewer": "dana"})
-    assert client.get("/api/reviewer").json()["reviewer"] == "dana"
-    client.post("/api/accept", json={"lang": "es", "keys": ["common.no"]})
-    entries = client.get("/api/accepted", params={"lang": "es"}).json()["entries"]
+    client.put("/v1/reviewer", json={"reviewer": "dana"})
+    assert client.get("/v1/reviewer").json()["reviewer"] == "dana"
+    client.post("/v1/accept", json={"lang": "es", "keys": ["common.no"]})
+    entries = client.get("/v1/accepted", params={"lang": "es"}).json()["entries"]
     assert entries[0]["by"] == "dana"
 
 
 def test_notes_roundtrip_and_undo(client):
-    client.put("/api/notes", json={"lang": "es", "key": "common.no",
+    client.put("/v1/notes", json={"lang": "es", "key": "common.no",
                                    "note": "a label, not a question"})
-    rows = client.get("/api/rows").json()["rows"]
+    rows = client.get("/v1/rows").json()["rows"]
     row = next(r for r in rows if r["key"] == "common.no")
     assert row["note"] == "a label, not a question"
-    client.post("/api/undo", json={})
-    row = next(r for r in client.get("/api/rows").json()["rows"] if r["key"] == "common.no")
+    client.post("/v1/undo", json={})
+    row = next(r for r in client.get("/v1/rows").json()["rows"] if r["key"] == "common.no")
     assert row["note"] is None
 
 
 def test_siblings_show_the_namespace_neighbours(client):
-    body = client.get("/api/siblings", params={"lang": "es", "key": "sidebar.books"}).json()
+    body = client.get("/v1/siblings", params={"lang": "es", "key": "sidebar.books"}).json()
     assert body["namespace"] == "sidebar"
 
 
@@ -145,7 +145,7 @@ def test_a_job_stages_proposals_and_never_touches_the_locale_file(client, monkey
     es_path = client.config_path.parent.parent / "src" / "locales" / "es.json"
     before = es_path.read_text(encoding="utf-8")
 
-    r = client.post("/api/jobs", json={"lang": "es", "scope": "all"})
+    r = client.post("/v1/jobs", json={"lang": "es", "scope": "all"})
     assert r.status_code == 202
     ws = client.app.state.workspace
     ws.jobs.settled()
@@ -154,18 +154,18 @@ def test_a_job_stages_proposals_and_never_touches_the_locale_file(client, monkey
     assert es_path.read_text(encoding="utf-8") == before, (
         "a job must write ONLY proposals — the locale file is untouched"
     )
-    props = client.get("/api/proposals", params={"lang": "es"}).json()["proposals"]
+    props = client.get("/v1/proposals", params={"lang": "es"}).json()["proposals"]
     assert len(props) == len(EN["sidebar"]) + 2  # every key staged
 
     # Applying is the explicit human action that writes the file.
-    r = client.post("/api/proposals/apply", json={"lang": "es", "keys": ["common.no"]})
+    r = client.post("/v1/proposals/apply", json={"lang": "es", "keys": ["common.no"]})
     assert r.json()["applied"] == ["common.no"]
     es = json.loads(es_path.read_text(encoding="utf-8"))
     assert es["common"]["no"].startswith("NUEVO")
 
 
 def test_an_unknown_scope_must_not_start_a_job(client):
-    r = client.post("/api/jobs", json={"lang": "es", "scope": "everythingish"})
+    r = client.post("/v1/jobs", json={"lang": "es", "scope": "everythingish"})
     assert r.status_code == 400
     assert "unknown scope" in r.json()["detail"]
 
@@ -182,7 +182,7 @@ def test_an_edit_retires_the_stale_machine_opinions(client):
     put_proposal(p.state, lang="es", key="common.no", engine="e", value="old proposal")
     put_reference(p.state, lang="es", key="common.no", engine="backtranslate", value="No")
 
-    client.post("/api/save", json={"lang": "es", "key": "common.no", "value": "Núm."})
+    client.post("/v1/save", json={"lang": "es", "key": "common.no", "value": "Núm."})
 
     probe = json.loads(p.paths.probe_file("es").read_text(encoding="utf-8"))
     assert probe == {}, "the probe entry about the old text is gone"
@@ -199,22 +199,22 @@ def test_setup_flow_no_project_then_inspect_then_save_goes_live(tmp_path, monkey
 
     client = TestClient(create_app(tmp_path / "data"))
     # Project routes refuse with needsSetup; setup routes work.
-    r = client.get("/api/state")
+    r = client.get("/v1/state")
     assert r.status_code == 409 and r.json()["detail"]["needsSetup"] is True
-    assert client.get("/api/setup/state").json()["loaded"] is False
+    assert client.get("/v1/setup/state").json()["loaded"] is False
 
     # Inspect reports what it found and writes NOTHING.
-    r = client.post("/api/setup/inspect", json={"path": str(en_path)})
+    r = client.post("/v1/setup/inspect", json={"path": str(en_path)})
     body = r.json()
     assert body["keyCount"] == 3
     assert body["locales"][0]["code"] == "es"
     assert not config.exists()
 
     # Save writes the config and the page goes live WITHOUT a restart.
-    r = client.post("/api/setup/save", json={"path": str(en_path), "targets": ["es"],
+    r = client.post("/v1/setup/save", json={"path": str(en_path), "targets": ["es"],
                                              "context": "a test app"})
     assert r.json()["ok"] is True
-    assert client.get("/api/state").json()["langs"] == ["es"]
+    assert client.get("/v1/state").json()["langs"] == ["es"]
     cfg = json.loads(config.read_text(encoding="utf-8"))
     assert cfg["source"] == "../src/locales/en.json"
     assert "engine" not in cfg, "engines are presets in the shared DB now, never config"
@@ -230,11 +230,11 @@ def test_setup_save_preserves_fields_it_does_not_manage(tmp_path, monkeypatch):
 
     client = TestClient(create_app(tmp_path / "data", config_path=config))
     en_path = config.parent.parent / "src" / "locales" / "en.json"
-    client.post("/api/setup/save", json={"path": str(en_path), "targets": ["es"]})
+    client.post("/v1/setup/save", json={"path": str(en_path), "targets": ["es"]})
     after = json.loads(config.read_text(encoding="utf-8"))
     assert after["myCustomField"] == {"kept": True}, "the UI is a writer, never an owner"
 
 
 def test_terms_endpoint_answers_by_term(client):
-    body = client.get("/api/terms", params={"lang": "es", "term": "books"}).json()
+    body = client.get("/v1/terms", params={"lang": "es", "term": "books"}).json()
     assert body["term"] == "books"

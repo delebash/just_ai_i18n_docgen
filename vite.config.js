@@ -37,8 +37,7 @@ export default defineConfig(async () => ({
       allow: [resolve(__dirname), resolve(__dirname, "../just-llm-runner/ui")],
     },
     proxy: {
-      // dev: the Python server on the family port
-      "/api": "http://127.0.0.1:8742",
+      // dev: the Python server on the family port — everything is /v1
       "/v1": "http://127.0.0.1:8742",
     },
     hmr: host

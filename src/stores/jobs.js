@@ -14,16 +14,16 @@ export const useJobsStore = defineStore("jobs", {
   }),
   actions: {
     async refresh() {
-      const cur = await safeRequest("/api/jobs/current", null);
+      const cur = await safeRequest("/v1/jobs/current", null);
       this.job = cur?.job ?? null;
-      const hist = await safeRequest("/api/runs", null);
+      const hist = await safeRequest("/v1/runs", null);
       this.runs = hist?.runs ?? [];
     },
     async start({ lang, scope, keys = null, presetId = null }) {
       this.error = "";
       this.starting = true;
       try {
-        const out = await post("/api/jobs", { lang, scope, keys, presetId });
+        const out = await post("/v1/jobs", { lang, scope, keys, presetId });
         this.job = out.job;
         this.watch();
         return out;
@@ -37,7 +37,7 @@ export const useJobsStore = defineStore("jobs", {
     watch() {
       this.unwatch();
       try {
-        const es = new EventSource(serverUrl("/api/jobs/stream"));
+        const es = new EventSource(serverUrl("/v1/jobs/stream"));
         this._source = es;
         const update = (e) => {
           try {
@@ -69,11 +69,11 @@ export const useJobsStore = defineStore("jobs", {
       }
     },
     async cancel() {
-      const out = await post("/api/jobs/cancel", {});
+      const out = await post("/v1/jobs/cancel", {});
       this.job = out.job ?? this.job;
     },
     async proposals(lang) {
-      return get(`/api/proposals?lang=${encodeURIComponent(lang)}`);
+      return get(`/v1/proposals?lang=${encodeURIComponent(lang)}`);
     },
   },
 });

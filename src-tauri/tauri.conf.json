@@ -1,20 +1,26 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "just_ai_i18n_docgen",
+  "productName": "Just AI i18n & Docgen",
   "version": "0.1.0",
-  "identifier": "com.delebash.just-ai-i18n-docgen",
+  "identifier": "com.just-ai-i18n-docgen.app",
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "npm run build",
-    "frontendDist": "../dist"
+    "beforeDevCommand": "npm run dev:vite",
+    "beforeBuildCommand": "npm run build:vite"
   },
   "app": {
     "windows": [
       {
-        "title": "just_ai_i18n_docgen",
-        "width": 800,
-        "height": 600
+        "title": "Just AI i18n & Docgen",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1000,
+        "minHeight": 640,
+        "decorations": true,
+        "transparent": false,
+        "backgroundColor": "#f7f8fa",
+        "dragDropEnabled": false
       }
     ],
     "security": {
@@ -30,6 +36,9 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "category": "DeveloperTool",
+    "shortDescription": "Translate i18n catalogues with a verifying AI pipeline.",
+    "longDescription": "Just AI i18n & Docgen translates standard i18n JSON locale folders with a local or online AI engine, verifies every string it writes, and turns help-doc front-matter into locale keys — with a human review workspace where nothing ships unseen."
   }
 }

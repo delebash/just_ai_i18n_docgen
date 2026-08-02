@@ -2,11 +2,14 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri + Vue 3 App</title>
+    <!--
+      Content Security Policy is delivered as response headers by Tauri's
+      webview (configured in src-tauri/tauri.conf.json). A meta-tag CSP
+      here would override those headers and break the IPC bridge.
+    -->
+    <title>Just AI i18n &amp; Docgen</title>
   </head>
-
   <body>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
