@@ -57,6 +57,30 @@ FEATURE_CATALOG: list[FeatureCatalogEntry] = [
                         group="docs"),
 ]
 
+# The engine presets — one-source: the preset owns provider+model+every tunable, and
+# each feature points at one (JW's model, seed shape included). Temperature 0.2 is the
+# Node loop's MEASURED constant carried over: low enough for consistency, high enough
+# that the probe's two passes can disagree — the probe guard reads this value from the
+# resolved preset (engine.py) and refuses at 0. `model: ""` = the provider's default
+# model; insert-if-missing, so a user's Lab edits are never clobbered by a reseed.
+DEFAULT_ENGINE_PRESETS: list[dict] = [
+    {"id": "p_translate", "name": "Translate", "provider_id": "local-llamacpp",
+     "model": "", "temperature": 0.2, "position": 0, "think": False},
+    # The confirmation pass asks about byte-identical keys; same profile, its own preset
+    # so escalating or re-pointing one never silently moves the other.
+    {"id": "p_confirm", "name": "Confirm", "provider_id": "local-llamacpp",
+     "model": "", "temperature": 0.2, "position": 1, "think": False},
+]
+
+DEFAULT_FEATURE_PRESETS: dict[str, str] = {
+    "translate": "p_translate",
+    "review": "p_translate",   # back-translation: same engine the translation used
+    "confirm": "p_confirm",
+    "extract": "p_translate",
+}
+
+DEFAULT_PRESET_ID: str = "p_translate"
+
 
 def default_data_dir() -> Path:
     return Path(user_data_dir("just-ai-i18n-docgen", appauthor=False))
@@ -81,6 +105,9 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
         session_factory=session_factory,
         feature_catalog=FEATURE_CATALOG,
         feature_prompts={},  # prompts are OURS — see the module docstring
+        engine_presets=DEFAULT_ENGINE_PRESETS,
+        feature_presets=DEFAULT_FEATURE_PRESETS,
+        default_preset_id=DEFAULT_PRESET_ID,
         data_dir=data_dir,
     )
     seed_llm()
