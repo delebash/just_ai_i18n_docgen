@@ -22,7 +22,7 @@ CFG = {
 
 def echo_send(system: str, user: str) -> str:
     """A well-behaved engine: returns every item 'translated' with shields intact."""
-    items = json.loads(re.search(r"Translate items: (\[.*\])$", user, re.S).group(1))
+    items = json.loads(re.search(r"Translate items: (\[.*\])$", user, re.DOTALL).group(1))
     return json.dumps({"items": [
         {"id": it["id"], "translation": f"XX {it['text']}"} for it in items
     ]})
@@ -73,7 +73,7 @@ def test_a_lost_shield_token_is_a_failure_routed_to_retry_not_a_result(tmp_path)
     attempts = []
 
     def flaky_send(system, user):
-        items = json.loads(re.search(r"Translate items: (\[.*\])$", user, re.S).group(1))
+        items = json.loads(re.search(r"Translate items: (\[.*\])$", user, re.DOTALL).group(1))
         attempts.append(len(items))
         if len(attempts) == 1:
             # First reply loses the shield token on every item — must not be accepted.
@@ -92,7 +92,7 @@ def test_a_lost_shield_token_is_a_failure_routed_to_retry_not_a_result(tmp_path)
 
 def test_a_key_that_exhausts_every_retry_is_reported_never_silently_skipped(tmp_path):
     def always_bad(system, user):
-        items = json.loads(re.search(r"Translate items: (\[.*\])$", user, re.S).group(1))
+        items = json.loads(re.search(r"Translate items: (\[.*\])$", user, re.DOTALL).group(1))
         return json.dumps({"items": [
             {"id": it["id"], "translation": ""} for it in items
         ]})
@@ -108,7 +108,7 @@ def test_a_key_that_exhausts_every_retry_is_reported_never_silently_skipped(tmp_
 
 def test_singletons_isolate_one_pathological_string(tmp_path):
     def poison_b(system, user):
-        items = json.loads(re.search(r"Translate items: (\[.*\])$", user, re.S).group(1))
+        items = json.loads(re.search(r"Translate items: (\[.*\])$", user, re.DOTALL).group(1))
         out = []
         for it in items:
             if "Bye" in it["text"]:
