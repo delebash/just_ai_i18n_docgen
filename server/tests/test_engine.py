@@ -127,3 +127,28 @@ def test_resolution_is_per_call_so_a_mid_run_preset_edit_lands(wired):
     store.save(preset)
     send("S", "U")
     assert [c["temperature"] for c in wired.calls] == [0.2, 0.5]
+
+
+def test_the_whole_preset_reaches_the_adapter_not_just_temperature(wired):
+    """FOUND BY THE OVERNIGHT RE-REVIEW (2026-08-02): temperature and think reached the
+    adapter while topP, the long-tail samplers and reasoningEffort were silently
+    dropped — a user tuning topP in the Lab changed NOTHING here. A half-honoured
+    setting is this family's most-hated bug class (pluralSeparator, JV's llm_roles…),
+    so this asserts every preset field lands, mirroring prompts._plane2_extra."""
+    from llm_runner.llm.presets_api import PresetFlagRow
+
+    store = stores.get_engine_preset_store()
+    preset = next(p for p in store.list() if p.id == "p_translate")
+    preset.topP = 0.9
+    preset.samplers = [PresetFlagRow(flagName="min_p", flagValue="0.05"),
+                       PresetFlagRow(flagName="repeat_penalty", flagValue="1.05")]
+    store.save(preset)
+
+    make_send("translate")("S", "U")
+    extra = wired.calls[-1]["extra"]
+    assert extra["top_p"] == 0.9
+    assert extra["min_p"] == 0.05, "sampler values are TYPED, not strings"
+    assert extra["repeat_penalty"] == 1.05
+    assert "response_format" in extra, "the schema still rides along"
+    # think is OFF on this preset → no reasoning key (its PRESENCE means think-on).
+    assert "reasoning_effort" not in extra

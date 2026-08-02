@@ -124,25 +124,22 @@ def boot_llm_stack(data_dir: Path | None = None, app: FastAPI | None = None) -> 
             data_dir=data_dir,
         )
     else:
-        # Routeless boot: same wiring minus FastAPI (the CLI door). One code path for
-        # the DB/seed halves either way — install_llm's own storage steps, inlined per
-        # its contract: configure, create, register app data, wire the runner catalog.
-        from llm_runner.llm import db as _db
-        from llm_runner.llm import seed as _seed
-        from llm_runner.llm.install import _wire_runner_catalog
-        from llm_runner.llm.usage import set_ledger
-        from llm_runner.llm.usage_sink import DbUsageSink
-
-        _db.configure_storage(session_factory)
-        _db.create_all(engine)
-        _seed.configure_app_seed(
-            feature_catalog=FEATURE_CATALOG, feature_prompts={},
+        # Routeless boot — the CLI door. install_llm(app=None) is first-class in the
+        # shared package now (2026-08-02): same storage/seed/wiring path, no routes.
+        # (This block used to re-implement that half against PRIVATE imports — the
+        # exact drift class the shared package exists to prevent; the overnight
+        # re-review sent the capability upstream instead.)
+        install_llm(
+            None,
+            engine=engine,
+            session_factory=session_factory,
+            feature_catalog=FEATURE_CATALOG,
+            feature_prompts={},
             engine_presets=DEFAULT_ENGINE_PRESETS,
             feature_presets=DEFAULT_FEATURE_PRESETS,
             default_preset_id=DEFAULT_PRESET_ID,
+            data_dir=data_dir,
         )
-        set_ledger(DbUsageSink())
-        _wire_runner_catalog(data_dir)
 
     seed_llm()
     load_from_configs(stores.get_provider_store().list())

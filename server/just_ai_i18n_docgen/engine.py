@@ -102,7 +102,7 @@ def make_send(feature: str = "translate", preset_id: str | None = None) -> Calla
             max_tokens=preset.maxTokens or None,
             system=system,
             think=preset.think,
-            extra=structured_extra(adapter.provider_type),
+            extra={**structured_extra(adapter.provider_type), **preset_extra(preset)},
         )
         text = response.text
         if not isinstance(text, str) or not text.strip():
@@ -113,6 +113,56 @@ def make_send(feature: str = "translate", preset_id: str | None = None) -> Calla
         return text
 
     return send
+
+
+def _parse_sampler_value(v: str):
+    """A stored text sampler value → the JSON type the chat API expects (bool / int /
+    float / str). Empty → None. Faithful to the shared run path's parser
+    (llm_runner.llm.prompts._parse_sampler_value) — private there, so ported rather
+    than imported; the overnight re-review (2026-08-02) is when the whole overlay was
+    found missing here."""
+    s = (v or "").strip()
+    if not s:
+        return None
+    low = s.lower()
+    if low in ("true", "false"):
+        return low == "true"
+    try:
+        return int(s)
+    except ValueError:
+        pass
+    try:
+        return float(s)
+    except ValueError:
+        pass
+    return s
+
+
+def preset_extra(preset) -> dict:
+    """The preset's remaining tunables as adapter `extra` — top_p, the long-tail
+    samplers, and the reasoning level, mirroring the shared run path's overlay
+    (prompts._plane2_extra). FOUND MISSING by the overnight re-review: temperature and
+    think reached the adapter while topP/samplers/reasoningEffort were silently
+    dropped — a user tuning topP in the Lab changed nothing here. A half-honoured
+    setting is this family's most-hated bug class; now every preset field lands."""
+    extra: dict = {}
+    top_p = getattr(preset, "topP", None)
+    if top_p is not None:
+        extra["top_p"] = top_p
+    for row in getattr(preset, "samplers", None) or []:
+        name = (getattr(row, "flagName", "") or "").strip()
+        if name and name not in extra:
+            val = _parse_sampler_value(getattr(row, "flagValue", "") or "")
+            if val is not None:
+                extra[name] = val
+    # The reserved key's PRESENCE marks think-on for the adapters' reasoning mapping;
+    # "" is a real state (FOLLOW the model's layered budget). Only under think.
+    if getattr(preset, "think", False):
+        extra["reasoning_effort"] = getattr(preset, "reasoningEffort", "") or ""
+    # The sampler ORDER is an array of names; accept the comma-joined knob string.
+    if isinstance(extra.get("samplers"), str):
+        extra["samplers"] = [s.strip() for s in extra["samplers"].split(",") if s.strip()]
+    return extra
 
 
 def preset_temperature(feature: str = "translate") -> float | None:
