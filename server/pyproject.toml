@@ -1,0 +1,48 @@
+# SPDX-License-Identifier: MIT
+[project]
+name = "just-ai-i18n-docgen"
+version = "0.1.0"
+description = "Translate standard i18n JSON locale folders with a local or online AI engine, verify what was written, and author help docs whose front-matter becomes locale keys. Python rewrite of just-ai-help, embedding just-llm-runner."
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2.9",
+    "sqlalchemy>=2.0",   # the shared LLM stack's storage (install_llm contract)
+    "platformdirs>=4",   # data dir resolution, same as JW/JV
+    # `llm-runner` (the shared LLM core — sibling repo) is deliberately NOT a hard
+    # dependency here, following justwrite-app's pattern: a hard direct-URL dep would
+    # clobber the local editable link on every `pip install -e .`. In dev, install ONCE:
+    #     pip install -e ../../just-llm-runner
+    # This app's suite runs constantly against the editable link, which is the stated
+    # condition for editable over pinning (just-llm-runner README, "Pin or editable?").
+    # The frozen bundle pulls the pinned tag via the `bundle` extra below.
+]
+
+[project.optional-dependencies]
+bundle = ["llm-runner @ git+https://github.com/delebash/just-llm-runner.git@v0.1.0"]
+dev = ["pytest>=8", "ruff>=0.6", "httpx>=0.27"]
+
+[project.scripts]
+# The `-server` suffix exists ONLY because a console script named like the app itself
+# would make Windows spawn the Tauri binary instead (recorded in the design decision).
+just-ai-i18n-docgen-server = "just_ai_i18n_docgen.serve:main"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"just_ai_i18n_docgen" = ["config/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

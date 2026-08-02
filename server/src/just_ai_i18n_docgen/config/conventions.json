@@ -1,0 +1,15 @@
+{
+  "es": {
+    "pairedPunct": [
+      [
+        "¿",
+        "?"
+      ],
+      [
+        "¡",
+        "!"
+      ]
+    ],
+    "promptLine": "Spanish punctuation is paired: a sentence that IS a question must open with ¿ and close with ?, and one that IS an exclamation must open with ¡ and close with !. Apply this ONLY when the English is itself a question or exclamation — most UI strings are labels, titles, buttons or statements, and those stay declarative. Never turn a statement into a question"
+  }
+}
