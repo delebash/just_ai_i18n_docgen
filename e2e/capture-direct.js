@@ -23,10 +23,8 @@ if (process.env.CAPTURE_NO_SIDECAR !== "0") {
   process.env.JAID_DEV_NO_SIDECAR = "1";
 }
 
-// Routes to shoot once per design candidate. Home is where the designs
-// differ; the rest are shot once (design 1) since they share the shell.
-const PER_DESIGN = [{ name: "home", hash: "#/", wait: 2200 }];
 const ONCE = [
+  { name: "home", hash: "#/", wait: 2200 },
   { name: "setup", hash: "#/setup", wait: 2200 },
   { name: "review", hash: "#/review", wait: 2200 },
   { name: "runs", hash: "#/runs", wait: 1800 },
@@ -46,24 +44,7 @@ async function main() {
   await d.maximize();
   await d.sleep(2000);
 
-  const setDesign = async (n) => {
-    await d.exec("localStorage.setItem('jaid.design', String(arguments[0]));", [n]);
-    await d.reload();
-  };
-
   try {
-    for (const design of [1, 2, 3]) {
-      console.log(`→ design ${design}`);
-      await setDesign(design);
-      for (const t of PER_DESIGN) {
-        await d.navigate(t.hash);
-        await d.sleep(t.wait);
-        const file = path.join(OUT_DIR, `d${design}-${t.name}.png`);
-        await d.screenshot(file);
-        console.log(`   saved ${path.basename(file)}`);
-      }
-    }
-    await setDesign(1);
     for (const t of ONCE) {
       console.log(`→ ${t.name} (${t.hash})`);
       await d.navigate(t.hash);

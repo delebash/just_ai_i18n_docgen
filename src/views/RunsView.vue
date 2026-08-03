@@ -43,7 +43,7 @@ async function start() {
       <p class="hint">
         A run stages proposals — it NEVER writes your locale files. pending = missing +
         flagged (the dashboard's button) · flagged = every key the checks or the probe
-        flagged · unsure = probe disagreements only · all = the whole catalogue.
+        flagged · unsure = probe disagreements only · all = every key.
       </p>
       <div class="row">
         <UiSelect v-model="lang" :options="project.langs" width="token" />

@@ -70,6 +70,28 @@ def test_disk_usage_reports_the_data_dir(client):
     assert "totalBytes" in r.text or body, "the shared disk route must answer with usage"
 
 
+def test_bearer_auth_gates_v1_only_when_tokens_exist(client):
+    """The headless lock: no tokens → open; tokens set → /v1 needs the bearer
+    (TestClient's host is not loopback, so the gate bites), UI assets stay open."""
+    assert client.get("/v1/setup/state").status_code == 200  # off by default
+
+    r = client.put("/v1/server-auth", json={"tokens": ["s3cret"]})
+    assert r.status_code == 200
+    try:
+        assert client.get("/v1/setup/state").status_code == 401, "no header → 401"
+        assert client.get(
+            "/v1/setup/state", headers={"Authorization": "Bearer wrong"}
+        ).status_code == 403, "bad token → 403"
+        assert client.get(
+            "/v1/setup/state", headers={"Authorization": "Bearer s3cret"}
+        ).status_code == 200, "good token → through"
+    finally:
+        # Clear through the gate (with the token) so later tests stay unauthenticated.
+        client.put("/v1/server-auth", json={"tokens": []},
+                   headers={"Authorization": "Bearer s3cret"})
+    assert client.get("/v1/setup/state").status_code == 200
+
+
 def test_a_browser_origin_gets_cors_headers(client):
     """Vite dev (:1420) hits :8742 DIRECTLY (the kit's origin-aware resolver), so
     without CORSMiddleware every browser dev request dies as a silent block.

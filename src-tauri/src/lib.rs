@@ -15,7 +15,9 @@ use std::process::{Child, Command};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
+use serde::Serialize;
 use tauri::{AppHandle, Manager, WindowEvent};
+use tauri_plugin_dialog::DialogExt;
 
 const SERVER_PORT: u16 = 8742; // JW 17495 · JV 8741 — the family port registry
 const SERVER_BIN: &str = "just-ai-i18n-docgen-server";
@@ -313,9 +315,44 @@ fn kill_listeners_on_port(port: u16) {
 
 // ─── Storage commands (the portable data root, user-relocatable) ─────
 
+// JW parity (2026-08-03): the panel needs {root, default, portable} — the first port
+// silently simplified this to a bare String, which is exactly the deviation class the
+// standard forbids. camelCase off the wire like every family payload.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct StorageRoot {
+    root: String,
+    default: String,
+    portable: bool,
+}
+
 #[tauri::command]
-fn storage_get_root(app: AppHandle) -> String {
-    resolve_data_root(&app).to_string_lossy().into_owned()
+fn storage_get_root(app: AppHandle) -> StorageRoot {
+    let root = resolve_data_root(&app);
+    let portable = exe_dir().map(|d| root.starts_with(&d)).unwrap_or(false);
+    StorageRoot {
+        default: default_data_root(&app).to_string_lossy().into_owned(),
+        portable,
+        root: root.to_string_lossy().into_owned(),
+    }
+}
+
+// JW's folder picker, verbatim: the Settings -> Storage "Change folder..." control.
+#[tauri::command]
+async fn pick_directory(
+    app: AppHandle,
+    title: Option<String>,
+    default_path: Option<String>,
+) -> Option<String> {
+    let mut dlg = app
+        .dialog()
+        .file()
+        .set_title(&title.unwrap_or_else(|| "Choose a folder".to_string()));
+    if let Some(p) = default_path.as_deref().filter(|s| !s.is_empty()) {
+        dlg = dlg.set_directory(p);
+    }
+    let picked = dlg.blocking_pick_folder()?;
+    picked.into_path().ok().map(|p| p.display().to_string())
 }
 
 #[tauri::command]
@@ -372,6 +409,7 @@ fn relocate_data(
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         // Remember the window size + position across launches (JW parity).
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
@@ -393,7 +431,7 @@ pub fn run() {
             app.manage(sidecar);
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![storage_get_root, storage_relocate])
+        .invoke_handler(tauri::generate_handler![storage_get_root, storage_relocate, pick_directory])
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { .. } = event {
                 // Single window, no tray: closing it quits the app, so tear the

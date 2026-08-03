@@ -291,6 +291,27 @@ def make_workspace_router(ws: Workspace) -> APIRouter:
         ws.load(config_path)
         return {"ok": True, "configPath": str(config_path), "langs": ws.project.targets}
 
+    @router.get("/server-auth")
+    def get_server_auth() -> dict:
+        """The headless lock (Settings → Server): bearer tokens gating /v1/* when
+        the server runs exposed. Off (empty) by default; reading/writing this
+        endpoint is itself gated once tokens exist — loopback stays exempt unless
+        requireForLoopback is set, so the local user can never lock themselves out."""
+        from .auth import read_auth
+
+        tokens, require = read_auth()
+        return {"tokens": tokens, "requireForLoopback": require}
+
+    @router.put("/server-auth")
+    def put_server_auth(body: dict) -> dict:
+        tokens = body.get("tokens")
+        if not isinstance(tokens, list) or not all(isinstance(t, str) for t in tokens):
+            raise HTTPException(400, "tokens must be a list of strings")
+        cfg = {"tokens": [t for t in tokens if t.strip()],
+               "requireForLoopback": bool(body.get("requireForLoopback"))}
+        appmeta.set_setting("auth", json.dumps(cfg))
+        return cfg
+
     @router.get("/reviewer")
     def get_reviewer_route() -> dict:
         return {"reviewer": appmeta.get_reviewer()}

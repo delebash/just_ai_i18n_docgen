@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: MIT
-// UI chrome state: appearance (persisted, applied through the kit engine) and the
-// TEMPORARY design-variant switch for the live design iteration — three shells in
-// App.vue, one number here. Remove `design` (and the switcher) once one is ruled.
+// UI chrome state: appearance, persisted locally and applied through the kit
+// engine. (The design-variant switch died 2026-08-03 when Design 1 was ruled.)
 import { defineStore } from "pinia";
 import { applyAppearance, migrateAppearance } from "../services/appearance.js";
 
 const K_APPEARANCE = "jaid.appearance";
-const K_DESIGN = "jaid.design";
 
 function readJson(key) {
   try {
@@ -19,7 +17,6 @@ function readJson(key) {
 export const useUiStore = defineStore("ui", {
   state: () => ({
     appearance: migrateAppearance(readJson(K_APPEARANCE)),
-    design: Number(localStorage.getItem(K_DESIGN)) || 1,
   }),
   actions: {
     boot() {
@@ -34,10 +31,6 @@ export const useUiStore = defineStore("ui", {
       const order = ["system", "light", "dark"];
       const next = order[(order.indexOf(this.appearance.mode || "system") + 1) % order.length];
       this.setAppearance({ mode: next });
-    },
-    setDesign(n) {
-      this.design = n;
-      localStorage.setItem(K_DESIGN, String(n));
     },
   },
 });

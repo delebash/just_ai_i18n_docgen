@@ -1,19 +1,23 @@
 <script setup>
 // SPDX-License-Identifier: MIT
-// The shell — Design 1 (ruled 2026-08-03): labeled sidebar, two nav groups
-// (workflow · tools), footer = theme cycle + the kit's global AI status/cancel
-// button (JW mounts it in its TitleBar; this shell's footer is that slot).
+// The shell — Design 1, ruled 2026-08-03: TitleBar (JW pattern) over a labeled
+// sidebar + one main scroller. The boot splash (the user's plate, JW mechanics)
+// covers the shell until the server answers and — when "load the default local
+// model on startup" is on — the warm load finishes, showing the SAME shared
+// DownloadBars the engine panel uses. Continue is the universal escape: a slow
+// or failed load never traps anyone on the boot screen.
 // Family rules: height:100% chain (never 100vh), one scroller per area.
-// Toast host lives here so any view can push.
-import { computed, onMounted } from "vue";
-import { AiStatusButton, Icon, Toast } from "@delebash/llm-ui";
-import DesignSwitcher from "./components/DesignSwitcher.vue";
+import { computed, onMounted, ref, watch } from "vue";
+import { useRouter } from "vue-router";
+import { DownloadBar, Icon, Toast, useAiTasksStore, useModelApply, useRunnerModels } from "@delebash/llm-ui";
+import TitleBar from "./components/TitleBar.vue";
+import splashPlate from "./assets/images/splash-plate.jpg";
+import { startWarmOnBoot, warmModelId } from "./services/warmStartup";
 import { useProjectStore } from "./stores/project";
-import { useUiStore } from "./stores/ui";
 
-const ui = useUiStore();
+const router = useRouter();
 const project = useProjectStore();
-onMounted(() => project.refresh());
+const aiTasks = useAiTasksStore();
 
 const NAV = [
   { to: "/", label: "Home", icon: "Home" },
@@ -22,56 +26,126 @@ const NAV = [
   { to: "/docs", label: "Docs", icon: "Book" },
 ];
 const TOOLS = [
-  { to: "/ai", label: "AI", icon: "Sparkle" },
+  { to: "/ai", label: "AI", icon: "Cpu" },
   { to: "/settings", label: "Settings", icon: "Settings" },
   { to: "/setup", label: "Setup", icon: "Folder" },
 ];
-const modeIcon = computed(
-  () => ({ system: "Monitor", light: "Sun", dark: "Moon" })[ui.appearance.mode || "system"],
-);
+// The AI-tasks nav row (JW Sidebar parity): toggles the kit panel, badges the
+// running count — red while there are unseen errors.
+const aiTasksBadge = computed(() => aiTasks.unseenErrors || aiTasks.runningCount || 0);
+function toggleAiTasks() {
+  aiTasks.panelOpen = !aiTasks.panelOpen;
+}
+
+// ── boot splash ───────────────────────────────────────────────────────────
+const splash = ref(true);
+const splashStatus = ref("starting the local server…");
+const needsLocalSetup = ref(false);
+
+// JW's warm-boot bars, reused verbatim: the engine-install bar during the
+// install phase, then the model's own load bar until it goes resident.
+const rm = useRunnerModels();
+const warmTask = computed(() => (warmModelId.value ? rm.taskFor(warmModelId.value) : null));
+const engineTask = computed(() =>
+  rm.engineGateTask?.value && rm.engineGateTask.value.state === "running" ? rm.engineGateTask.value : null);
+const warmRowStatus = computed(() =>
+  warmModelId.value ? (rm.models.value.find((m) => m.id === warmModelId.value)?.status || "") : "");
+watch(warmRowStatus, (s) => {
+  if (warmModelId.value && (s === "loaded" || s === "sleeping")) {
+    setTimeout(() => { warmModelId.value = ""; dismissSplash(); }, 700);
+  }
+});
+function dismissSplash() {
+  splash.value = false;
+  warmModelId.value = "";
+}
+function goQuickSetup() {
+  dismissSplash();
+  router.push("/ai?quicksetup=1");
+}
+
+onMounted(async () => {
+  await project.refresh();
+  splashStatus.value = "checking the local AI…";
+  try {
+    const { refreshApplied, currentDefaultId } = useModelApply();
+    await refreshApplied();
+    needsLocalSetup.value = !currentDefaultId.value;
+  } catch { /* server still booting — the pages degrade honestly */ }
+  await startWarmOnBoot();
+  if (!warmModelId.value) setTimeout(dismissSplash, 500); // a brand beat, not a wait
+  else splashStatus.value = "loading your model…";
+});
 </script>
 
 <template>
-  <div class="shell" :class="`shell--d${ui.design}`">
-    <aside class="shell__nav">
-      <div class="shell__brand">
-        <span class="brand-mark">i18</span>
-        <span class="brand-name nav-label">i18n &amp; Docgen</span>
-      </div>
-      <nav class="shell__links">
-        <router-link
-          v-for="n in NAV" :key="n.to" :to="n.to"
-          class="navlink" :title="n.label"
-        >
-          <Icon :name="n.icon" :size="17" />
-          <span class="nav-label">{{ n.label }}</span>
-        </router-link>
-        <div class="nav-divider" />
-        <router-link
-          v-for="n in TOOLS" :key="n.to" :to="n.to"
-          class="navlink" :title="n.label"
-        >
-          <Icon :name="n.icon" :size="17" />
-          <span class="nav-label">{{ n.label }}</span>
-        </router-link>
-      </nav>
-      <div class="shell__foot">
-        <button
-          class="iconbtn" :title="`Theme: ${ui.appearance.mode || 'system'} — click to cycle`"
-          @click="ui.cycleMode()"
-        >
-          <Icon :name="modeIcon" :size="16" />
-        </button>
-        <AiStatusButton />
-        <span v-if="project.reviewer" class="nav-label shell__reviewer" :title="'Reviewer: ' + project.reviewer">
-          {{ project.reviewer }}
-        </span>
-      </div>
-    </aside>
-    <main class="shell__main">
-      <router-view />
-    </main>
+  <div class="shell">
+    <TitleBar />
+    <div class="shell__body">
+      <aside class="shell__nav">
+        <div class="shell__brand">
+          <span class="brand-mark">i18</span>
+          <span class="brand-name">i18n &amp; DocGen</span>
+        </div>
+        <nav class="shell__links">
+          <router-link v-for="n in NAV" :key="n.to" :to="n.to" class="navlink" :title="n.label">
+            <Icon :name="n.icon" :size="17" />
+            <span class="nav-label">{{ n.label }}</span>
+          </router-link>
+          <div class="nav-divider" />
+          <router-link v-for="n in TOOLS" :key="n.to" :to="n.to" class="navlink" :title="n.label">
+            <Icon :name="n.icon" :size="17" />
+            <span class="nav-label">{{ n.label }}</span>
+          </router-link>
+          <button
+            class="navlink navlink--btn" :class="{ 'router-link-exact-active': aiTasks.panelOpen }"
+            title="AI tasks" @click="toggleAiTasks"
+          >
+            <Icon name="Sparkle" :size="17" />
+            <span class="nav-label">AI tasks</span>
+            <span
+              v-if="aiTasksBadge" class="nav-count"
+              :class="{ 'nav-count--error': aiTasks.unseenErrors }"
+            >{{ aiTasksBadge }}</span>
+          </button>
+        </nav>
+        <div class="shell__foot">
+          <span v-if="project.reviewer" class="shell__reviewer" :title="'Reviewer: ' + project.reviewer">
+            {{ project.reviewer }}
+          </span>
+        </div>
+      </aside>
+      <main class="shell__main">
+        <router-view />
+      </main>
+    </div>
     <Toast />
-    <DesignSwitcher />
+
+    <!-- ── the boot splash — the plate, with the interactive layer in its clear
+         bottom strip (this art is centre-composed; JW's plate is left-empty) ── -->
+    <div v-if="splash" class="splash">
+      <img class="splash__plate" :src="splashPlate" alt="" />
+      <div class="splash__strip">
+        <template v-if="warmModelId">
+          <p class="splash__status">Loading {{ warmModelId }}…</p>
+          <DownloadBar v-if="engineTask" :task="engineTask" />
+          <DownloadBar v-else-if="warmTask" :task="warmTask" />
+        </template>
+        <template v-else-if="needsLocalSetup">
+          <p class="splash__status">
+            No local AI yet — set one up in a minute, free, on this PC.
+          </p>
+          <div class="row" style="justify-content: center">
+            <button class="splash__cta" @click="goQuickSetup">Set up local AI</button>
+            <button class="splash__quiet" @click="dismissSplash">Continue without it</button>
+          </div>
+        </template>
+        <template v-else>
+          <span class="splash__spin" />
+          <p class="splash__status">{{ splashStatus }}</p>
+        </template>
+        <button class="splash__quiet splash__continue" @click="dismissSplash">Continue</button>
+      </div>
+    </div>
   </div>
 </template>

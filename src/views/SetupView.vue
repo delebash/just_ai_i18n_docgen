@@ -6,7 +6,7 @@
 // A path box with server-side validation, never a file picker: a browser file input
 // hands JS a File and no path — that ruling from the Node repo still holds.
 import { computed, onMounted, ref } from "vue";
-import { UiButton, UiCheckbox, UiChip, UiInput, UiMultiSelect, pushToast } from "@delebash/llm-ui";
+import { UiButton, UiCheckbox, UiInput, UiMultiSelect, UiTag, pushToast } from "@delebash/llm-ui";
 import { useRouter } from "vue-router";
 import { useProjectStore } from "../stores/project";
 
@@ -78,7 +78,7 @@ async function save() {
     <header class="page-head">
       <div>
         <h1>Setup</h1>
-        <p class="page-sub">Point the tool at your app's catalogue. Nothing here runs an engine.</p>
+        <p class="page-sub">Point the tool at your app's i18n source file. Nothing here runs an engine.</p>
       </div>
       <span class="spacer" />
       <span v-if="project.loaded" class="mono muted">{{ project.configPath }}</span>
@@ -86,7 +86,7 @@ async function save() {
 
     <div class="setup__grid">
       <section class="card">
-        <h2>Catalogue path</h2>
+        <h2>i18n source file</h2>
         <p class="hint">
           The path to your source locale file (usually en.json). Its folder is the locale
           folder and its name is the source language — one fact, nothing to disagree with.
@@ -158,15 +158,15 @@ async function save() {
       <section class="card">
         <h2>Glossary — never translate these</h2>
         <p class="hint">
-          A term here is a BLANKET rule for every string. On a real catalogue one wrong
+          A term here is a BLANKET rule for every string. On a real project one wrong
           term turned 48 correct translations into findings — add only true brand and
           product names. A word that is a label in one string and prose in another
           belongs in review acceptances, not here.
         </p>
         <div class="row" v-if="glossary.length" style="margin-bottom: 8px">
-          <UiChip
-            v-for="w in glossary" :key="w" :label="`${w} ✕`"
-            :title="`Remove ${w}`" @click="dropGlossary(w)"
+          <UiTag
+            v-for="w in glossary" :key="w" intent="secondary" :value="w"
+            removable @remove="dropGlossary(w)"
           />
         </div>
         <div class="row">
@@ -178,7 +178,7 @@ async function save() {
         </div>
         <template v-if="project.inspect?.candidates?.length">
           <p class="hint" style="margin: 12px 0 6px">
-            Suggested from your catalogue (words recurring capitalised mid-sentence) — tick to add:
+            Suggested from your strings (words recurring capitalised mid-sentence) — tick to add:
           </p>
           <div class="row">
             <UiCheckbox

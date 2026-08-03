@@ -29,25 +29,22 @@ test("titlebar names the app", async () => {
   assert.match(title, /i18n/i, `expected the app title, got: ${title}`);
 });
 
-test("the shell mounts with nav and the design pill", async () => {
+test("the shell mounts: titlebar + nav (Design 1, the ruled shell)", async () => {
+  assert.equal(await d.exists(".titlebar"), true, "the in-app title bar must mount (JW parity)");
   assert.equal(await d.exists(".shell__nav"), true, "nav must mount");
-  assert.equal(await d.count(".navlink") >= 5, true, "five nav links");
-  assert.equal(await d.exists(".design-pill"), true, "temporary design switcher present");
+  assert.equal(await d.count(".navlink") >= 7, true, "nav rows incl. tools + AI tasks");
+  assert.equal(await d.exists(".design-pill"), false, "the temporary switcher is GONE");
 });
 
-test("design switcher flips the shell class d1 → d2 → d3", async () => {
-  for (const n of [2, 3, 1]) {
-    await d.exec(
-      "const b=[...document.querySelectorAll('.design-pill__btn')][arguments[0]-1]; b.click();",
-      [n],
-    );
-    await d.waitUntil(`return document.querySelector('.shell--d${n}') !== null`);
-  }
+test("the AI tasks nav row opens the kit's slide-out panel", async () => {
+  await d.exec(`[...document.querySelectorAll('.navlink')].find(n => /AI tasks/.test(n.textContent)).click();`);
+  await d.waitUntil(`return !!document.querySelector('.aip, [aria-label="AI tasks"]')`);
+  await d.exec(`document.body.click();`); // dismiss
 });
 
 test("setup shows the WHOLE form with an explicit Check path button — nothing hidden", async () => {
   await d.navigate("#/setup");
-  await d.waitUntil(`return /Catalogue path/i.test(document.body.textContent)`);
+  await d.waitUntil(`return /i18n source file/i.test(document.body.textContent)`);
   // The 2026-08-02 rulings, as assertions: every section is visible with
   // no path entered, and checking is a button, never an auto-run.
   for (const section of ["Target languages", "Context", "Glossary", "Reviewer", "gitignore"]) {
@@ -60,10 +57,10 @@ test("setup shows the WHOLE form with an explicit Check path button — nothing 
   assert.equal(btn, true, "an explicit Check path button exists");
 });
 
-test("home without a server shows the honest empty state, not a broken page", async () => {
+test("home is a real welcome (or the dashboard) — never a broken page", async () => {
   await d.navigate("#/");
   await d.waitUntil(
-    `return /point me at a catalogue/i.test(document.body.textContent)
+    `return /Open Setup/i.test(document.body.textContent)
          || document.querySelector('.dash') !== null`,
     { timeout: 15_000 },
   );
@@ -89,13 +86,18 @@ test("settings renders its sections and the logs panel", async () => {
   await d.waitUntil(`return document.querySelectorAll('.settings__navbtn').length >= 5`);
   await d.navigate("#/settings/logs");
   await d.waitUntil(`return /server logs/i.test(document.body.textContent)`);
+  // The storage panel is JW's, strings verbatim — assert the donor's wording so a
+  // hand-rolled lookalike can never silently return (2026-08-03).
+  await d.navigate("#/settings/storage");
+  await d.waitUntil(`return /Data location/.test(document.body.textContent)
+                        && /Change folder|desktop app/.test(document.body.textContent)
+                        && /Disk usage/.test(document.body.textContent)`);
 });
 
-test("the global AI status button is in the shell footer", async () => {
+test("the global AI status button lives in the titlebar (JW parity)", async () => {
   assert.equal(
-    await d.exec(`return !!document.querySelector('.shell__foot button.ai-status-btn, .shell__foot [class*="ai-status"], .shell__foot [title*="AI"], .shell__foot [aria-label*="AI"]');`)
-      || await d.exec(`return document.querySelectorAll('.shell__foot button').length >= 2;`),
+    await d.exec(`return document.querySelectorAll('.titlebar button').length >= 3;`),
     true,
-    "footer must carry the theme cycler AND the AI status button",
+    "titlebar must carry back/forward, the theme cycler and the AI status button",
   );
 });

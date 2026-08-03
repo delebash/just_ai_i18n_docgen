@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 import { createApp } from "vue";
 import { createPinia } from "pinia";
-import { configureLlmUi, configureServerApi, makeOriginAwareResolver } from "@delebash/llm-ui";
+import {
+  configureExternal, configureLlmUi, configureServerApi, makeOriginAwareResolver,
+} from "@delebash/llm-ui";
 import App from "./App.vue";
 import { router } from "./router";
 import { useUiStore } from "./stores/ui";
@@ -18,6 +20,19 @@ configureServerApi({ resolveBase });
 // tauri.localhost, so every /v1/llm-* call 404'd into empty lists. Found 2026-08-03
 // by the harness screenshots; invisible in dev, where origin-with-proxy happens to work).
 configureLlmUi({ baseUrl: resolveBase() });
+// External links: Tauri's webview swallows _blank, so kit anchors route through the
+// opener plugin in the desktop app (JW parity — its About/help links were dead here
+// until this was wired); plain browsers fall back to window.open inside the kit.
+configureExternal({
+  open: async (url) => {
+    try {
+      const { openUrl } = await import("@tauri-apps/plugin-opener");
+      await openUrl(url);
+    } catch {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  },
+});
 
 const pinia = createPinia();
 const app = createApp(App).use(pinia).use(router);

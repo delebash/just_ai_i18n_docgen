@@ -33,14 +33,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from llm_runner.llm import install_llm, load_from_configs, stores
+from llm_runner.llm.routing_api import FeatureCatalogEntry
+from llm_runner.llm.seed import seed_llm
 from llm_runner.platform import (
     install_file_log,
     install_log_ring,
     make_disk_router,
     make_logs_router,
 )
-from llm_runner.llm.routing_api import FeatureCatalogEntry
-from llm_runner.llm.seed import seed_llm
 from platformdirs import user_data_dir
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -178,15 +178,23 @@ def create_app(data_dir: Path | None = None,
     # ServerErrorMiddleware, OUTSIDE CORS, so the browser would see a CORS block
     # instead). JW parity — verified the hard way in JV, 2026-06-12.
     @app.middleware("http")
-    async def _error_envelope(request, call_next):  # noqa: ANN001
+    async def _error_envelope(request, call_next):
         try:
             return await call_next(request)
-        except Exception as exc:  # noqa: BLE001 — envelope everything
+        except Exception as exc:
             log.exception("unhandled error on %s %s", request.method, request.url.path)
             return JSONResponse(
                 status_code=500,
                 content={"title": "Internal Server Error", "detail": str(exc)[:300]},
             )
+
+    # Bearer auth — OFF unless tokens are configured (Settings → Server). Gates
+    # /v1/* only. Added BEFORE CORS so CORS ends up OUTERMOST (Starlette runs
+    # last-added first): CORS answers preflights before auth sees them, and
+    # wraps auth's 401/403 with CORS headers. JW's exact ordering.
+    from .auth import BearerAuthMiddleware
+
+    app.add_middleware(BearerAuthMiddleware)
 
     # CORS — allow-all, JW's local + dev + headless fallback: the kit's
     # origin-aware resolver hits :8742 DIRECTLY from Vite dev (:1420), so without

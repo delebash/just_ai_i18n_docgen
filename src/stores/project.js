@@ -20,7 +20,7 @@ export const useProjectStore = defineStore("project", {
     summary: null,      // /v1/summary — the dashboard's per-language counts
   }),
   getters: {
-    // "myapp" out of …/myapp/just-ai-help/config.json — the catalogue's human name.
+    // "myapp" out of …/myapp/just-ai-help/config.json — the project's human name.
     appName: (s) => {
       const parts = (s.configPath || "").split(/[\\/]/).filter(Boolean);
       return parts.length >= 3 ? parts[parts.length - 3] : "your app";

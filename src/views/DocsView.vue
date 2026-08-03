@@ -19,7 +19,7 @@
       <h2>How it works</h2>
       <p class="hint" style="margin-bottom: 0">
         A help article's front-matter (title, lede, hints) is extracted into your locale
-        catalogue as ordinary keys — then the translate/review pipeline on this very
+        files as ordinary keys — then the translate/review pipeline on this very
         dashboard carries them like any other string. One sentence, written once,
         translated once, shipped to the article, the surface lede and the field hint.
       </p>
