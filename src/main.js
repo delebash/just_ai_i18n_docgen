@@ -19,7 +19,19 @@ configureServerApi({ resolveBase });
 // baseUrl falls back to window.location.origin — which in the production webview is
 // tauri.localhost, so every /v1/llm-* call 404'd into empty lists. Found 2026-08-03
 // by the harness screenshots; invisible in dev, where origin-with-proxy happens to work).
-configureLlmUi({ baseUrl: resolveBase() });
+configureLlmUi({
+  baseUrl: resolveBase(),
+  // This app's voice on the shared model-catalog surface (the defaults are JW's
+  // writing words): translation slot copy, no embedding slot — this app has no
+  // embedding features, and the catalog seeds translation-measured rows only.
+  catalogCopy: {
+    showEmbedding: false,
+    chatSectionLabel: "Translation models",
+    chatSectionHint: "measured on real localisation runs — pick one as your model",
+    generalUse: "Translates your strings and checks its own work",
+    slotsFootnote: "One model does everything here — it loads automatically on the first run; Load now just skips that first wait.",
+  },
+});
 // External links: Tauri's webview swallows _blank, so kit anchors route through the
 // opener plugin in the desktop app (JW parity — its About/help links were dead here
 // until this was wired); plain browsers fall back to window.open inside the kit.

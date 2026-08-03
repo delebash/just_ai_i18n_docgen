@@ -89,6 +89,49 @@ DEFAULT_FEATURE_PRESETS: dict[str, str] = {
 
 DEFAULT_PRESET_ID: str = "p_translate"
 
+# The app's OWN model catalog — TRANSLATION-measured rows only, ranked by the measured
+# table (just-ai-help/docs/models.md; the 40-key stress corpus + the 1,965-key live
+# run). The runner's DEFAULT_CATALOG is writing-curated (StyleTune tunes, embeds,
+# writing ranks) and is SUPPRESSED for this app (`seed_default_model_catalog=False`) —
+# "the models are all JW" was a live user finding, 2026-08-03. No embedding rows: this
+# app has no embedding features. Field shapes mirror the audited family rows;
+# license/ctx values follow the family's audited pattern for the same repos — re-run
+# the seed-facts audit (network) whenever these rows change.
+MODEL_CATALOG: list[dict] = [
+    {"id": "gemma-4-26b-a4b-qat-xl", "name": "Gemma 4 26B-A4B (QAT)",
+     "hf_repo": "unsloth/gemma-4-26B-A4B-it-qat-GGUF", "quant": "UD-Q4_K_XL",
+     "total_params": "26B", "active_params": "4B", "type": "moe",
+     "mtp": True, "mtp_draft_repo": "unsloth/gemma-4-26B-A4B-it-qat-GGUF",
+     "mtp_draft_file": "MTP/mtp-gemma-4-26B-A4B-it-Q4_0.gguf", "mtp_draft_quant": "Q4_0",
+     "trained_ctx": 262144, "samplers": {"top_k": "64", "top_p": "0.95", "temperature": "1"},
+     "min_vram_mb": 4096, "min_ram_mb": 24576, "tier": "low-vram-moe",
+     "license": "Apache-2.0", "position": 0, "quality_rank": 1,
+     "architecture": "gemma4", "experts": 128,
+     "description": "26B MoE (4B active) · 256k context · the MEASURED flagship: most "
+                    "accurate AND fastest on the stress corpus and the 1,965-key live run",
+     "notes": "The default pick when it fits (needs ~24 GB RAM for expert offload)."},
+    {"id": "gemma-3-12b-it", "name": "Gemma 3 12B",
+     "hf_repo": "unsloth/gemma-3-12b-it-GGUF", "quant": "Q4_K_M",
+     "total_params": "12B", "type": "dense",
+     "trained_ctx": 131072, "samplers": {"top_k": "64", "top_p": "0.95", "temperature": "1"},
+     "min_vram_mb": 8192, "min_ram_mb": 12288, "tier": "mid",
+     "license": "Gemma", "position": 1, "quality_rank": 2,
+     "architecture": "gemma3", "experts": 0,
+     "description": "12B dense · MEASURED: 0 structural, 1 semantic flag, zero real "
+                    "errors on the stress corpus",
+     "notes": "The clean 8 GB-card pick."},
+    {"id": "hy-mt2-7b", "name": "Hunyuan-MT2 7B (translation-tuned)",
+     "hf_repo": "tencent/Hy-MT2-7B-GGUF", "quant": "Q4_K_M",
+     "total_params": "7B", "type": "dense",
+     "trained_ctx": 32768,
+     "min_vram_mb": 6144, "min_ram_mb": 8192, "tier": "small",
+     "license": "tencent-hunyuan-community", "position": 2, "quality_rank": 3,
+     "architecture": "hunyuan", "experts": 0,
+     "description": "7B translation-tuned · MEASURED: 0 structural, 3 semantic flags",
+     "notes": "Small and fast. Caveat, measured: the family can drop Spanish opening "
+              "¿ — keep the checks on."},
+]
+
 
 def default_data_dir() -> Path:
     """JW parity: the desktop shell resolves the (portable) data root and hands it to
@@ -129,6 +172,8 @@ def boot_llm_stack(data_dir: Path | None = None, app: FastAPI | None = None) -> 
             engine_presets=DEFAULT_ENGINE_PRESETS,
             feature_presets=DEFAULT_FEATURE_PRESETS,
             default_preset_id=DEFAULT_PRESET_ID,
+            model_catalog_extra=MODEL_CATALOG,
+            seed_default_model_catalog=False,  # translation-measured rows ONLY
             data_dir=data_dir,
         )
     else:
@@ -146,6 +191,8 @@ def boot_llm_stack(data_dir: Path | None = None, app: FastAPI | None = None) -> 
             engine_presets=DEFAULT_ENGINE_PRESETS,
             feature_presets=DEFAULT_FEATURE_PRESETS,
             default_preset_id=DEFAULT_PRESET_ID,
+            model_catalog_extra=MODEL_CATALOG,
+            seed_default_model_catalog=False,
             data_dir=data_dir,
         )
 

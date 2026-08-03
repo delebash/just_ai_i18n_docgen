@@ -97,9 +97,13 @@ onMounted(async () => {
             <Icon :name="n.icon" :size="17" />
             <span class="nav-label">{{ n.label }}</span>
           </router-link>
+          <!-- data-panel-toggle: the kit's usePanelDismiss exempts this element, so the
+               click that OPENS the panel isn't also the outside-click that closes it
+               (the missing attr made the panel open-and-instantly-close, found live
+               2026-08-03 — JW's Sidebar binds the same attr). -->
           <button
             class="navlink navlink--btn" :class="{ 'router-link-exact-active': aiTasks.panelOpen }"
-            title="AI tasks" @click="toggleAiTasks"
+            data-panel-toggle title="AI tasks" @click="toggleAiTasks"
           >
             <Icon name="Sparkle" :size="17" />
             <span class="nav-label">AI tasks</span>

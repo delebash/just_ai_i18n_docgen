@@ -36,10 +36,42 @@ test("the shell mounts: titlebar + nav (Design 1, the ruled shell)", async () =>
   assert.equal(await d.exists(".design-pill"), false, "the temporary switcher is GONE");
 });
 
-test("the AI tasks nav row opens the kit's slide-out panel", async () => {
-  await d.exec(`[...document.querySelectorAll('.navlink')].find(n => /AI tasks/.test(n.textContent)).click();`);
-  await d.waitUntil(`return !!document.querySelector('.aip, [aria-label="AI tasks"]')`);
-  await d.exec(`document.body.click();`); // dismiss
+test("the AI tasks nav row is a REAL toggle: opens, STAYS open, second click closes", async () => {
+  // BEHAVIOUR, not presence — the first build shipped an open-then-instantly-close
+  // bug under a presence check (the nav row lacked data-panel-toggle, so the
+  // opening click was also the panel's outside-click dismiss).
+  const clickRow = `[...document.querySelectorAll('.navlink')].find(n => /AI tasks/.test(n.textContent)).click();`;
+  await d.exec(clickRow);
+  await d.sleep(400); // long enough for a buggy dismiss to have fired
+  assert.equal(await d.exists('[aria-label="AI tasks"]'), true, "panel must open AND STAY open");
+  await d.exec(clickRow);
+  await d.sleep(300);
+  assert.equal(await d.exists('[aria-label="AI tasks"]'), false, "second click must close it");
+});
+
+test("routing by feature shows ALL FOUR features as routing rows (promptless app)", async () => {
+  await d.navigate("#/ai");
+  await d.waitUntil(`return /Routing by feature/i.test(document.body.textContent)`, { timeout: 15_000 });
+  await d.exec(`[...document.querySelectorAll('a,button')].find(x => /Routing by feature/i.test(x.textContent))?.click();`);
+  // feature_prompts={} here — the kit's promptless routing rows must render, with
+  // the assigned-preset line on each card.
+  await d.waitUntil(`return document.querySelectorAll('.lu-fw-card').length >= 4`, { timeout: 15_000 });
+  const text = await d.exec(`return document.body.textContent;`);
+  for (const f of ["Translate", "Review", "Confirm", "Extract"]) {
+    assert.equal(text.includes(f), true, `feature "${f}" must be routable`);
+  }
+});
+
+test("quick setup OPENS and offers translation-measured models, not JW's", async () => {
+  await d.navigate("#/ai");
+  await d.waitUntil(`return [...document.querySelectorAll('button')].some(b => /Run Quick Setup/i.test(b.textContent))`, { timeout: 15_000 });
+  await d.exec(`[...document.querySelectorAll('button')].find(b => /Run Quick Setup/i.test(b.textContent)).click();`);
+  await d.waitUntil(`return /Local translation AI/i.test(document.body.textContent)`);
+  // The preselected pick is the MEASURED flagship; JW's writing catalog is absent.
+  await d.waitUntil(`return /Gemma 4 26B/i.test(document.body.textContent)`, { timeout: 10_000 });
+  const page = await d.exec(`return document.body.textContent;`);
+  assert.equal(/StyleTune|Writes prose/i.test(page), false, "JW's writing catalog/copy must NOT appear in this app");
+  await d.exec(`[...document.querySelectorAll('button')].find(b => /^Cancel$/.test(b.textContent.trim()))?.click();`);
 });
 
 test("setup shows the WHOLE form with an explicit Check path button — nothing hidden", async () => {
