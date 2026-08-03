@@ -1,0 +1,13 @@
+{
+  "name": "just_ai_i18n_docgen-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "E2E tests and screenshot capture via tauri-driver + msedgedriver (raw W3C WebDriver from Node) — the JW harness shape",
+  "scripts": {
+    "postinstall": "node scripts/fetch-driver.js",
+    "fetch-driver": "node scripts/fetch-driver.js --force",
+    "test": "node --test --test-reporter=spec tests/*.test.js",
+    "capture": "node capture-direct.js"
+  }
+}

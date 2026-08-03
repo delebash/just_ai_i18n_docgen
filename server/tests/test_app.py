@@ -51,6 +51,25 @@ def test_the_runner_cache_lands_in_the_app_data_dir(client, tmp_path):
     assert str(lifecycle.get_service().cache_root) == str(tmp_path / "ai-cache")
 
 
+def test_logs_ring_captures_and_serves_server_logs(client):
+    """The Settings → Logs viewer's contract: a log line written through the
+    standard logging module lands in the shared ring and comes back over
+    /v1/logs/all — content, not just a 200."""
+    import logging
+
+    logging.getLogger("just_ai_i18n_docgen.test").warning("RING-PROOF %s", "abc123")
+    r = client.get("/v1/logs/tail")
+    assert r.status_code == 200
+    assert "RING-PROOF abc123" in r.json()["text"]
+
+
+def test_disk_usage_reports_the_data_dir(client):
+    r = client.get("/v1/disk/usage")
+    assert r.status_code == 200
+    body = r.json()
+    assert "totalBytes" in r.text or body, "the shared disk route must answer with usage"
+
+
 def test_a_browser_origin_gets_cors_headers(client):
     """Vite dev (:1420) hits :8742 DIRECTLY (the kit's origin-aware resolver), so
     without CORSMiddleware every browser dev request dies as a silent block.

@@ -15,7 +15,10 @@ reference implementation.**
 npm run dev            # THE APP — desktop window; spawns the Python server itself
 npm run dev:vite       # browser-only dev at :1420 (start the server yourself: npm run server)
 npm run server         # the Python server on :8742 (venv-resolved via scripts/py.js)
-npm run test:server    # pytest — 119 tests
+npm run test:server    # pytest — 128 tests
+npm test               # e2e smoke: the REAL app via tauri-driver (build release first)
+npm run screenshots    # every surface shot from the REAL WebView2 → e2e/shots/
+npm run tauri build -- --no-bundle   # the release exe the e2e harness drives
 npm run build:vite     # the web build (committed dist/)
 npm run lint           # biome over src/
 cd server && .venv/Scripts/python -m ruff check just_ai_i18n_docgen tests
@@ -52,6 +55,18 @@ server/.venv/Scripts/just-ai-i18n-docgen translate|check|escalate|accept|extract
 - **`checks.py` carries the NUL-byte war story** — the separator is the four-char
   escape `\x00`; a literal NUL made the JS original binary-to-git and then broke this
   port's first write too. Python's compiler is the tripwire now.
+- **The real webview is the acceptance surface — and it keeps finding bugs no test
+  can.** Four in two days, each invisible from TestClient/vite: missing CORS (the
+  resolver hits :8742 directly from dev), `/summary` counting backlog as findings,
+  msedgedriver must match the WEBVIEW2 RUNTIME version (not Edge's), and
+  `configureLlmUi({})` falling back to `tauri.localhost` as its base so every kit
+  LLM view rendered empty IN PRODUCTION ONLY. Verify with `npm run screenshots`,
+  never with a Chrome tab (user ruling 2026-08-02; browser driving is banned).
+- **The standard app chrome is mandatory** (`app-structure.md` §11): `/ai` =
+  kit `AiModelsArea`, `AiStatusButton` in the shell footer, Settings =
+  appearance/storage/logs/reviewer/about, server wires the platform log ring +
+  file log + logs/disk routers. This app shipped without ALL of it once
+  (2026-08-02) — that is why the section exists.
 
 ## Layout
 

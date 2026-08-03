@@ -192,18 +192,6 @@ async function save() {
       </section>
 
       <section class="card">
-        <h2>Reviewer</h2>
-        <p class="hint">
-          Your name, stamped on every acceptance — so a verdict can say who made it.
-          Never taken from the OS.
-        </p>
-        <UiInput
-          :model-value="project.reviewer || ''" width="name" placeholder="your name"
-          @update:model-value="(v) => project.setReviewer(v)"
-        />
-      </section>
-
-      <section class="card">
         <h2>Your app's .gitignore</h2>
         <p class="hint">Workshop files a re-run rebuilds. Your decisions (config, accepted, notes) stay committed.</p>
         <pre v-if="project.inspect" class="mono setup__pre">{{ project.inspect.gitignore.join("\n") }}</pre>
@@ -216,7 +204,10 @@ async function save() {
         intent="primary" :label="project.saving ? 'Saving…' : 'Save project'"
         :disabled="project.saving || !path.trim() || !targets.length" @click="save"
       />
-      <span class="hint" style="margin: 0">Saving writes config.json beside your locales and loads it — no restart.</span>
+      <span class="hint" style="margin: 0">
+        Saving writes config.json beside your locales and loads it — no restart.
+        Your reviewer name lives in <router-link to="/settings/reviewer">Settings → Reviewer</router-link>.
+      </span>
     </div>
   </div>
 </template>

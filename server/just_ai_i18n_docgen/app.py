@@ -33,6 +33,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from llm_runner.llm import install_llm, load_from_configs, stores
+from llm_runner.platform import (
+    install_file_log,
+    install_log_ring,
+    make_disk_router,
+    make_logs_router,
+)
 from llm_runner.llm.routing_api import FeatureCatalogEntry
 from llm_runner.llm.seed import seed_llm
 from platformdirs import user_data_dir
@@ -156,6 +162,14 @@ def boot_llm_stack(data_dir: Path | None = None, app: FastAPI | None = None) -> 
 
 def create_app(data_dir: Path | None = None,
                config_path: str | Path | None = None) -> FastAPI:
+    data_dir = Path(data_dir) if data_dir else default_data_dir()
+
+    # Server logs → in-memory ring (the Settings → Logs viewer) + a rotating file
+    # that survives a crash/boot-hang. Shared platform helpers, same in every app
+    # (JW parity — the app shipped without ANY log surface until 2026-08-03).
+    install_log_ring()
+    install_file_log(data_dir / "logs" / "just-ai-i18n-docgen.log")
+
     app = FastAPI(title=PRODUCT, version="0.1.0")
 
     # Catch-all error envelope — registered BEFORE CORSMiddleware so an unhandled
@@ -187,6 +201,11 @@ def create_app(data_dir: Path | None = None,
     )
 
     boot_llm_stack(data_dir, app=app)
+
+    # Shared platform surfaces (JW's exact wiring): the log ring's API and the
+    # read-only disk-usage route the Settings → Storage panel reads.
+    app.include_router(make_logs_router(PRODUCT))
+    app.include_router(make_disk_router(data_dir))
 
     # The review workspace: starts with NO project (the setup screen creates one);
     # `config_path` pre-loads one for the CLI / a configured desktop launch.

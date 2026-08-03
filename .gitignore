@@ -28,3 +28,8 @@ dist-ssr
 
 # brainstorming companion workshop (session-local, never shipped)
 .superpowers/
+
+# e2e harness artifacts (JW shape): version-coupled driver binary + capture output
+e2e/drivers/
+e2e/shots/
+e2e/node_modules/

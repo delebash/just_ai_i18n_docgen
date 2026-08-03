@@ -11,10 +11,13 @@ import "./styles/styles.css";
 // One transport, origin-aware — the family pattern. In Vite dev (:1420) relative URLs
 // ride the dev proxy to :8742; in the Tauri webview the resolver falls back to the
 // sidecar's loopback address; served headless from the Python server, same-origin wins.
-configureServerApi({
-  resolveBase: makeOriginAwareResolver({ devPorts: ["1420"], fallback: "http://127.0.0.1:8742" }),
-});
-configureLlmUi({});
+const resolveBase = makeOriginAwareResolver({ devPorts: ["1420"], fallback: "http://127.0.0.1:8742" });
+configureServerApi({ resolveBase });
+// The kit's LLM views need the SAME resolved base (JW parity: configureLlmUi with no
+// baseUrl falls back to window.location.origin — which in the production webview is
+// tauri.localhost, so every /v1/llm-* call 404'd into empty lists. Found 2026-08-03
+// by the harness screenshots; invisible in dev, where origin-with-proxy happens to work).
+configureLlmUi({ baseUrl: resolveBase() });
 
 const pinia = createPinia();
 const app = createApp(App).use(pinia).use(router);
