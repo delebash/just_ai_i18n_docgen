@@ -259,3 +259,7 @@ table.plain th { color: var(--muted); font-weight: 600; font-size: 11.5px; text-
 
 .qs18__panel { display: flex; flex-direction: column; gap: 10px; }
 .qs18__panel h3 { margin: 0; font-size: 14px; }
+
+/* With the embedding slot hidden (this app), the General card was the grid's only
+   child and stretched wall to wall — cap it (user: "general model drop down is huge"). */
+.lu-setup-card:only-child { max-width: 620px; }

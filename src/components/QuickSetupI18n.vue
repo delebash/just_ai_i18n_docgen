@@ -12,7 +12,7 @@
 // emit `changed` + `closed`.
 import { computed, ref, watch } from "vue";
 import {
-  DownloadBar, UiButton, UiSelect, pushToast,
+  AppModal, DownloadBar, UiButton, UiSelect, pushToast,
   useModelApply, useRunnerModels,
 } from "@delebash/llm-ui";
 
@@ -108,7 +108,7 @@ function close() {
 
 <template>
   <div class="qs18">
-    <div v-if="!open" class="row">
+    <div class="row">
       <UiButton intent="primary" label="Run Quick Setup" @click="openWizard" />
       <span class="hint" style="margin: 0">
         A free local translation engine in one click — the models offered here are the
@@ -116,8 +116,10 @@ function close() {
       </span>
     </div>
 
-    <div v-else class="qs18__panel">
-      <h3>Local translation AI</h3>
+    <!-- A REAL wizard (modal), not an inline morph — 'Run Quick Setup does nothing'
+         was the inline swap reading as broken (user, 3rd report, 2026-08-03). -->
+    <AppModal v-if="open" eyebrow="Quick Setup" title="Local translation AI" @close="close">
+      <div class="qs18__panel">
       <p class="hint">
         Pick a model — the list is translation-measured only, best first
         (docs/models.md; measured, not assumed). One click installs the llama.cpp
@@ -140,6 +142,7 @@ function close() {
         No models in the catalog yet — add any HF GGUF from the catalog below, or check
         that the server is reachable.
       </p>
-    </div>
+      </div>
+    </AppModal>
   </div>
 </template>

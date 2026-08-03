@@ -65,8 +65,11 @@ test("routing by feature shows ALL FOUR features as routing rows (promptless app
 test("quick setup OPENS and offers translation-measured models, not JW's", async () => {
   await d.navigate("#/ai");
   await d.waitUntil(`return [...document.querySelectorAll('button')].some(b => /Run Quick Setup/i.test(b.textContent))`, { timeout: 15_000 });
+  // The band itself carries NO model dropdown — the wizard is a MODAL (3rd-report fix).
+  assert.equal(await d.exec(`return document.querySelectorAll('.lu-qs-band [role=combobox], .lu-qs-band select').length;`), 0,
+    "no inline model dropdown on the AI page");
   await d.exec(`[...document.querySelectorAll('button')].find(b => /Run Quick Setup/i.test(b.textContent)).click();`);
-  await d.waitUntil(`return /Local translation AI/i.test(document.body.textContent)`);
+  await d.waitUntil(`return !!document.querySelector('[role=dialog]') && /Local translation AI/i.test(document.body.textContent)`);
   // The preselected pick is the MEASURED flagship; JW's writing catalog is absent.
   await d.waitUntil(`return /Gemma 4 26B/i.test(document.body.textContent)`, { timeout: 10_000 });
   const page = await d.exec(`return document.body.textContent;`);

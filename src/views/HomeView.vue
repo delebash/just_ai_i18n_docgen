@@ -7,10 +7,11 @@
 // button — the splash plate, the three steps, and the two ways in.
 // The run strip is the kit's AiTaskStrip over the translate task the jobs store
 // registers — same surface as the AI-tasks panel, no bespoke strip.
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import {
-  AiTaskStrip, Icon, UiButton, UiCheckbox, UiInput, UiTable, UiTag, pushToast, useAiTasksStore,
+  AiTaskStrip, ConnectionError, Icon, UiButton, UiCheckbox, UiInput, UiTable, UiTag,
+  pushToast, serverUrl, useAiTasksStore,
 } from "@delebash/llm-ui";
 import splashPlate from "../assets/images/splash-plate.jpg";
 import { useJobsStore } from "../stores/jobs";
@@ -29,10 +30,17 @@ function nameOf(code) {
   try { return display.of(code) || code; } catch { return code; }
 }
 
+let retryTimer = null;
 onMounted(async () => {
   await Promise.all([project.refresh(), project.fetchSummary(), jobs.refresh()]);
   if (jobs.job?.state === "running") jobs.watch();
+  // While the server is unreachable (boot race), keep trying — Home must recover
+  // by itself, never stick on a wrong state.
+  retryTimer = setInterval(async () => {
+    if (project.serverDown) await project.fetchSummary();
+  }, 3000);
 });
+onUnmounted(() => clearInterval(retryTimer));
 
 // A finished run changes every count on this page — refetch when one settles.
 watch(() => jobs.job?.state, async (state, prev) => {
@@ -95,8 +103,14 @@ function lastRunLabel(l) {
 </script>
 
 <template>
-  <!-- No project yet: the welcome — what this is, and the two ways in. -->
-  <div v-if="!project.summary" class="intro">
+  <!-- Server unreachable ≠ no project: the kit's connection screen, retrying. -->
+  <ConnectionError
+    v-if="project.serverDown" app-name="Just AI i18n & DocGen"
+    :server-url="serverUrl('')" need="read your locale files and run translations"
+  />
+
+  <!-- CONFIRMED no project (409): the welcome — what this is, and the two ways in. -->
+  <div v-else-if="project.noProject" class="intro">
     <img class="intro__plate" :src="splashPlate" alt="Just AI i18n DocGen" />
     <div class="intro__steps">
       <div class="intro__step">
@@ -118,7 +132,7 @@ function lastRunLabel(l) {
     </div>
   </div>
 
-  <div v-else class="dash">
+  <div v-else-if="project.summary" class="dash">
     <header class="page-head">
       <div>
         <h1>{{ project.appName }}</h1>
