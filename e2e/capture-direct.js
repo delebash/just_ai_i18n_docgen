@@ -52,6 +52,19 @@ async function main() {
       await d.screenshot(file);
       console.log(`   saved ${path.basename(file)}`);
     }
+
+    // The Quick Setup wizard, OPEN — a modal never appears in a route shot, and
+    // this one is where the design decisions live (one Cancel, the measured
+    // catalog, the copy). It is only opened, never run: "Set it up" starts a real
+    // engine install + multi-GB download.
+    console.log("→ quicksetup (modal, opened not run)");
+    await d.navigate("#/ai");
+    await d.sleep(2500);
+    await d.exec(`[...document.querySelectorAll('button')].find(b => /Run Quick Setup/i.test(b.textContent))?.click();`);
+    await d.sleep(1200);
+    const qs = path.join(OUT_DIR, "quicksetup.png");
+    await d.screenshot(qs);
+    console.log(`   saved ${path.basename(qs)}`);
   } finally {
     console.log("→ ending session");
     await d.close();

@@ -22,7 +22,13 @@ npm run tauri build -- --no-bundle    # or: npm run build — the harness drives
   dialog with the translation catalog, Home shows staged work). **Needs a
   server on :8742** (`npm run server`, or the demo config) — the suite
   reads live endpoints. `JAID_DEV_NO_SIDECAR=1` means it never spawns or
-  evicts servers and mutates nothing of yours.
+  evicts servers.
+  **One test writes**: "quick setup RUNS" drives the real wizard, so it
+  writes the engine presets (that write IS the assertion — a wizard that
+  corrupts routing must fail here) and then restores them, verifying the
+  restore. It also starts a real load and cancels it; on a box with the
+  engine installed and the model absent, expect a few seconds of download
+  before the cancel.
 - `npm run screenshots` — captures every surface as PNGs into `e2e/shots/`
   (gitignored). Start the demo server on :8742 first if you want shots
   with data; `CAPTURE_NO_SIDECAR=0` exercises the real sidecar spawn

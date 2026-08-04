@@ -78,7 +78,102 @@ test("quick setup OPENS and offers translation-measured models, not JW's", async
   await d.waitUntil(`return /Gemma 4 26B/i.test(document.body.textContent)`, { timeout: 10_000 });
   const page = await d.exec(`return document.body.textContent;`);
   assert.equal(/StyleTune|Writes prose/i.test(page), false, "JW's writing catalog/copy must NOT appear in this app");
-  await d.exec(`[...document.querySelectorAll('button')].find(b => /^Cancel$/.test(b.textContent.trim()))?.click();`);
+  await d.exec(`[...document.querySelectorAll('[role=dialog] button')].find(b => /^Cancel$/.test(b.textContent.trim()))?.click();`);
+});
+
+test("quick setup RUNS: one Cancel at a time, the routing it writes is valid, no hang", async () => {
+  // The wizard's completion path — the part a mounting check cannot see. It drives the
+  // REAL run, so it writes routing; the presets are saved and restored below.
+  //
+  // Three defects this pins, all found by reading the donor (kit QuickSetup) after the
+  // user asked "does JW have two cancel buttons?" — no, it has one, and the modal is
+  // un-closable while a task runs:
+  //   1. setAsDefault(pick) wrote the MODEL id into providerId and undefined into model.
+  //   2. a footer Cancel sat beside each DownloadBar's own Cancel — two controls, one
+  //      word, different meanings (the footer's left the download running).
+  //   3. completion watched a derived model status, so an already-resident model, a
+  //      failed engine install and a cancelled download all left "Working…" forever.
+  const API = "http://127.0.0.1:8742";
+  let saved = null;
+  try {
+    saved = (await (await fetch(`${API}/v1/ai/engine-presets`)).json()).presets;
+  } catch { return; } // no server → the precondition tests above already said so
+  const before = saved.find((p) => p.id === "p_translate");
+
+  await d.navigate("#/ai");
+  await d.waitUntil(`return [...document.querySelectorAll('button')].some(b => /Run Quick Setup/i.test(b.textContent))`, { timeout: 15_000 });
+  await d.exec(`[...document.querySelectorAll('button')].find(b => /Run Quick Setup/i.test(b.textContent)).click();`);
+  // Wait for the wizard to be READY, not merely present: it primes the catalog, the
+  // ranking and the engine status first (its detect step). Clicking the instant the
+  // dialog existed hit a disabled button and no run ever started — found by this test
+  // on 2026-08-03, which is why the wizard now has a priming step to wait for.
+  await d.waitUntil(
+    `return !!document.querySelector('[role=dialog]')
+         && [...document.querySelectorAll('[role=dialog] button')]
+              .some(b => /^Set it up$/.test(b.textContent.trim()) && !b.disabled)`,
+    { timeout: 20_000 },
+  );
+
+  // ONE atomic DOM read, so the assertions can't race the task's own state changes.
+  const snapshot = `
+    const dlg = document.querySelector('[role=dialog]');
+    if (!dlg) return null;
+    const cancels = [...dlg.querySelectorAll('button')].filter(b => /^Cancel$/.test(b.textContent.trim()));
+    const bars = [...dlg.querySelectorAll('.lu-dlbar')];
+    return {
+      cancels: cancels.length,
+      footerCancels: cancels.filter(b => !b.closest('.lu-dlbar')).length,
+      bars: bars.length,
+      closeX: dlg.querySelectorAll('.ui-modal__close').length,
+      running: bars.some(b => [...b.querySelectorAll('button')].some(x => /^Cancel$/.test(x.textContent.trim()))),
+      text: dlg.textContent,
+    };`;
+
+  const confirmStep = await d.exec(`return (() => { ${snapshot} })();`);
+  assert.equal(confirmStep.cancels, 1, "confirm step: exactly one Cancel");
+  assert.equal(confirmStep.bars, 0, "no progress bars before the run starts");
+
+  await d.exec(`[...document.querySelectorAll('[role=dialog] button')].find(b => /^Set it up$/.test(b.textContent.trim())).click();`);
+  await d.waitUntil(`return !!document.querySelector('[role=dialog] .lu-dlbar')`, { timeout: 25_000 });
+
+  const applyStep = await d.exec(`return (() => { ${snapshot} })();`);
+  assert.equal(applyStep.footerCancels, 0, "the footer carries NO Cancel during a run — the bar owns it");
+  assert.equal(applyStep.cancels <= 1, true, `at most one Cancel on screen, saw ${applyStep.cancels}`);
+  if (applyStep.running) {
+    assert.equal(applyStep.closeX, 0, "the modal is un-closable while a task runs (donor rule)");
+  }
+
+  // The routing write: provider stays the runner, model is a real model id.
+  const after = (await (await fetch(`${API}/v1/ai/engine-presets`)).json()).presets;
+  const t = after.find((p) => p.id === "p_translate");
+  assert.equal(t.providerId, "local-llamacpp", "provider must stay the built-in runner");
+  assert.equal(typeof t.model === "string" && t.model.length > 0, true,
+    `the MODEL slot must hold the model id, got ${JSON.stringify(t.model)}`);
+  assert.equal(t.model.includes("/"), false, "a model id, not a provider id or a path");
+
+  // …and the run must reach a state the user can act on. Cancel it if it's still going
+  // (a healthy box downloads gigabytes; a box with a broken engine errors at once) —
+  // either way the bar must land on a terminal with Retry, and the modal must unlock.
+  await d.exec(`[...document.querySelectorAll('[role=dialog] .lu-dlbar button')].find(b => /^Cancel$/.test(b.textContent.trim()))?.click();`);
+  await d.waitUntil(
+    `return /Cancelled|Failed|Ready/.test(document.querySelector('[role=dialog]')?.textContent || '')`,
+    { timeout: 30_000 },
+  );
+  const terminal = await d.exec(`return (() => { ${snapshot} })();`);
+  assert.equal(terminal.running, false, "a terminal task shows no Cancel");
+  assert.equal(terminal.closeX, 1, "the modal is closable again once nothing is running");
+  assert.match(terminal.text, /Retry/, "a terminal bar offers Retry — never a dead end");
+
+  await d.exec(`document.querySelector('[role=dialog] .ui-modal__close')?.click();`);
+  // Put the user's routing back exactly as it was (this test wrote it on purpose).
+  for (const p of saved) {
+    await fetch(`${API}/v1/ai/engine-presets/${p.id}`, {
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p),
+    });
+  }
+  const restored = (await (await fetch(`${API}/v1/ai/engine-presets`)).json()).presets
+    .find((p) => p.id === "p_translate");
+  assert.equal(restored.model, before.model, "the test restored the routing it changed");
 });
 
 test("setup shows the WHOLE form with an explicit Check path button — nothing hidden", async () => {

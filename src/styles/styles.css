@@ -259,6 +259,12 @@ table.plain th { color: var(--muted); font-weight: 600; font-size: 11.5px; text-
 
 .qs18__panel { display: flex; flex-direction: column; gap: 10px; }
 .qs18__panel h3 { margin: 0; font-size: 14px; }
+/* Same error voice as the setup form's (.setup__error) — one convention. */
+.qs18__err { color: var(--danger); margin: 0; }
+/* "About this model" — the donor's .lu-qs-why, same accent-rule treatment. */
+.qs18__about { font-size: 12px; line-height: 1.5; margin: 0; padding: 8px 10px;
+  background: var(--surface-2); border-radius: 6px; color: var(--ink-2);
+  border-left: 2px solid var(--accent); }
 
 /* With the embedding slot hidden (this app), the General card was the grid's only
    child and stretched wall to wall — cap it (user: "general model drop down is huge"). */
