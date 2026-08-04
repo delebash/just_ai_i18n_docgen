@@ -56,7 +56,7 @@ actively-misleading docs; 1 dead user doc).
 | `docs/dev/TASKS.md` | keep-live | The live tracker; stale commit claims fixed 2026-08-04. |
 | `docs/dev/IDEAS.md` | keep-live | Conforms; empty holding pen. |
 | `docs/plans/2026-08-04-consistency-sweep.md` | keep-live | Active enforcement list + QuickSetup resumption notes. |
-| `docs/plans/2026-08-04-kit-reuse-audit.md` | banner-close | Every finding landed same day (one splash, BootModelLoad, PNG deleted); §1's "open ruling" was ruled (model name = shared). |
+| `docs/plans/archive/2026-08-04-kit-reuse-audit.md` | banner-close | Every finding landed same day (one splash, BootModelLoad, PNG deleted); §1's "open ruling" was ruled (model name = shared). |
 | `docs/superpowers/specs/2026-08-03-design1-chrome-design.md` | banner-close | Chrome shipped 08-03/04. **Homeless fact:** its deferred pair — `make_data_router` (backup/restore/reset) + `UpdatesPanel` — has no TASKS/IDEAS line and the doc points at the retired repo's HANDOFF for it. |
 | root `README.md` | DECISION | Still the create-tauri-app template stub; says nothing about the app. Write a real one, or leave-by-standard. |
 | root `CLAUDE.md` | update (1 fix) | "Port 8742 (JW 17495 · **JV 8741**)" — JV is actually **17494** (`JustVioce/src-tauri/src/lib.rs:46`). Same wrong value in `src-tauri/src/lib.rs:22`'s comment. |
@@ -308,7 +308,7 @@ their targets archive — repath on move.
 **No live tracker in the repo at all** — `docs/dev/` holds only `design-law.md`
 (keep-live). JV's open work is tracked in JW's whole-system TASKS.md; the only
 in-repo pointer to that fact is a doc *named* "archive"
-(`docs/plans/2026-07-29-morning-recap-archive.md`).
+(`docs/plans/archive/2026-07-29-morning-recap-archive.md`).
 
 **Three docs actively misroute a fresh reader:** `docs/plans/2026-06-16-SESSION-
 HANDOFF.md` (gives first-30-minutes instructions for a June session; archive

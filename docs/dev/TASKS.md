@@ -11,7 +11,7 @@
   NAME — your ruling) + kit `startWarmOnBoot()`; this app: single splash (static plate in
   `index.html`, pre-mount warm start, no spinner, no shell flash); JW adopted the same
   control (its splash shows the model name now). Evidence:
-  `docs/plans/2026-08-04-kit-reuse-audit.md`. Gates: docgen biome+vite ✓, JW 560/560
+  `docs/plans/archive/2026-08-04-kit-reuse-audit.md`. Gates: docgen biome+vite ✓, JW 560/560
   vitest + build + i18n report ✓ (its two report rows pre-exist today, proven on a
   stashed clean tree).
 - **Kit-first swaps in this app** — 5 fact tables → kit `.ui-formgrid`, 2 textareas →
@@ -26,15 +26,6 @@
 
 ## Open — needs your go
 
-- **THE DOCS CLEANUP CAMPAIGN — SURVEY DONE 2026-08-04, awaiting the per-repo go.**
-  All four repos surveyed (three agents + inline), every verdict + homeless fact +
-  stale cross-reference recorded in
-  `docs/plans/2026-08-04-docs-cleanup-campaign.md`. Headline finds: JV's real port
-  is 17494, not the 8741 the family standard (and this repo's CLAUDE.md + lib.rs
-  comment) claims; runner's `check-consumers.py` doesn't know this app's server
-  exists; JW's root README describes a pre-server app; JV has no live tracker at
-  all; ~30 open facts sit trapped in shipped plan docs. Execution per repo on the
-  user's go: extract facts → fix refs → banners → archive moves.
 - **Backups/restore/reset + updates surface — deferred by the chrome spec, never
   tracked until now (docs campaign 2026-08-04, code-verified absent):** the shared
   `make_data_router` is not mounted by this server and neither kit `DataManagement`
@@ -86,14 +77,9 @@
   through ONE door (the sanctioned copy objects), so a template can't quietly restate a
   kit concept. The full inconsistency sweep (agent, in flight) becomes tier-2's first
   fix list. `app-structure.md` §11 points at the manifest instead of prose.
-- **Menu + name consistency (your QC 2026-08-04, verified against code):** (a) sidebar
-  labels — JW says **"App Settings"** (`nav.settings`) and **"AI Settings"**; this app
-  says "Settings" and "AI" → rename to JW's words ("AI tasks" already matches; Home/
-  Review/Runs/Docs/Setup stay — app domain nav is legitimately per-app). (b) Settings
-  CHROME — JW's SettingsView is TOP TABS (project/appearance/…); this app built a left
-  rail (`settings__rail`) → move to JW's top-tab shape, keeping this app's own section
-  set (appearance/storage/server/logs/reviewer/about — only what it needs). Family pass
-  + a line in `app-structure.md` §11 so the trio + settings chrome are the standard.
+- *(Menu + name consistency: CLOSED by the contract build — the nav trio words and
+  the top-tab SettingsShell shipped; the last wording bits (wizard copy canon) ride
+  the QuickSetup chunk above.)*
 - ~~Routing by feature~~ **BUILT 2026-08-04, awaiting your QC** (and one earlier claim of
   mine corrected: review was NEVER on fallback — `app.py` deliberately seeds
   `review → p_translate`, "back-translation: same engine the translation used"). What
@@ -111,8 +97,8 @@
   the embeddings-note capability gate, and the class-tune seed noise are now lines in
   `../just-llm-runner/docs/dev/TASKS.md`. The docs-convention item CLOSED — it is
   `app-structure.md` §13 now, and runner + JV both have their tracker pair.)*
-- **Commits** — the contract-build day LANDED 2026-08-04 (runner `cf598b9` · this app
-  `d43ef36` · JW `27f7c68`; NOT pushed — pushing needs your word). NEW uncommitted on
-  top: the kit labels i18n build (runner: reactive `familyLabels` store + one door,
-  dialog folded in; JW: locale feed at boot + on switch, `family.*` en/es keys, bite +
-  twin tests). Say the word and it lands as a reviewed commit.
+- **Commits — everything through the docs campaign is COMMITTED, NOTHING is
+  pushed** (pushing needs your word). The day's arc: contract build (runner
+  `cf598b9` · this app `d43ef36` · JW `27f7c68`) → labels build (runner `1a9f8cc` ·
+  JW `baf013e`) → the docs campaign + distillation (per-repo commits, see
+  `git log`).
