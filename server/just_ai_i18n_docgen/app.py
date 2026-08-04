@@ -175,6 +175,9 @@ def boot_llm_stack(data_dir: Path | None = None, app: FastAPI | None = None) -> 
             model_catalog_extra=MODEL_CATALOG,
             seed_default_model_catalog=False,  # translation-measured rows ONLY
             data_dir=data_dir,
+            # Names this app in the family cache registry, so the NEXT app installed
+            # can offer to share these engine + model files instead of re-downloading.
+            product=PRODUCT,
         )
     else:
         # Routeless boot — the CLI door. install_llm(app=None) is first-class in the
@@ -194,6 +197,7 @@ def boot_llm_stack(data_dir: Path | None = None, app: FastAPI | None = None) -> 
             model_catalog_extra=MODEL_CATALOG,
             seed_default_model_catalog=False,
             data_dir=data_dir,
+            product=PRODUCT,
         )
 
     seed_llm()

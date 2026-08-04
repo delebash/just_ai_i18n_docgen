@@ -264,6 +264,12 @@ table.plain th { color: var(--muted); font-weight: 600; font-size: 11.5px; text-
 .qs18__about { font-size: 12px; line-height: 1.5; margin: 0; padding: 8px 10px;
   background: var(--surface-2); border-radius: 6px; color: var(--ink-2);
   border-left: 2px solid var(--accent); }
+/* The shared-AI-files question. Boxed like .qs18__about because it is the same kind
+   of thing — context for the choice below it — but it CONTAINS a control, so it gets
+   the panel's own gap rather than a bare paragraph's. */
+.qs18__cache { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px;
+  background: var(--surface-2); border-radius: 6px; font-size: 12.5px;
+  border-left: 2px solid var(--accent); }
 
 /* With the embedding slot hidden (this app), the General card was the grid's only
    child and stretched wall to wall — cap it (user: "general model drop down is huge"). */

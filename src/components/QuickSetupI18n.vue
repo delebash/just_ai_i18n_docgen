@@ -23,7 +23,7 @@
 import { computed, ref, watch } from "vue";
 import {
   AppModal, DownloadBar, UiButton, UiSelect, createDownloadTask, engineInstallChannel,
-  get, modelLoadChannel, pushToast, useCatalogMeta, useModelApply, useRunnerModels,
+  get, modelLoadChannel, pushToast, put, useCatalogMeta, useModelApply, useRunnerModels,
 } from "@delebash/llm-ui";
 
 defineProps({ inline: { type: Boolean, default: false } });
@@ -83,6 +83,61 @@ const options = computed(() =>
 // both sources and then chooses, which is also the donor's shape: it clears its pick on
 // open and re-derives the recommendation, QuickSetup.vue:279.)
 
+// THE CACHE QUESTION (user ruling, 2026-08-03). Two family apps each kept their own
+// `<data>/ai-cache`, so the SAME 14 GB model sat on this PC twice. The engine and the
+// weights are content-addressed, so a sibling app's cache is not "compatible with"
+// ours — it is byte-for-byte the thing we were about to download. Detect it, ASK, and
+// let the answer be no. Asked HERE and not in Settings because the only moment it saves
+// anything is before the download starts.
+const cacheState = ref(null);
+const cacheChoice = ref("");       // the root to use; "" = this app's own
+const cacheNote = ref("");
+// Worth asking about only when a sibling actually HAS something — an empty directory
+// belonging to another app is not an offer, it is a question with no upside.
+const cacheOffer = computed(() =>
+  (cacheState.value?.options || []).find(
+    (o) => o.exists && (o.models?.length || o.engineBuilds?.length),
+  ) || null,
+);
+const cacheOptions = computed(() => {
+  const o = cacheOffer.value;
+  if (!o) return [];
+  const who = o.product || "another app";
+  return [
+    { label: `Share ${who}'s AI files (${rm.fmtBytes(o.bytes || 0)} already downloaded)`, value: o.root },
+    { label: "Keep a separate copy for this app", value: cacheState.value?.ownRoot || "" },
+  ];
+});
+
+// Applied the moment it is chosen, not at "Set it up": switching re-points the engine
+// while it is idle, and the model list then tells the TRUTH about what still has to be
+// downloaded ("already on disk" vs "downloads now"). Nothing on disk moves either way,
+// so changing your mind costs one click.
+// Driven by the select's own EVENT, never a watcher on the ref: openWizard pre-selects
+// the recommendation, and a watcher could not tell that assignment from a click — so it
+// would silently switch the cache while claiming to ask. Priming sets the value; only a
+// human sets it through here.
+async function onCacheChoice(root) {
+  cacheChoice.value = root;
+  if (running.value) return;
+  await applyCacheChoice(root);
+}
+
+async function applyCacheChoice(root) {
+  if (root === cacheState.value?.root) return;   // already there — nothing to say or do
+  cacheNote.value = "";
+  try {
+    const res = await put("/v1/ai/engine-cache", { root });
+    if (res?.restartRequired) {
+      cacheNote.value = res.detail || "This applies the next time the app starts.";
+    }
+    await Promise.all([rm.refresh?.(), refreshCatalogMeta()]);
+    cacheState.value = await get("/v1/ai/engine-cache").catch(() => cacheState.value);
+  } catch (e) {
+    cacheNote.value = `Couldn't switch the AI files: ${e?.message || e}`;
+  }
+}
+
 const pickedModel = computed(() => rm.models.value.find((m) => m.id === pick.value) || null);
 // What this pick means for THIS PC: the kit's own fit vocabulary (FIT_LABEL — one
 // wording on every surface) and whether the click is instant or a real download.
@@ -110,12 +165,18 @@ async function openWizard() {
   // load then fails honestly on its own bar rather than opening an install nobody asked
   // for.
   try {
-    const [, , st] = await Promise.all([
+    const [, , st, cache] = await Promise.all([
       rm.refresh?.(),
       refreshCatalogMeta(),
       get("/v1/llm-runner/engine/status").catch(() => null),
+      get("/v1/ai/engine-cache").catch(() => null),
     ]);
     engineNeeded.value = st ? !st.installed : false;
+    cacheState.value = cache;
+    // Sharing is the recommendation when there is something to share — it is the
+    // option that does NOT download gigabytes this PC already has. The other option is
+    // right there, which is the "ask, don't decide" half of the ruling.
+    cacheChoice.value = cacheOffer.value?.root || cache?.root || "";
   } catch {
     engineNeeded.value = false; // the list below still renders its last state
   }
@@ -131,6 +192,10 @@ defineExpose({ openWizard });
 async function run() {
   if (!pick.value || running.value) return;
   error.value = "";
+  // The recommendation is pre-selected but only APPLIED here if the user left it
+  // alone — the download must land in the cache they were shown, not the one that
+  // happened to be live when the dialog opened. No-op when it is already the root.
+  await applyCacheChoice(cacheChoice.value);
   try {
     await setAsDefault(LOCAL_RUNNER_ID, pick.value);
     await refreshApplied();
@@ -209,6 +274,26 @@ function close() {
         </p>
 
         <template v-else-if="step === 'confirm'">
+          <!-- Asked FIRST, because the answer changes what the model choice below
+               costs: a model already in a sibling app's cache downloads in 0 s. -->
+          <div v-if="cacheOffer" class="qs18__cache">
+            <p style="margin: 0">
+              <b>{{ cacheOffer.product || "Another app" }}</b> on this PC already has
+              {{ cacheOffer.models?.length || 0 }} AI model{{ cacheOffer.models?.length === 1 ? "" : "s" }}
+              and the engine — {{ rm.fmtBytes(cacheOffer.bytes || 0) }} downloaded.
+            </p>
+            <UiSelect
+              :model-value="cacheChoice" :options="cacheOptions" width="prose"
+              @update:model-value="onCacheChoice"
+            />
+            <p class="hint" style="margin: 0">
+              Sharing means a model you already have downloads again in no time and
+              takes no extra disk. Nothing is moved or deleted either way, and you can
+              change this later under Settings.
+            </p>
+            <p v-if="cacheNote" class="hint" style="margin: 0">{{ cacheNote }}</p>
+          </div>
+
           <p class="hint" style="margin: 0">
             Pick a model — best first, and every one here was measured on real
             localisation runs rather than guessed at. One click installs the llama.cpp
