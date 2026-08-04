@@ -26,16 +26,11 @@
 
 ## Open — needs your go
 
-- **DOCS PHASE 2 — CODE-FIRST COVERAGE (the user's correction 2026-08-04: "checking
-  code, deep audit of code, comparing against docs — all coded features in
-  appropriate user or dev docs, plus the design-whys").** Phase 1 verified claims
-  docs already made; it never enumerated the BUILT surface and asked "where is this
-  explained?". In flight: three read-only audits (JW · JV · this app) enumerating
-  features FROM CODE and rating user-doc / dev-doc / design-why coverage. Then, on
-  the go: write the missing user docs (real explanations, JW/JV extend their
-  corpora; THIS APP gets its first user docs — it has none), the dev getting-started
-  indexes with links to the design-decision docs, and fix any doc claiming features
-  code lacks.
+- *(DOCS PHASE 2 — code-first coverage: DONE 2026-08-04. Three code-first audits →
+  this app's first user corpus + Help drawer, JW's 7 false paths + 12 dark features,
+  JV's mcp rewrite + 9 new pages + journey banners, dev front doors everywhere,
+  convergence fixes verified against code. Records: the per-repo
+  `docs/plans/2026-08-04-docs-coverage-worklist.md` files + git.)*
 
 - **Product questions from the code-first audit (2026-08-04) — your rulings:**
   (a) **App-run jobs skip the confirmation pass** — only CLI `translate` pre-ticks
@@ -61,11 +56,13 @@
   (`docs/superpowers/specs/2026-08-03-design1-chrome-design.md` §Deferred) parked
   them "next block"; JW has both surfaces. Needs a go.
 - **Family headless/tray spec (your ruling 2026-08-04, all three apps):** every app's exe
-  opens the GUI and owns a TRAY icon (Show app · Exit); Settings gains "keep server
-  running after the app closes" (headless mode) — off ⇒ closing the app stops the server;
-  on ⇒ the tray app stays for server stop/start while the GUI hides. "This was supposed
-  to be the way JW and all apps work." Needs: plan across JV/JW/i18n + a section in
-  `app-structure.md`.
+  opens the GUI and owns a TRAY icon; Settings gains "keep server running after the
+  app closes" — off ⇒ closing stops everything; on ⇒ the window closes but the tray
+  + server stay. **JV ALREADY SHIPS THIS (the donor — found by the docs audit):**
+  tray with Show/Hide · Start/Stop/Restart server · Quit, `keep_running_on_close`
+  in its `lib.rs`, setting at Settings → Lifecycle, user docs in its
+  `system-tray.md`/`run-modes.md`. Remaining work = lift the pattern to JW + this
+  app + a section in `app-structure.md`.
 - **Appearance doesn't work in this app (your QC).** Diagnose, and per your ruling the
   appearance surface should be SHARED for JV + i18n (JW stays its richer own).
 - **CONTRACT BUILD — first pass LANDED 2026-08-04 (uncommitted), remainder below.**

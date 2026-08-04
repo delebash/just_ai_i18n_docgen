@@ -13,7 +13,8 @@ acceptance is a human's click, stamped with a reviewer name and committed to git
 ## Two doors, two run modes
 
 - **The desktop app** — the window this doc lives in. `npm run dev` starts it; the
-  Python server is spawned for you.
+  Python server is spawned for you. (First time from source: create the server
+  venv — the two commands are in the repo README.)
 - **The command line** — the same brain with no window: `translate`, `check`,
   `escalate`, `accept`, `extract`. Both doors share one implementation of every
   decision, so a CLI run and an app run behave identically. See

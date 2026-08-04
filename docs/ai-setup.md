@@ -35,8 +35,8 @@ route through it instead of the local engine.
 
 The **Routing by feature** tab shows which engine preset each feature uses —
 `translate`, `review` (back-translation deliberately uses the SAME engine the
-translation used), and `confirm`. Selecting a feature shows the *real* generated
-prompt, read-only: prompts here are built by the pipeline for each string, so the
+translation used), and `confirm`. Selecting `translate` or `confirm` shows the
+*real* generated prompt, read-only (`review` has no preview — it routes only): prompts here are built by the pipeline for each string, so the
 preview is for understanding and test-tuning, never something that saves. The
 preset surface below it (model, temperature, samplers, save/load presets, "Use in
 production") is live and is where you'd point a feature at a stronger model.
