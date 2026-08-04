@@ -15,6 +15,20 @@ npm install            # fetches msedgedriver via postinstall (Edge-version matc
 npm run tauri build -- --no-bundle    # or: npm run build — the harness drives target/release/
 ```
 
+## Run what the USER runs
+
+The server these scripts talk to must be **the app's own** — same data dir, same
+project, same state you see in the window. `npm run server` starts it on the app's
+default data dir; `npm run dev` has the shell spawn it for you.
+
+Pointing the harness at a throwaway config + data dir (as this repo did on
+2026-08-03) means the two of you are looking at different apps: the user hit a
+first-run engine failure that no green suite here could have seen, and their
+launch EVICTED the scratchpad server mid-session. When a report comes in, verify
+against the data dir the app actually used —
+`src-tauri/target/debug/data` for `npm run dev`, `…/release/data` for the built
+exe — and read `<data>/logs/*.log` plus `<data>/ai-cache/llamacpp/logs/`.
+
 ## Scripts (run from the APP ROOT)
 
 - `npm test` — the smoke suite: real app, real WebView2, BEHAVIOUR
