@@ -492,6 +492,19 @@ def make_workspace_router(ws: Workspace) -> APIRouter:
             save_accepted(path, {**load_accepted(path), **(a["prev"] or {})})
         elif a["kind"] == "note":
             ws.write_note(a["lang"], a["key"], a["prev"])
+        elif a["kind"] in ("apply", "bulk-apply"):
+            # Applying a proposal WRITES the locale file, so undo has to put the old
+            # text back — exactly what `edit` does. Until 2026-08-03 there was no branch
+            # here at all: `apply` fell through every clause and undo returned its
+            # cheerful {"undone": …} having changed nothing on disk. `bulk-apply` carries
+            # a {key: prevValue} map (one click, one undo); the legacy single `apply`
+            # action carries one scalar prev, and state files written before the change
+            # still contain those, so both shapes are restored.
+            if a["kind"] == "bulk-apply":
+                for key, prev in (a["prev"] or {}).items():
+                    ws.write_key(a["lang"], key, prev)
+            else:
+                ws.write_key(a["lang"], a["key"], a["prev"])
         return {"undone": a}
 
     @router.get("/history")
@@ -510,17 +523,25 @@ def make_workspace_router(ws: Workspace) -> APIRouter:
         lang, keys = body.get("lang"), body.get("keys")
         if not isinstance(lang, str) or not isinstance(keys, list):
             raise HTTPException(400, "lang and keys[] required")
-        applied = []
+        # ONE undo for the whole click — the bulk-accept promise, applied to writes. A
+        # run stages one proposal per key, so "apply what the run produced" is a
+        # 2,000-key action; 2,000 undo entries would make the one thing you want after
+        # a bad run — put it back — unreachable. `prev` is the map this action
+        # overwrote, and it is what undo restores.
+        current = p.target_flat(lang) or {}
+        applied: list[str] = []
+        prev_map: dict[str, str | None] = {}
         for key in keys:
             rows_ = proposals(p.state, lang=lang, key=key)
             if not rows_:
                 continue
-            prev = (p.target_flat(lang) or {}).get(key)
+            prev_map[key] = current.get(key)
             ws.write_key(lang, key, rows_[0]["value"])
-            record_action(p.state, lang=lang, key=key, kind="apply", prev=prev,
-                          next_value=rows_[0]["value"])
             drop_proposal(p.state, lang=lang, key=key)
             applied.append(key)
+        if applied:
+            record_action(p.state, lang=lang, kind="bulk-apply", prev=prev_map,
+                          key=applied[0] if len(applied) == 1 else None)
         return {"lang": lang, "applied": applied}
 
     @router.delete("/proposals")

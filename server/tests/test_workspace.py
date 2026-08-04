@@ -163,6 +163,50 @@ def test_a_job_stages_proposals_and_never_touches_the_locale_file(client, monkey
     es = json.loads(es_path.read_text(encoding="utf-8"))
     assert es["common"]["no"].startswith("NUEVO")
 
+    # …and it is UNDOABLE. Until 2026-08-03 `undo` had no branch for an applied
+    # proposal: it popped the action, answered {"undone": …} and left the overwritten
+    # text on disk. Applying is the only human action that writes locale files, so a
+    # silent no-op here is the worst undo in the app.
+    client.post("/v1/undo", json={})
+    es = json.loads(es_path.read_text(encoding="utf-8"))
+    assert es["common"]["no"] == "No", "undo must put the pre-apply text back"
+
+
+def test_applying_many_proposals_is_ONE_undo(client, monkeypatch):
+    """A run stages a proposal per key, so "apply what this run produced" is a
+    whole-catalogue action — and 2,000 undo entries would put the one thing you want
+    after a bad run (put it back) out of reach. One click, one undo: the bulk-accept
+    promise, applied to writes."""
+    def fake_send(system, user):
+        items = json.loads(re.search(r"Translate items: (\[.*\])$", user, re.DOTALL).group(1))
+        return json.dumps({"items": [
+            {"id": it["id"], "translation": f"NUEVO {it['text']}"} for it in items
+        ]})
+
+    from just_ai_i18n_docgen import workspace as ws_mod
+
+    monkeypatch.setattr(ws_mod, "make_send", lambda *a, **k: fake_send)
+    es_path = client.config_path.parent.parent / "src" / "locales" / "es.json"
+    before = json.loads(es_path.read_text(encoding="utf-8"))
+
+    client.post("/v1/jobs", json={"lang": "es", "scope": "all"})
+    client.app.state.workspace.jobs.settled()
+
+    keys = [p["key"] for p in
+            client.get("/v1/proposals", params={"lang": "es"}).json()["proposals"]]
+    assert len(keys) > 1
+    r = client.post("/v1/proposals/apply", json={"lang": "es", "keys": keys})
+    assert sorted(r.json()["applied"]) == sorted(keys)
+    after = json.loads(es_path.read_text(encoding="utf-8"))
+    assert after["sidebar"]["books"].startswith("NUEVO")
+    assert after["greet"].startswith("NUEVO")
+
+    # ONE undo restores EVERY key the click wrote — not just the last one.
+    client.post("/v1/undo", json={})
+    assert json.loads(es_path.read_text(encoding="utf-8")) == before
+    # …and there is nothing left to undo: the batch was a single action.
+    assert client.post("/v1/undo", json={}).status_code == 404
+
 
 def test_an_unknown_scope_must_not_start_a_job(client):
     r = client.post("/v1/jobs", json={"lang": "es", "scope": "everythingish"})

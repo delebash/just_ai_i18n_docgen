@@ -14,6 +14,7 @@ export const useReviewStore = defineStore("review", {
     loading: false,
     activeKey: null,
     detail: null,        // { siblings, reference } for the active key
+    staged: [],          // /v1/proposals for this language — a run's unapplied output
   }),
   getters: {
     activeRow: (s) => s.rows.find((r) => r.key === s.activeKey) || null,
@@ -30,6 +31,7 @@ export const useReviewStore = defineStore("review", {
         this.accepted = body.accepted;
         this.total = body.total;
         this.lang = lang || body.langs[0] || null;
+        if (this.lang) await this.loadStaged(this.lang);
       } finally {
         this.loading = false;
       }
@@ -80,6 +82,34 @@ export const useReviewStore = defineStore("review", {
     async applyProposal(row) {
       await post("/v1/proposals/apply", { lang: row.lang, keys: [row.key] });
       await this.refresh();
+    },
+    // The staged pile for a language — what a run produced and nobody has accepted or
+    // rejected yet. The queue only lists keys the CHECKS flagged, so a clean run's
+    // proposals were reachable one key at a time or not at all; this is the list the
+    // bulk actions work on.
+    async loadStaged(lang = this.lang) {
+      const body = await safeRequest(
+        `/v1/proposals?lang=${encodeURIComponent(lang)}`, null);
+      this.staged = body?.proposals ?? [];
+      return this.staged;
+    },
+    // Apply EVERY staged proposal for the language in one call — the server writes them
+    // as one action, so this stays one undo (workspace.py proposals_apply).
+    async applyAllStaged(lang = this.lang) {
+      const keys = (await this.loadStaged(lang)).map((p) => p.key);
+      if (!keys.length) return { applied: [] };
+      const out = await post("/v1/proposals/apply", { lang, keys });
+      await this.refresh(lang); // reloads the queue AND the staged pile
+      return out;
+    },
+    // Throw the pile away without writing anything (DELETE with no keys = all).
+    async discardAllStaged(lang = this.lang) {
+      const out = await del("/v1/proposals", {
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lang }),
+      });
+      await this.refresh(lang); // reloads the queue AND the staged pile
+      return out;
     },
     async state() {
       return get("/v1/state");

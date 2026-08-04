@@ -9,7 +9,7 @@
 // Family rules: height:100% chain (never 100vh), one scroller per area.
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import { DownloadBar, Icon, Toast, useAiTasksStore, useModelApply, useRunnerModels } from "@delebash/llm-ui";
+import { AppDialog, DownloadBar, Icon, Toast, useAiTasksStore, useModelApply, useRunnerModels } from "@delebash/llm-ui";
 import TitleBar from "./components/TitleBar.vue";
 import splashPlate from "./assets/images/splash-plate.jpg";
 import { startWarmOnBoot, warmModelId } from "./services/warmStartup";
@@ -130,6 +130,13 @@ onMounted(async () => {
       </main>
     </div>
     <Toast />
+    <!-- The confirm/prompt HOST (JW App.vue:213). `confirmDialog()` resolves through
+         whatever renders this; with no host mounted the promise NEVER settles, so every
+         confirmed action — Change folder, Clear models cache, Clear spawn logs, Apply
+         all staged — was a button that did nothing at all. Found 2026-08-03 by reading
+         the donor's shell instead of its panels; the smoke test asserted the panel
+         STRINGS, which is exactly what presence-testing cannot catch. -->
+    <AppDialog />
 
     <!-- ── the boot splash — the plate, with the interactive layer in its clear
          bottom strip (this art is centre-composed; JW's plate is left-empty) ── -->

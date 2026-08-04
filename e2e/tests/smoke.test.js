@@ -247,6 +247,23 @@ test("settings renders its sections and the logs panel", async () => {
                         && /Disk usage/.test(document.body.textContent)`);
 });
 
+test("a confirmed action really opens its confirm dialog (the host is mounted)", async () => {
+  // confirmDialog() resolves through the <AppDialog /> host. With no host mounted the
+  // promise never settles, so EVERY confirmed action — Change folder, Clear models
+  // cache, Clear spawn logs, Apply all staged — is a button that does nothing. The app
+  // shipped that way until 2026-08-03 under a test that asserted the panel's STRINGS.
+  // Cancel is clicked at the end, so this test destroys nothing.
+  await d.navigate("#/settings/storage");
+  await d.waitUntil(`return /Disk usage/.test(document.body.textContent)`, { timeout: 15_000 });
+  await d.exec(`[...document.querySelectorAll('button')].find(b => /^Clear$/.test(b.textContent.trim())).click();`);
+  await d.waitUntil(`return !!document.querySelector('[role=dialog]')`, { timeout: 8_000 });
+  const text = await d.exec(`return document.querySelector('[role=dialog]').textContent;`);
+  assert.match(text, /Clear downloaded models\?/, "the confirm must state what it will do");
+  await d.exec(`[...document.querySelectorAll('[role=dialog] button')].find(b => /^Cancel$/i.test(b.textContent.trim()))?.click();`);
+  await d.sleep(400);
+  assert.equal(await d.exists("[role=dialog]"), false, "Cancel must close it");
+});
+
 test("the global AI status button lives in the titlebar (JW parity)", async () => {
   assert.equal(
     await d.exec(`return document.querySelectorAll('.titlebar button').length >= 3;`),

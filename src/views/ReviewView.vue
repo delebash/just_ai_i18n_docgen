@@ -5,8 +5,9 @@
 // a save re-checks the key immediately, the confirmation pass PRE-TICKS but never
 // signs off, and a suggestion is shown, never applied by anyone but you.
 import { computed, onMounted, ref, watch } from "vue";
-import { UiButton, UiSelect, pushToast } from "@delebash/llm-ui";
+import { UiButton, UiSelect, confirmDialog, pushToast } from "@delebash/llm-ui";
 import { useRoute } from "vue-router";
+import { langName, langOptions } from "../services/langs";
 import { useProjectStore } from "../stores/project";
 import { useReviewStore } from "../stores/review";
 
@@ -16,12 +17,30 @@ const route = useRoute();
 const draft = ref("");
 const noteDraft = ref("");
 const filter = ref(null);
+const busy = ref(false);
+
+// The picker says which languages have work, and how much — this page IS the work, so
+// "es" and "fr" alone made you open each one to find out where it was.
+const langChoices = computed(() =>
+  langOptions(project.langs, (code) => {
+    const l = (project.summary?.langs || []).find((x) => x.code === code);
+    return l ? l.staged + l.unreviewed : 0;
+  }),
+);
+// Where the work IS. Landing on the config's first language put you on a clean queue
+// while another language had a whole run staged (the fr row, 2026-08-03).
+function busiestLang() {
+  const rows = [...(project.summary?.langs || [])]
+    .sort((a, b) => (b.staged + b.unreviewed) - (a.staged + a.unreviewed));
+  return rows.find((l) => l.staged + l.unreviewed > 0)?.code || null;
+}
 
 onMounted(async () => {
-  await project.refresh();
-  // The dashboard's row click lands here with ?lang= — honour it.
+  await Promise.all([project.refresh(), project.fetchSummary()]);
+  // The dashboard's row click lands here with ?lang= — honour it; otherwise open where
+  // there is something to do, and only then fall back to the first language.
   const wanted = typeof route.query.lang === "string" ? route.query.lang : null;
-  await review.refresh(wanted ?? review.lang ?? project.langs[0] ?? null);
+  await review.refresh(wanted ?? review.lang ?? busiestLang() ?? project.langs[0] ?? null);
 });
 
 watch(() => review.activeRow, (row) => {
@@ -60,19 +79,81 @@ async function backtranslate() {
     pushToast({ kind: "error", title: "Back-translation failed", description: String(e?.message || e) });
   }
 }
+
+// ── the staged pile ────────────────────────────────────────────────────────
+// A run NEVER writes locale files; it stages a proposal per key. Applying them was
+// one key at a time, so a 1,965-key run meant 1,965 clicks — while the server has
+// taken a keys[] array all along. This is the button that finishes a run.
+async function applyAll() {
+  const n = review.staged.length;
+  if (!n || busy.value) return;
+  const ok = await confirmDialog({
+    title: `Apply ${n} translation${n === 1 ? "" : "s"} to ${langName(review.lang)}?`,
+    message: `This writes ${review.lang}.json — the first time anything in this run touches your locale file. It is one Undo if it looks wrong.`,
+    confirmLabel: `Apply ${n}`,
+  });
+  if (!ok) return;
+  busy.value = true;
+  try {
+    const out = await review.applyAllStaged();
+    pushToast({ kind: "success", title: `${out.applied.length} applied to ${review.lang}.json`,
+                description: "One click, one Undo — the checks re-ran on what was written." });
+  } catch (e) {
+    pushToast({ kind: "error", title: "Apply failed", description: String(e?.message || e) });
+  } finally {
+    busy.value = false;
+  }
+}
+async function discardAll() {
+  const n = review.staged.length;
+  if (!n || busy.value) return;
+  const ok = await confirmDialog({
+    title: `Discard ${n} staged translation${n === 1 ? "" : "s"}?`,
+    message: "The run's output is thrown away. Your locale file is untouched — nothing was written yet — and re-running translates them again.",
+    confirmLabel: "Discard them",
+  });
+  if (!ok) return;
+  busy.value = true;
+  try {
+    await review.discardAllStaged();
+    pushToast({ kind: "info", title: `${n} staged translation(s) discarded` });
+  } finally {
+    busy.value = false;
+  }
+}
 </script>
 
 <template>
   <div class="review">
     <div class="review-list">
-      <div class="row" style="margin-bottom: 8px">
-        <UiSelect v-model="review.lang" :options="project.langs" width="token"
+      <!-- One line, not wrapped: `.row` wraps by default and pushed Undo onto a line of
+           its own under the pickers. -->
+      <div class="row review-head" style="margin-bottom: 8px">
+        <UiSelect v-model="review.lang" :options="langChoices" width="id"
                   @update:model-value="(l) => review.refresh(l)" />
-        <UiSelect v-model="filter" :options="codes" placeholder="all flags"
-                  show-clear width="id" />
+        <!-- The flag filter only exists when there ARE flags to filter — an empty
+             dropdown beside an empty queue read as a broken control. -->
+        <UiSelect v-if="codes.length" v-model="filter" :options="codes"
+                  placeholder="all flags" show-clear width="id" />
         <span class="spacer" />
         <UiButton intent="ghost" label="Undo" @click="review.undo()" />
       </div>
+
+      <!-- The staged pile: what the run produced and has NOT been written yet. This is
+           the step between "translated" and "in your app", and it was reachable only
+           one key at a time. -->
+      <div v-if="review.staged.length" class="staged">
+        <div>
+          <b>{{ review.staged.length }} translation{{ review.staged.length === 1 ? "" : "s" }} ready</b>
+          <span class="muted"> — staged by the last run; your {{ review.lang }}.json is untouched so far.</span>
+        </div>
+        <div class="row" style="margin-top: 8px">
+          <UiButton intent="primary" size="small" :disabled="busy"
+                    :label="`Apply all ${review.staged.length}`" @click="applyAll" />
+          <UiButton intent="ghost" size="small" :disabled="busy" label="Discard them" @click="discardAll" />
+        </div>
+      </div>
+
       <div class="row" style="margin-bottom: 8px; font-size: 12px" v-if="review.total">
         <span class="muted">{{ review.total }} to review · {{ review.accepted }} accepted</span>
         <span class="spacer" />
@@ -98,7 +179,12 @@ async function backtranslate() {
           </div>
         </div>
         <div v-if="!filtered.length" style="padding: 24px" class="muted">
-          Nothing to review — the gate is green.
+          <template v-if="filter">No key carries the “{{ filter }}” flag.</template>
+          <template v-else-if="review.staged.length">
+            Nothing flagged — apply the {{ review.staged.length }} staged translation(s) above
+            and the checks run on what gets written.
+          </template>
+          <template v-else>Nothing to review — the gate is green for {{ langName(review.lang) }}.</template>
         </div>
       </div>
     </div>
@@ -164,7 +250,25 @@ async function backtranslate() {
       </div>
     </div>
     <div class="review-detail" v-else>
-      <div class="card"><p class="muted">Pick a key from the queue.</p></div>
+      <!-- "Pick a key from the queue" beside an EMPTY queue is an instruction you
+           cannot follow — say what is actually true of this language instead. -->
+      <div class="card">
+        <p v-if="filtered.length" class="muted">Pick a key from the queue.</p>
+        <template v-else-if="review.staged.length">
+          <h2>{{ review.staged.length }} translation(s) waiting</h2>
+          <p class="hint" style="margin: 0">
+            The last run staged them; nothing is written to {{ review.lang }}.json until you
+            apply. Use <b>Apply all</b> on the left, then review whatever the checks flag.
+          </p>
+        </template>
+        <template v-else>
+          <h2>{{ langName(review.lang) }} is clean</h2>
+          <p class="hint" style="margin: 0">
+            No findings, nothing staged. Translate more keys from Home, or pick another
+            language above — the picker shows where the work is.
+          </p>
+        </template>
+      </div>
     </div>
   </div>
 </template>

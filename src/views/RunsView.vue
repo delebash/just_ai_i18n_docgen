@@ -5,8 +5,9 @@
 // is the review page's explicit human action. Close the tab and come back: the page
 // rejoins the run it did not start.
 import { computed, onMounted, onUnmounted } from "vue";
-import { UiButton, UiSelect, pushToast } from "@delebash/llm-ui";
+import { UiButton, UiSelect, UiTable, pushToast } from "@delebash/llm-ui";
 import { ref } from "vue";
+import { langLabel, langOptions } from "../services/langs";
 import { useJobsStore } from "../stores/jobs";
 import { useProjectStore } from "../stores/project";
 
@@ -27,6 +28,20 @@ const running = computed(() => jobs.job?.state === "running");
 const pct = computed(() =>
   jobs.job?.total ? Math.round((jobs.job.done / jobs.job.total) * 100) : 0);
 
+// History on the SHARED table (2026-08-03) — this page had a hand-rolled `table.plain`
+// beside the dashboard's UiTable, which is two table looks in one app and the exact
+// duplication the kit exists to stop. Sorting comes free, and "which run failed keys"
+// is the question this list is read for.
+const HISTORY_COLUMNS = [
+  { id: "when", header: "When", accessorKey: "startedAt", sortable: true },
+  { id: "lang", header: "Language", accessorKey: "lang", sortable: true },
+  { id: "engine", header: "Engine", accessorKey: "engine", sortable: true },
+  { id: "scope", header: "Scope", accessorKey: "scope", sortable: true },
+  { id: "keys", header: "Keys", accessorKey: "keys", sortable: true },
+  { id: "requests", header: "Requests", accessorKey: "requests", sortable: true },
+  { id: "failed", header: "Failed", accessorKey: "failed", sortable: true },
+];
+
 async function start() {
   try {
     await jobs.start({ lang: lang.value, scope: scope.value });
@@ -46,7 +61,7 @@ async function start() {
         flagged · unsure = probe disagreements only · all = every key.
       </p>
       <div class="row">
-        <UiSelect v-model="lang" :options="project.langs" width="token" />
+        <UiSelect v-model="lang" :options="langOptions(project.langs)" width="id" />
         <UiSelect v-model="scope" :options="['pending', 'flagged', 'unsure', 'all']" width="token" />
         <UiButton intent="primary" :label="jobs.starting ? 'Starting…' : 'Translate'"
                   :disabled="running || jobs.starting || !lang" @click="start" />
@@ -72,18 +87,20 @@ async function start() {
 
     <div class="card">
       <h2>History</h2>
-      <table class="plain" v-if="jobs.runs.length">
-        <thead><tr><th>when</th><th>lang</th><th>engine</th><th>scope</th><th>keys</th><th>requests</th><th>failed</th></tr></thead>
-        <tbody>
-          <tr v-for="r in jobs.runs" :key="r.id">
-            <td class="mono">{{ r.startedAt?.slice(0, 19).replace("T", " ") }}</td>
-            <td>{{ r.lang }}</td><td class="mono">{{ r.engine }}</td><td>{{ r.scope }}</td>
-            <td>{{ r.keys }}</td><td>{{ r.requests }}</td>
-            <td :style="r.failed ? 'color: var(--danger)' : ''">{{ r.failed }}</td>
-          </tr>
-        </tbody>
-      </table>
-      <p v-else class="muted" style="margin: 0">No runs yet.</p>
+      <UiTable
+        :data="jobs.runs" :columns="HISTORY_COLUMNS" data-key="id"
+        :default-sort="{ id: 'when', desc: true }"
+      >
+        <template #when="{ row }">
+          <span class="mono">{{ row.startedAt?.slice(0, 19).replace("T", " ") }}</span>
+        </template>
+        <template #lang="{ row }">{{ langLabel(row.lang) }}</template>
+        <template #engine="{ row }"><span class="mono">{{ row.engine }}</span></template>
+        <template #failed="{ row }">
+          <span :style="row.failed ? 'color: var(--danger); font-weight: 600' : ''">{{ row.failed }}</span>
+        </template>
+        <template #empty><span class="muted">No runs yet.</span></template>
+      </UiTable>
     </div>
   </div>
 </template>

@@ -14,6 +14,7 @@ import {
   pushToast, serverUrl, useAiTasksStore,
 } from "@delebash/llm-ui";
 import splashPlate from "../assets/images/splash-plate.jpg";
+import { langName } from "../services/langs";
 import { useJobsStore } from "../stores/jobs";
 import { useProjectStore } from "../stores/project";
 
@@ -25,10 +26,6 @@ const router = useRouter();
 const filter = ref("");
 const selected = ref([]);
 
-const display = new Intl.DisplayNames(undefined, { type: "language" });
-function nameOf(code) {
-  try { return display.of(code) || code; } catch { return code; }
-}
 
 let retryTimer = null;
 onMounted(async () => {
@@ -52,7 +49,7 @@ const translateTask = computed(
   () => aiTasks.runningTasks.find((t) => t.feature === "translate") || null,
 );
 const rows = computed(() =>
-  (project.summary?.langs ?? []).map((l) => ({ ...l, name: nameOf(l.code) })),
+  (project.summary?.langs ?? []).map((l) => ({ ...l, name: langName(l.code) })),
 );
 const totals = computed(() => {
   const ls = project.summary?.langs ?? [];
@@ -70,7 +67,9 @@ const COLUMNS = [
   { id: "sel", header: "", enableSorting: false },
   { id: "name", header: "Language", accessorKey: "name" },
   { id: "progress", header: "Progress", accessorKey: "done" },
-  { id: "findings", header: "Findings", accessorKey: "findings" },
+  // "Status", not "Findings": the chips under it say "not yet translated" / "6 staged"
+  // / "clean" as often as they say findings.
+  { id: "findings", header: "Status", accessorKey: "findings" },
   { id: "lastRun", header: "Last run", enableSorting: false },
   { id: "go", header: "", enableSorting: false },
 ];
@@ -171,6 +170,15 @@ function lastRunLabel(l) {
         :global-filter="filter" :global-filter-fields="['name', 'code']"
         row-hover
       >
+        <!-- Select-all belongs in the checkbox column's HEADER, above the boxes it
+             controls — not in a strip under the table, which is where it sat until the
+             kit's UiTable grew a head-<id> slot (2026-08-03). -->
+        <template #head-sel>
+          <span @click.stop>
+            <UiCheckbox :model-value="allTicked" title="Select every language"
+                        @update:model-value="toggleAll" />
+          </span>
+        </template>
         <template #sel="{ row }">
           <span @click.stop>
             <UiCheckbox
@@ -214,9 +222,6 @@ function lastRunLabel(l) {
           <span class="muted">No language matches the filter.</span>
         </template>
       </UiTable>
-    </div>
-    <div class="dash__foot row">
-      <UiCheckbox :model-value="allTicked" label="select all" @update:model-value="toggleAll" />
     </div>
   </div>
 </template>
