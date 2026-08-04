@@ -37,10 +37,14 @@ function toggleAiTasks() {
   aiTasks.panelOpen = !aiTasks.panelOpen;
 }
 
-// ── boot splash ───────────────────────────────────────────────────────────
-const splash = ref(true);
-const splashStatus = ref("starting the local server…");
-const needsLocalSetup = ref(false);
+// ── boot splash — JW's rule, restored (2026-08-03) ────────────────────────
+// The plate exists ONLY while a warm load is in flight (JW App.vue:184
+// `v-if="warmModelId"`). Nothing loading → no splash → the app just opens.
+// What was here before was mine, not the donor's: an always-on boot gate with a
+// spinner and a status line, a first-run "Set up local AI" call to action, AND a
+// second always-present Continue — which is why Continue looked unaligned, there
+// were two of them. The offer to set up local AI belongs on Home's welcome (where
+// it already is), not stapled to a loading screen.
 
 // JW's warm-boot bars, reused verbatim: the engine-install bar during the
 // install phase, then the model's own load bar until it goes resident.
@@ -50,37 +54,25 @@ const engineTask = computed(() =>
   rm.engineGateTask?.value && rm.engineGateTask.value.state === "running" ? rm.engineGateTask.value : null);
 const warmRowStatus = computed(() =>
   warmModelId.value ? (rm.models.value.find((m) => m.id === warmModelId.value)?.status || "") : "");
+// Auto-dismiss shortly after the model goes resident — a 700ms beat (JW App.vue:54:
+// taskFor emits running/error/empty, never a "done" state, so the bar simply stops).
+// A cancel or an error leaves the bar showing its own Retry; Continue is the universal
+// escape, so a slow or failed load never traps anyone on the boot screen.
 watch(warmRowStatus, (s) => {
   if (warmModelId.value && (s === "loaded" || s === "sleeping")) {
-    setTimeout(() => { warmModelId.value = ""; dismissSplash(); }, 700);
+    setTimeout(dismissSplash, 700);
   }
 });
 function dismissSplash() {
-  splash.value = false;
-  warmModelId.value = "";
-}
-function goQuickSetup() {
-  dismissSplash();
-  router.push("/ai?quicksetup=1");
+  warmModelId.value = ""; // the ONE thing the splash renders on
 }
 
 onMounted(async () => {
   await project.refresh();
-  splashStatus.value = "checking the local AI…";
-  try {
-    const { refreshApplied, currentDefaultProviderId } = useModelApply();
-    await refreshApplied();
-    // Offer setup only when there is no default provider AT ALL. currentDefaultId
-    // is the wrong gate here — it is local-gated, so an online-default box read as
-    // "no AI" and got nagged every boot. JW instead persists a once-ever
-    // aiSetupPrompted flag (its offer is a modal dialog); this strip exists only on
-    // the boot screen, so live-gating is the lighter shape — deviation recorded in
-    // app-structure §11.
-    needsLocalSetup.value = !currentDefaultProviderId.value;
-  } catch { /* server still booting — the pages degrade honestly */ }
+  // Warm-boot runs the SAME workflow every load button runs; it no-ops when the
+  // toggle is off or the default isn't a local model. `warmModelId` — set inside —
+  // is the only thing that puts a splash on screen.
   await startWarmOnBoot();
-  if (!warmModelId.value) setTimeout(dismissSplash, 500); // a brand beat, not a wait
-  else splashStatus.value = "loading your model…";
 });
 </script>
 
@@ -138,30 +130,17 @@ onMounted(async () => {
          STRINGS, which is exactly what presence-testing cannot catch. -->
     <AppDialog />
 
-    <!-- ── the boot splash — the plate, with the interactive layer in its clear
-         bottom strip (this art is centre-composed; JW's plate is left-empty) ── -->
-    <div v-if="splash" class="splash">
+    <!-- ── the boot splash — JW's shape (App.vue:184-193): the plate ONLY while a warm
+         load is in flight, its bars in the art's clear bottom strip (this plate is
+         centre-composed; JW's is left-empty), and ONE Continue, inside the load group
+         it belongs to. No spinner, no status line, no setup CTA — nothing to look at
+         when there is nothing to wait for. ── -->
+    <div v-if="warmModelId" class="splash">
       <img class="splash__plate" :src="splashPlate" alt="" />
       <div class="splash__strip">
-        <template v-if="warmModelId">
-          <p class="splash__status">Loading {{ warmModelId }}…</p>
-          <DownloadBar v-if="engineTask" :task="engineTask" />
-          <DownloadBar v-else-if="warmTask" :task="warmTask" />
-        </template>
-        <template v-else-if="needsLocalSetup">
-          <p class="splash__status">
-            No local AI yet — set one up in a minute, free, on this PC.
-          </p>
-          <div class="row" style="justify-content: center">
-            <button class="splash__cta" @click="goQuickSetup">Set up local AI</button>
-            <button class="splash__quiet" @click="dismissSplash">Continue without it</button>
-          </div>
-        </template>
-        <template v-else>
-          <span class="splash__spin" />
-          <p class="splash__status">{{ splashStatus }}</p>
-        </template>
-        <button class="splash__quiet splash__continue" @click="dismissSplash">Continue</button>
+        <DownloadBar v-if="engineTask" :task="engineTask" title="llama.cpp engine" />
+        <DownloadBar v-else-if="warmTask" :task="warmTask" :title="warmModelId" />
+        <button class="splash__quiet" @click="dismissSplash">Continue without waiting</button>
       </div>
     </div>
   </div>

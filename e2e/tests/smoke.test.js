@@ -134,7 +134,16 @@ test("quick setup RUNS: one Cancel at a time, the routing it writes is valid, no
   assert.equal(confirmStep.bars, 0, "no progress bars before the run starts");
 
   await d.exec(`[...document.querySelectorAll('[role=dialog] button')].find(b => /^Set it up$/.test(b.textContent.trim())).click();`);
-  await d.waitUntil(`return !!document.querySelector('[role=dialog] .lu-dlbar')`, { timeout: 25_000 });
+  // TWO honest outcomes, and the test must not assume the slow one. A model that is
+  // ALREADY RESIDENT finishes on the load channel's first poll (readLoadStatus returns
+  // terminal `done` the moment /status says the router is running), so the wizard lands
+  // on its done step and no bar ever lingers — the very case the rewrite exists to fix.
+  // Anything else shows a bar: downloading, installing, or failing.
+  await d.waitUntil(
+    `return !!document.querySelector('[role=dialog] .lu-dlbar')
+         || /Ready to translate/.test(document.querySelector('[role=dialog]')?.textContent || '')`,
+    { timeout: 25_000 },
+  );
 
   const applyStep = await d.exec(`return (() => { ${snapshot} })();`);
   assert.equal(applyStep.footerCancels, 0, "the footer carries NO Cancel during a run — the bar owns it");
@@ -151,9 +160,9 @@ test("quick setup RUNS: one Cancel at a time, the routing it writes is valid, no
     `the MODEL slot must hold the model id, got ${JSON.stringify(t.model)}`);
   assert.equal(t.model.includes("/"), false, "a model id, not a provider id or a path");
 
-  // …and the run must reach a state the user can act on. Cancel it if it's still going
-  // (a healthy box downloads gigabytes; a box with a broken engine errors at once) —
-  // either way the bar must land on a terminal with Retry, and the modal must unlock.
+  // …and the run must reach a state the user can act on — NEVER a permanent "Working…".
+  // Cancel it if it is still going (a box without the weights downloads gigabytes), then
+  // require a terminal: either the wizard's done step, or a bar carrying its own Retry.
   await d.exec(`[...document.querySelectorAll('[role=dialog] .lu-dlbar button')].find(b => /^Cancel$/.test(b.textContent.trim()))?.click();`);
   await d.waitUntil(
     `return /Cancelled|Failed|Ready/.test(document.querySelector('[role=dialog]')?.textContent || '')`,
@@ -162,7 +171,8 @@ test("quick setup RUNS: one Cancel at a time, the routing it writes is valid, no
   const terminal = await d.exec(`return (() => { ${snapshot} })();`);
   assert.equal(terminal.running, false, "a terminal task shows no Cancel");
   assert.equal(terminal.closeX, 1, "the modal is closable again once nothing is running");
-  assert.match(terminal.text, /Retry/, "a terminal bar offers Retry — never a dead end");
+  assert.equal(/Retry/.test(terminal.text) || /Ready to translate/.test(terminal.text), true,
+    `a finished run either succeeded or offers Retry — never a dead end. Saw: ${terminal.text.slice(0, 160)}`);
 
   await d.exec(`document.querySelector('[role=dialog] .ui-modal__close')?.click();`);
   // Put the user's routing back exactly as it was (this test wrote it on purpose).
