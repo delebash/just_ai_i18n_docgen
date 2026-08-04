@@ -7,17 +7,14 @@
 // DownloadBars the engine panel uses. Continue is the universal escape: a slow
 // or failed load never traps anyone on the boot screen.
 // Family rules: height:100% chain (never 100vh), one scroller per area.
-import { computed, onMounted, ref, watch } from "vue";
-import { useRouter } from "vue-router";
-import { AppDialog, DownloadBar, Icon, Toast, useAiTasksStore, useModelApply, useRunnerModels } from "@delebash/llm-ui";
+import { computed, onMounted, watch } from "vue";
+import { DownloadBar, Icon, LlmUiHosts, useAiTasksNav, useRunnerModels } from "@delebash/llm-ui";
 import TitleBar from "./components/TitleBar.vue";
 import splashPlate from "./assets/images/splash-plate.jpg";
 import { startWarmOnBoot, warmModelId } from "./services/warmStartup";
 import { useProjectStore } from "./stores/project";
 
-const router = useRouter();
 const project = useProjectStore();
-const aiTasks = useAiTasksStore();
 
 const NAV = [
   { to: "/", label: "Home", icon: "Home" },
@@ -30,12 +27,11 @@ const TOOLS = [
   { to: "/settings", label: "Settings", icon: "Settings" },
   { to: "/setup", label: "Setup", icon: "Folder" },
 ];
-// The AI-tasks nav row (JW Sidebar parity): toggles the kit panel, badges the
-// running count — red while there are unseen errors.
-const aiTasksBadge = computed(() => aiTasks.unseenErrors || aiTasks.runningCount || 0);
-function toggleAiTasks() {
-  aiTasks.panelOpen = !aiTasks.panelOpen;
-}
+// The AI-tasks nav row (JW Sidebar parity): toggles the kit panel, badges the running
+// count — red while there are unseen errors. Behaviour AND the required
+// `data-panel-toggle` attribute come from the kit, so the row cannot be rebuilt
+// without the one attribute that makes it work (see useAiTasksNav).
+const aiTasksNav = useAiTasksNav();
 
 // ── boot splash — JW's rule, restored (2026-08-03) ────────────────────────
 // The plate exists ONLY while a warm load is in flight (JW App.vue:184
@@ -95,20 +91,22 @@ onMounted(async () => {
             <Icon :name="n.icon" :size="17" />
             <span class="nav-label">{{ n.label }}</span>
           </router-link>
-          <!-- data-panel-toggle: the kit's usePanelDismiss exempts this element, so the
-               click that OPENS the panel isn't also the outside-click that closes it
-               (the missing attr made the panel open-and-instantly-close, found live
-               2026-08-03 — JW's Sidebar binds the same attr). -->
+          <!-- v-bind="navAttrs" carries `data-panel-toggle`: the kit's usePanelDismiss
+               exempts elements holding it, so the click that OPENS the panel isn't also
+               the outside-click that closes it. Without it the panel opened and
+               instantly shut (found live 2026-08-03); it comes from the composable now
+               so the row cannot be rebuilt without it. -->
           <button
-            class="navlink navlink--btn" :class="{ 'router-link-exact-active': aiTasks.panelOpen }"
-            data-panel-toggle title="AI tasks" @click="toggleAiTasks"
+            class="navlink navlink--btn"
+            :class="{ 'router-link-exact-active': aiTasksNav.isOpen.value }"
+            v-bind="aiTasksNav.navAttrs" @click="aiTasksNav.toggle"
           >
             <Icon name="Sparkle" :size="17" />
             <span class="nav-label">AI tasks</span>
             <span
-              v-if="aiTasksBadge" class="nav-count"
-              :class="{ 'nav-count--error': aiTasks.unseenErrors }"
-            >{{ aiTasksBadge }}</span>
+              v-if="aiTasksNav.badge.value" class="nav-count"
+              :class="{ 'nav-count--error': aiTasksNav.hasErrors.value }"
+            >{{ aiTasksNav.badge.value }}</span>
           </button>
         </nav>
         <div class="shell__foot">
@@ -121,14 +119,12 @@ onMounted(async () => {
         <router-view />
       </main>
     </div>
-    <Toast />
-    <!-- The confirm/prompt HOST (JW App.vue:213). `confirmDialog()` resolves through
-         whatever renders this; with no host mounted the promise NEVER settles, so every
-         confirmed action — Change folder, Clear models cache, Clear spawn logs, Apply
-         all staged — was a button that did nothing at all. Found 2026-08-03 by reading
-         the donor's shell instead of its panels; the smoke test asserted the panel
-         STRINGS, which is exactly what presence-testing cannot catch. -->
-    <AppDialog />
+    <!-- Every host the shared UI needs, as one tag. It was two, and the day the
+         confirm host was missing every confirmed action in the app — Change folder,
+         Clear models cache, Clear spawn logs, Apply all staged — became a button that
+         did nothing at all, because `confirmDialog()`'s promise never settled. One tag
+         so the failure mode is "forgot the hosts", not "mounted some of them". -->
+    <LlmUiHosts />
 
     <!-- ── the boot splash — JW's shape (App.vue:184-193): the plate ONLY while a warm
          load is in flight, its bars in the art's clear bottom strip (this plate is
