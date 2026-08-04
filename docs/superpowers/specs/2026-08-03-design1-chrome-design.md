@@ -1,5 +1,11 @@
 # Design 1 + the standard app chrome — design spec
 
+> ✅ **SHIPPED 2026-08-03/04.** The chrome below is built (nav, `/ai`, Settings
+> sections, footer `AiStatusButton`, platform log/disk wiring). The §Deferred pair
+> (`make_data_router` + `UpdatesPanel`) moved to `docs/dev/TASKS.md` during the
+> 2026-08-04 docs campaign — its old pointer ("in HANDOFF") referred to the retired
+> Node repo. History only.
+
 **Ruled 2026-08-03.** Design 1 (sidebar + language table) is THE layout, picked in the
 real WebView2 via the e2e harness after a three-way live comparison. This spec is the
 approved integration of the standard family chrome into that shell. Context: the first

@@ -19,7 +19,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Manager, WindowEvent};
 use tauri_plugin_dialog::DialogExt;
 
-const SERVER_PORT: u16 = 8742; // JW 17495 · JV 8741 — the family port registry
+const SERVER_PORT: u16 = 8742; // JW 17495 · JV 17494 — the family port registry
 const SERVER_BIN: &str = "just-ai-i18n-docgen-server";
 const DATA_DIR_ENV: &str = "JUST_AI_I18N_DOCGEN_DATA_DIR";
 

@@ -5,7 +5,7 @@
 > **Close = delete** — git and the plan docs keep history. Add an item the moment it's
 > real. A tracker line is a claim, not evidence.
 
-## Awaiting your QC (built 2026-08-04, gates green, uncommitted)
+## Awaiting your QC (built 2026-08-04, gates green, committed same day)
 
 - **The shared boot surface** — kit `<BootModelLoad />` (model bar titled with the MODEL
   NAME — your ruling) + kit `startWarmOnBoot()`; this app: single splash (static plate in
@@ -26,25 +26,21 @@
 
 ## Open — needs your go
 
-- **FIRST AFTER COMPACTION — THE DOCS CLEANUP CAMPAIGN (user 2026-08-04: "this is
-  getting bad").** Family-wide (this repo · just-llm-runner · justwrite-app · JV
-  lightly): every doc VERIFIED AGAINST CODE (the standing rule — docs drift; the
-  "next big task" tracker line today claimed work that had already shipped);
-  completed plan docs closed with a COMPLETE banner or moved to an archive;
-  still-pertinent facts moved to their real homes — open work → TASKS.md,
-  unscheduled → IDEAS.md, durable reference → dev docs; dead docs retired; stale
-  cross-references fixed. Method: doc-by-doc verdict table (keep / update / archive)
-  per repo, load-bearing claims code-checked, then execute on the user's go per repo.
-- **Kit labels i18n — corrected design (third pass), awaiting go:** pure-data
-  `familyContract.js` (canon; node contract test imports it dependency-free) + a
-  reactive kit `familyLabels` service seeded from it with a `configureFamilyLabels()`
-  door; components read the SERVICE (live locale switching works); JW feeds en/es from
-  its catalogs at boot AND on locale change (most words exist — `common.cancel/retry/
-  close`; the few new keys get hand-es flagged for a real pass through THIS app's
-  translator later); verify JW re-feeds `configureDialog` on switch too (suspected
-  stale-locale dialogs today). Then the QuickSetup surgery + the rest of the standing
-  contract list.
-
+- **THE DOCS CLEANUP CAMPAIGN — SURVEY DONE 2026-08-04, awaiting the per-repo go.**
+  All four repos surveyed (three agents + inline), every verdict + homeless fact +
+  stale cross-reference recorded in
+  `docs/plans/2026-08-04-docs-cleanup-campaign.md`. Headline finds: JV's real port
+  is 17494, not the 8741 the family standard (and this repo's CLAUDE.md + lib.rs
+  comment) claims; runner's `check-consumers.py` doesn't know this app's server
+  exists; JW's root README describes a pre-server app; JV has no live tracker at
+  all; ~30 open facts sit trapped in shipped plan docs. Execution per repo on the
+  user's go: extract facts → fix refs → banners → archive moves.
+- **Backups/restore/reset + updates surface — deferred by the chrome spec, never
+  tracked until now (docs campaign 2026-08-04, code-verified absent):** the shared
+  `make_data_router` is not mounted by this server and neither kit `DataManagement`
+  nor `UpdatesPanel` is imported anywhere in `src/` (zero grep hits). The chrome spec
+  (`docs/superpowers/specs/2026-08-03-design1-chrome-design.md` §Deferred) parked
+  them "next block"; JW has both surfaces. Needs a go.
 - **Family headless/tray spec (your ruling 2026-08-04, all three apps):** every app's exe
   opens the GUI and owns a TRAY icon (Show app · Exit); Settings gains "keep server
   running after the app closes" (headless mode) — off ⇒ closing the app stops the server;
@@ -110,21 +106,13 @@
   "edit presets under a provider's row" hint deleted. Gates: 135/135 pytest (+6 preview
   tests, the features test moved 4→3 with the reason), biome, vite build, JW 560/560 +
   build. Real-webview pass still owed (window-closed gate below).
-- **Engine update — nothing to update (verified live: b10259 = GitHub latest), but two
-  design fixes owed:** (a) the shared engine cache + `replaceBuild` cleanup would delete
-  build folders under JW's directory from this app — guard deletion to the app's OWN
-  cache root (runner change); (b) a failed update-check is silently swallowed (no error
-  state; unauthenticated GitHub call on every AI-page mount) — surface it (kit change).
-- **Set-as-default still shows the embeddings note in a no-embeddings app** ("Search
-  embeddings keep their current provider…", `AiModelsArea.vue:573`) — gate it on
-  `llmUiCapabilities().embeddings` (kit change).
-- **Server-log noise: class tunes for JW-only models** (`gemma-4-12b-qat`, `e4b`,
-  `styletune`) warn on every boot because the shared seed ships JW class tunes into an
-  app that suppressed the JW catalog — gate default class-tune seeding on the catalog
-  actually containing the model (runner change).
-- **Codify the docs convention in the family standard** — `app-structure.md` says nothing
-  about `docs/dev/TASKS.md` + `IDEAS.md` (verified 2026-08-04); `just-llm-runner` and
-  `JustVioce` still lack both files.
-- **Commits** — everything above plus the CLAUDE.md pointer fix (just-ai-help retired
-  2026-08-04: GitHub archived, local deleted) sits uncommitted across THREE repos
-  (runner · this app · JW). Say the word and they land as reviewed commits.
+- *(Moved 2026-08-04, the tracker-placement rule — an item lives where the code that
+  closes it lives: the engine-cache `replaceBuild` guard, the silent update-check,
+  the embeddings-note capability gate, and the class-tune seed noise are now lines in
+  `../just-llm-runner/docs/dev/TASKS.md`. The docs-convention item CLOSED — it is
+  `app-structure.md` §13 now, and runner + JV both have their tracker pair.)*
+- **Commits** — the contract-build day LANDED 2026-08-04 (runner `cf598b9` · this app
+  `d43ef36` · JW `27f7c68`; NOT pushed — pushing needs your word). NEW uncommitted on
+  top: the kit labels i18n build (runner: reactive `familyLabels` store + one door,
+  dialog folded in; JW: locale feed at boot + on switch, `family.*` en/es keys, bite +
+  twin tests). Say the word and it lands as a reviewed commit.

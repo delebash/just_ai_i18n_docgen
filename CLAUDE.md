@@ -73,7 +73,7 @@ server/.venv/Scripts/just-ai-i18n-docgen translate|check|escalate|accept|extract
 Per the standard: untouched create-tauri-app root (`index.html`, `src/`, `src-tauri/`),
 Python in `server/just_ai_i18n_docgen/` (flat — the user's explicit ruling), tests in
 `server/tests/`, kit consumed via the Vite alias to `../just-llm-runner/ui/src`.
-Port **8742** (JW 17495 · JV 8741). Data-dir env: `JUST_AI_I18N_DOCGEN_DATA_DIR`.
+Port **8742** (JW 17495 · JV 17494). Data-dir env: `JUST_AI_I18N_DOCGEN_DATA_DIR`.
 
 ## Where to look
 

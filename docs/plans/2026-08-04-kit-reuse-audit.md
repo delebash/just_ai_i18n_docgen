@@ -1,5 +1,11 @@
 # Kit-reuse audit — 2026-08-04
 
+> ✅ **CLOSED same day (2026-08-04).** Every finding landed: one splash (static plate
+> → pre-mount warm start → kit `BootModelLoad`), the §1 "open ruling" was ruled
+> (model NAME on the bar is the shared behavior, both apps), the kit-first swaps
+> shipped, the orphan PNG was deleted. History/evidence only — the live tracker is
+> `docs/dev/TASKS.md`.
+
 Trigger: the user spotted the boot splash printing the loading MODEL NAME (JW shows a static
 sentence) and a double-splash boot, and asked how much of this app is hand-rolled vs. reusing
 the shared kit (`@delebash/llm-ui` → `../just-llm-runner/ui/src`, alias verified in both
