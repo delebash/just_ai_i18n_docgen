@@ -1,12 +1,16 @@
-// Smoke suite — boot the real Tauri app (real WebView2, real sidecar
-// path unless JAID_DEV_NO_SIDECAR is set by the runner), verify each
-// surface mounts and the design contract holds. Run with `npm test`
-// from the app root (JW's run model: one launch shared across tests).
+// Smoke suite — boot the real Tauri app (real WebView2) and verify each
+// surface's BEHAVIOUR (clicks and resulting states, not presence). Run
+// with `npm test` from the app root (JW's run model: one launch shared
+// across tests).
 //
-// Hermetic: the sidecar is skipped and the suite asserts against the
-// serverless states (empty dashboard, setup form) plus pure-shell
-// behaviour (nav, design switch) — so it needs NO demo server and
-// mutates nothing of yours.
+// PRECONDITION: a server on :8742 (`npm run server`, or the demo config —
+// see the README). JAID_DEV_NO_SIDECAR=1 below means the suite never
+// spawns or evicts a server and mutates nothing of yours — but the
+// quick-setup, routing, AI-area, home and staged-chip tests read live
+// endpoints, so with no server they fail on the ConnectionError screen.
+// That failure is the suite naming its missing precondition, not a flake.
+// (This header used to claim "needs NO demo server" — stale since the
+// suite grew endpoint-reading teeth, corrected 2026-08-03.)
 
 import { test, before, after } from "node:test";
 import { strict as assert } from "node:assert";
@@ -99,6 +103,25 @@ test("home is a real welcome (or the dashboard) — never a broken page", async 
          || document.querySelector('.dash') !== null`,
     { timeout: 15_000 },
   );
+});
+
+test("a language whose run staged proposals shows the staged chip", async () => {
+  // done=0 + staged>0 is the FIRST-RUN state (a run stages proposals, it never
+  // writes the locale file). 0fc029f gated the chips behind done>0, so 'not yet
+  // translated' sat beside a finished Last run and read as a failed run (the fr
+  // row, found in home.png 2026-08-03). The precondition (a staged language)
+  // lives in the demo data — against a project without one, this passes empty.
+  let stagedLang = null;
+  try {
+    const summary = await (await fetch("http://127.0.0.1:8742/v1/summary")).json();
+    stagedLang = (summary.langs || []).find((l) => l.done === 0 && l.staged > 0) || null;
+  } catch { /* no server / no project → the home test above already covers the page */ }
+  if (!stagedLang) return;
+  await d.navigate("#/");
+  await d.waitUntil(`return document.querySelector('.dash') !== null`, { timeout: 15_000 });
+  const text = await d.exec(`return document.body.textContent;`);
+  assert.equal(text.includes(`${stagedLang.staged} staged`), true,
+    `the ${stagedLang.code} row (done=0, staged=${stagedLang.staged}) must show its staged work`);
 });
 
 test("docs page renders the extract story", async () => {

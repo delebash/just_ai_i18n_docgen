@@ -1,7 +1,6 @@
 // Direct WebDriver HTTP capture — talks to tauri-driver (port 4444)
 // exactly like JustWrite's capture-direct.js. Drives the RELEASE build
-// through every surface (and each design candidate while the temporary
-// DesignSwitcher exists) and saves PNGs of the real WebView2 rendering.
+// through every surface and saves PNGs of the real WebView2 rendering.
 //
 // Run with: npm run screenshots   (from the app root)
 //

@@ -25,7 +25,7 @@ const done = ref(false);
 const pick = ref("");
 
 const rm = useRunnerModels();
-const { setAsDefault, refreshApplied } = useModelApply();
+const { setAsDefault, refreshApplied, LOCAL_RUNNER_ID } = useModelApply();
 
 // The catalog is translation-only for this app (server seeds it that way), ordered
 // by the measured ranking. Options carry the size so the download is no surprise.
@@ -78,13 +78,15 @@ async function run() {
   }
 }
 
-// The load settles when the model goes resident — then the default follows the pick
-// and the presets (provider local-llamacpp, model = provider default) follow that.
+// The load settles when the model goes resident — then the pick becomes the default
+// the Translate/Confirm presets run on. setAsDefault's FIRST argument is the PROVIDER
+// (the donor call, QuickSetup.vue:466) — passing the model alone rewrote every
+// preset's providerId to a model id and toasted success (found 2026-08-03).
 watch(pickStatus, async (s) => {
   if (!busy.value || !pick.value) return;
   if (s === "loaded" || s === "sleeping") {
     try {
-      await setAsDefault(pick.value);
+      await setAsDefault(LOCAL_RUNNER_ID, pick.value);
       await refreshApplied();
       done.value = true;
       emit("changed");

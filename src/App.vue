@@ -68,9 +68,15 @@ onMounted(async () => {
   await project.refresh();
   splashStatus.value = "checking the local AI…";
   try {
-    const { refreshApplied, currentDefaultId } = useModelApply();
+    const { refreshApplied, currentDefaultProviderId } = useModelApply();
     await refreshApplied();
-    needsLocalSetup.value = !currentDefaultId.value;
+    // Offer setup only when there is no default provider AT ALL. currentDefaultId
+    // is the wrong gate here — it is local-gated, so an online-default box read as
+    // "no AI" and got nagged every boot. JW instead persists a once-ever
+    // aiSetupPrompted flag (its offer is a modal dialog); this strip exists only on
+    // the boot screen, so live-gating is the lighter shape — deviation recorded in
+    // app-structure §11.
+    needsLocalSetup.value = !currentDefaultProviderId.value;
   } catch { /* server still booting — the pages degrade honestly */ }
   await startWarmOnBoot();
   if (!warmModelId.value) setTimeout(dismissSplash, 500); // a brand beat, not a wait

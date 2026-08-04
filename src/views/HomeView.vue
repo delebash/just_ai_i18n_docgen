@@ -190,7 +190,11 @@ function lastRunLabel(l) {
           <span class="mono muted">{{ row.done.toLocaleString() }} / {{ row.total.toLocaleString() }}</span>
         </template>
         <template #findings="{ row }">
-          <UiTag v-if="row.done === 0" intent="secondary" value="not yet translated" />
+          <!-- A run STAGES proposals, it never writes the locale file — so done=0
+               with staged work is the first-run state, not "nothing happened"
+               ('not yet translated' beside a finished Last run read as a failed
+               run — the fr row, 2026-08-03). -->
+          <UiTag v-if="row.done === 0 && !row.staged" intent="secondary" value="not yet translated" />
           <template v-else>
             <UiTag v-if="row.findings" intent="danger" :value="`${row.findings} findings`" />
             <UiTag v-if="row.unreviewed" intent="secondary" :value="`${row.unreviewed} unreviewed`" />

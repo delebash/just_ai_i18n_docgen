@@ -17,15 +17,16 @@ npm run tauri build -- --no-bundle    # or: npm run build — the harness drives
 
 ## Scripts (run from the APP ROOT)
 
-- `npm test` — the smoke suite: real app, real WebView2. Asserts the shell +
-  nav mount, the design pill flips shells, Setup shows the WHOLE form with an
-  explicit **Check path** button (the 2026-08-02 rulings as assertions), and
-  Home degrades to the honest empty state. Runs with `JAID_DEV_NO_SIDECAR=1`
-  so it never evicts or spawns servers — hermetic, mutates nothing.
-- `npm run screenshots` — captures every surface (and Home once per design
-  candidate) as PNGs into `e2e/shots/` (gitignored). Start the demo server on
-  :8742 first if you want shots with data; `CAPTURE_NO_SIDECAR=0` exercises
-  the real sidecar spawn instead.
+- `npm test` — the smoke suite: real app, real WebView2, BEHAVIOUR
+  assertions (the AI-tasks toggle stays open, the wizard opens a real
+  dialog with the translation catalog, Home shows staged work). **Needs a
+  server on :8742** (`npm run server`, or the demo config) — the suite
+  reads live endpoints. `JAID_DEV_NO_SIDECAR=1` means it never spawns or
+  evicts servers and mutates nothing of yours.
+- `npm run screenshots` — captures every surface as PNGs into `e2e/shots/`
+  (gitignored). Start the demo server on :8742 first if you want shots
+  with data; `CAPTURE_NO_SIDECAR=0` exercises the real sidecar spawn
+  instead.
 
 ## Deviation from JW, recorded
 
@@ -39,4 +40,6 @@ touch, not up.
 - The release binary is whatever was last built — rebuild after source drift.
 - `tauri-driver` is brittle if :4444 is already bound; orphans need
   `taskkill /F /IM tauri-driver.exe`.
+- After the results print, the drivers may LINGER and hold the console —
+  the results above are final; taskkill tauri-driver + msedgedriver.
 - Don't run capture while your own dev window is open on the same server.
