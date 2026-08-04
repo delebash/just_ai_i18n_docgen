@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 import { createApp } from "vue";
 import { createPinia } from "pinia";
-import { ConnectionError, checkServer, installLlmUi, serverUrl, startWarmOnBoot } from "@delebash/llm-ui";
+import { ConnectionError, checkServer, configureHelp, installLlmUi, serverUrl, startWarmOnBoot } from "@delebash/llm-ui";
 import App from "./App.vue";
 import { router } from "./router";
 import { useUiStore } from "./stores/ui";
+import { hasDoc, loadDoc, titleForSlug } from "./services/helpDocs.js";
 import "./styles/tokens.css";
 import "./styles/styles.css";
 
@@ -38,6 +39,10 @@ installLlmUi(app, {
     slotsFootnote: "One model does everything here — it loads automatically on the first run; Load now just skips that first wait.",
   },
 });
+
+// In-app Help (kit drawer over docs/*.md) — the minimal drawer-only shape: no
+// full-pane reader route yet, so the open-full/open-web buttons stay hidden.
+configureHelp({ loadDoc, hasDoc, titleForSlug });
 
 useUiStore(pinia).boot(); // theme before first paint — no flash of the wrong mode
 

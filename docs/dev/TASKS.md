@@ -26,6 +26,34 @@
 
 ## Open — needs your go
 
+- **DOCS PHASE 2 — CODE-FIRST COVERAGE (the user's correction 2026-08-04: "checking
+  code, deep audit of code, comparing against docs — all coded features in
+  appropriate user or dev docs, plus the design-whys").** Phase 1 verified claims
+  docs already made; it never enumerated the BUILT surface and asked "where is this
+  explained?". In flight: three read-only audits (JW · JV · this app) enumerating
+  features FROM CODE and rating user-doc / dev-doc / design-why coverage. Then, on
+  the go: write the missing user docs (real explanations, JW/JV extend their
+  corpora; THIS APP gets its first user docs — it has none), the dev getting-started
+  indexes with links to the design-decision docs, and fix any doc claiming features
+  code lacks.
+
+- **Product questions from the code-first audit (2026-08-04) — your rulings:**
+  (a) **App-run jobs skip the confirmation pass** — only CLI `translate` pre-ticks
+  rows, though the design intent says pre-ticks are the normal flow; build it into
+  app runs, or bless CLI-only? (b) The **probe** is CLI-only, so `unsure` scope
+  finds nothing for app-only users (docs say so honestly). (c) **Escalation from
+  the UI is latent** — the server accepts `presetId` on `POST /v1/jobs`; no view
+  sends one. (d) `conventions.json` ships **Spanish only** — other languages get no
+  paired-punctuation checks. (e) `POST /v1/undo` with no `lang` pops across ALL
+  languages, and the Review page sends none. (f) Six routes have no caller in this
+  app (`/v1/terms`, `/history`, `/accepted`, `/reference`, `/gt-frame` — which
+  ships a third-party Google script with no visible entry — and `/ai/prompt-preview`
+  is kit-consumed). (g) About hardcodes `0.1.0` beside pyproject's version.
+  (h) `glossary` shape drifts (bare array vs `{doNotTranslate}`).
+- **Help is wired minimal (2026-08-04): drawer + "?" on Settings and AI only** —
+  the other five views still hand-roll `.page-head` (the open PaneHeader contract
+  item), so they carry no trigger yet; no full-pane reader route. Real-webview
+  render of the drawer is UNVERIFIED (window-gated with the e2e pass).
 - **Backups/restore/reset + updates surface — deferred by the chrome spec, never
   tracked until now (docs campaign 2026-08-04, code-verified absent):** the shared
   `make_data_router` is not mounted by this server and neither kit `DataManagement`

@@ -1,0 +1,33 @@
+[
+  {
+    "group": "Start here",
+    "items": [
+      { "slug": "getting-started", "title": "Getting started" },
+      { "slug": "ai-setup",        "title": "Set up the AI engine" },
+      { "slug": "project-setup",   "title": "Point it at your app" }
+    ]
+  },
+  {
+    "group": "Translating",
+    "items": [
+      { "slug": "translate",    "title": "Running a translation" },
+      { "slug": "review",       "title": "Reviewing — flags, accepting, notes" },
+      { "slug": "verification", "title": "The verification passes" }
+    ]
+  },
+  {
+    "group": "Beyond strings",
+    "items": [
+      { "slug": "docs-authoring", "title": "Help docs → locale keys" },
+      { "slug": "cli",            "title": "The command line" },
+      { "slug": "files-and-git",  "title": "Your files, and what to commit" }
+    ]
+  },
+  {
+    "group": "Reference",
+    "items": [
+      { "slug": "settings",        "title": "Settings" },
+      { "slug": "troubleshooting", "title": "Troubleshooting" }
+    ]
+  }
+]

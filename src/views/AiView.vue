@@ -37,7 +37,7 @@ onMounted(async () => {
   <div class="ai-page">
     <!-- The family header shape (kit PaneHeader) with JW's canon words for this
          page — same eyebrow, same title, every app. -->
-    <PaneHeader eyebrow="AI" title="Providers, routing &amp; usage" />
+    <PaneHeader eyebrow="AI" title="Providers, routing &amp; usage" help-key="ai-setup" />
     <div class="ai-area">
       <!-- No @quick-setup-closed handler: closing the wizard used to fling you to Home,
            which is disorienting when you opened the AI page on purpose. You stay here. -->

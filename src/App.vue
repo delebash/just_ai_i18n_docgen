@@ -8,7 +8,7 @@
 // or failed load never traps anyone on the boot screen.
 // Family rules: height:100% chain (never 100vh), one scroller per area.
 import { onMounted } from "vue";
-import { BootModelLoad, FAMILY_LABELS, Icon, LlmUiHosts, useAiTasksNav, warmModelId } from "@delebash/llm-ui";
+import { BootModelLoad, FAMILY_LABELS, HelpDrawer, Icon, LlmUiHosts, useAiTasksNav, warmModelId } from "@delebash/llm-ui";
 import TitleBar from "./components/TitleBar.vue";
 import splashPlate from "./assets/images/splash-plate.jpg";
 import { useProjectStore } from "./stores/project";
@@ -100,6 +100,9 @@ onMounted(async () => {
          did nothing at all, because `confirmDialog()`'s promise never settled. One tag
          so the failure mode is "forgot the hosts", not "mounted some of them". -->
     <LlmUiHosts />
+    <!-- The kit Help drawer (content adapter in main.js over docs/*.md). LlmUiHosts
+         deliberately doesn't include it — not every consumer has docs. -->
+    <HelpDrawer />
 
     <!-- ── the boot splash — this app's plate (centre-composed, bars in the art's
          clear bottom strip; JW's is left-empty), the KIT's load group inside it.

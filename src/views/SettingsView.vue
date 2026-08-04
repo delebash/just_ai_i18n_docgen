@@ -171,7 +171,7 @@ onMounted(async () => {
   <div class="settings">
     <!-- The family Settings chrome: PaneHeader + the kit's top-tab shell (the rail
          this page invented died in the 2026-08-04 consistency pass). -->
-    <PaneHeader eyebrow="App" title="Settings" />
+    <PaneHeader eyebrow="App" title="Settings" help-key="settings" />
     <SettingsShell :sections="SECTIONS" :model-value="active" @update:model-value="go">
       <!-- Appearance — JV's setting-rows -->
       <template v-if="active === 'appearance'">
