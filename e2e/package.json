@@ -8,6 +8,7 @@
     "postinstall": "node scripts/fetch-driver.js",
     "fetch-driver": "node scripts/fetch-driver.js --force",
     "test": "node --test --test-reporter=spec tests/*.test.js",
+    "contract": "node --test --test-reporter=spec tests/contract.test.js",
     "capture": "node capture-direct.js"
   }
 }

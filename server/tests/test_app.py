@@ -37,12 +37,15 @@ def test_the_stack_boots_seeded_and_wired(client):
     assert client.get("/v1/ai-usage").status_code == 200
 
 
-def test_the_four_features_are_registered(client):
+def test_the_three_routed_features_are_registered(client):
+    # Extract left the catalog 2026-08-04: it never calls the engine (pure front-matter
+    # parsing), and a routing row that cannot route is a lie. The CLI door is untouched;
+    # it re-registers the day it gains a real AI step.
     routing = client.get("/v1/ai/routing")
     assert routing.status_code == 200
     keys = {f["key"] for f in routing.json().get("features", [])}
     assert keys == {f.key for f in FEATURE_CATALOG}
-    assert keys == {"translate", "review", "confirm", "extract"}
+    assert keys == {"translate", "review", "confirm"}
 
 
 def test_the_runner_cache_lands_in_the_app_data_dir(client, tmp_path):

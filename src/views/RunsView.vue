@@ -5,7 +5,7 @@
 // is the review page's explicit human action. Close the tab and come back: the page
 // rejoins the run it did not start.
 import { computed, onMounted, onUnmounted } from "vue";
-import { UiButton, UiSelect, UiTable, pushToast } from "@delebash/llm-ui";
+import { UiButton, UiProgress, UiSelect, UiTable, pushToast } from "@delebash/llm-ui";
 import { ref } from "vue";
 import { langLabel, langOptions } from "../services/langs";
 import { useJobsStore } from "../stores/jobs";
@@ -25,8 +25,6 @@ onMounted(async () => {
 onUnmounted(() => jobs.unwatch());
 
 const running = computed(() => jobs.job?.state === "running");
-const pct = computed(() =>
-  jobs.job?.total ? Math.round((jobs.job.done / jobs.job.total) * 100) : 0);
 
 // History on the SHARED table (2026-08-03) — this page had a hand-rolled `table.plain`
 // beside the dashboard's UiTable, which is two table looks in one app and the exact
@@ -78,7 +76,7 @@ async function start() {
         · state: {{ jobs.job.state }}
         <template v-if="jobs.job.error"> · {{ jobs.job.error }}</template>
       </p>
-      <div class="progressbar"><div :style="{ width: pct + '%' }" /></div>
+      <UiProgress :value="jobs.job.done" :max="jobs.job.total" />
       <p v-if="jobs.job.failed?.length" class="mono" style="color: var(--danger); margin-bottom: 0">
         {{ jobs.job.failed.length }} key(s) exhausted every retry:
         {{ jobs.job.failed.join(", ") }}

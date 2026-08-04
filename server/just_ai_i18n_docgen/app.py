@@ -60,9 +60,10 @@ FEATURE_CATALOG: list[FeatureCatalogEntry] = [
     FeatureCatalogEntry(key="confirm", label="Confirm",
                         hint="The second opinion on byte-identical targets — annotates, never signs off.",
                         group="i18n"),
-    FeatureCatalogEntry(key="extract", label="Extract",
-                        hint="Help-doc front-matter → locale keys.",
-                        group="docs"),
+    # Extract is NOT here on purpose (2026-08-04 ruling): it is pure front-matter
+    # parsing — no engine call anywhere in extract.py — and a routing row for a
+    # feature that cannot route is a lie. The CLI door (`… extract <config>`) is
+    # untouched. Re-register it the day it gains a real AI step.
 ]
 
 # The engine presets — one-source: the preset owns provider+model+every tunable, and

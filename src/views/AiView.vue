@@ -7,7 +7,7 @@
 // and honours JW's ?quicksetup=1 deep link (the splash's "Set up local AI").
 import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { AiModelsArea, useModelApply } from "@delebash/llm-ui";
+import { AiModelsArea, PaneHeader, useModelApply } from "@delebash/llm-ui";
 import QuickSetupI18n from "../components/QuickSetupI18n.vue";
 
 const route = useRoute();
@@ -35,12 +35,9 @@ onMounted(async () => {
 
 <template>
   <div class="ai-page">
-    <header class="page-head">
-      <div>
-        <h1>AI</h1>
-        <p class="page-sub">Providers, models, routing and usage — the shared runner surface.</p>
-      </div>
-    </header>
+    <!-- The family header shape (kit PaneHeader) with JW's canon words for this
+         page — same eyebrow, same title, every app. -->
+    <PaneHeader eyebrow="AI" title="Providers, routing &amp; usage" />
     <div class="ai-area">
       <!-- No @quick-setup-closed handler: closing the wizard used to fling you to Home,
            which is disorienting when you opened the AI page on purpose. You stay here. -->

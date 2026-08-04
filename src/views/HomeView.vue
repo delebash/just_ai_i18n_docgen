@@ -10,8 +10,8 @@
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import {
-  AiTaskStrip, ConnectionError, Icon, UiButton, UiCheckbox, UiInput, UiTable, UiTag,
-  pushToast, serverUrl, useAiTasksStore,
+  AiTaskStrip, Icon, UiButton, UiCheckbox, UiInput, UiProgress, UiTable,
+  UiTag, pushToast, useAiTasksStore,
 } from "@delebash/llm-ui";
 import splashPlate from "../assets/images/splash-plate.jpg";
 import { langName } from "../services/langs";
@@ -74,9 +74,6 @@ const COLUMNS = [
   { id: "go", header: "", enableSorting: false },
 ];
 
-function pct(l) {
-  return l.total ? Math.round((l.done / l.total) * 100) : 0;
-}
 function toggle(code, on) {
   selected.value = on
     ? [...new Set([...selected.value, code])]
@@ -102,14 +99,10 @@ function lastRunLabel(l) {
 </script>
 
 <template>
-  <!-- Server unreachable ≠ no project: the kit's connection screen, retrying. -->
-  <ConnectionError
-    v-if="project.serverDown" app-name="Just AI i18n & DocGen"
-    :server-url="serverUrl('')" need="read your locale files and run translations"
-  />
-
+  <!-- Server-down now mounts the kit ConnectionError INSTEAD of the app (main.js —
+       JW's pattern): a dead server breaks every view, not just Home. -->
   <!-- CONFIRMED no project (409): the welcome — what this is, and the two ways in. -->
-  <div v-else-if="project.noProject" class="intro">
+  <div v-if="project.noProject" class="intro">
     <img class="intro__plate" :src="splashPlate" alt="Just AI i18n DocGen" />
     <div class="intro__steps">
       <div class="intro__step">
@@ -193,9 +186,10 @@ function lastRunLabel(l) {
           </button>
         </template>
         <template #progress="{ row }">
-          <span class="bar"><i :class="{ full: row.done === row.total && !row.findings }"
-                               :style="{ width: pct(row) + '%' }" /></span>
-          <span class="mono muted">{{ row.done.toLocaleString() }} / {{ row.total.toLocaleString() }}</span>
+          <span class="progresscell">
+            <UiProgress bare :value="row.done" :max="row.total" />
+            <span class="mono muted">{{ row.done.toLocaleString() }} / {{ row.total.toLocaleString() }}</span>
+          </span>
         </template>
         <template #findings="{ row }">
           <!-- A run STAGES proposals, it never writes the locale file — so done=0

@@ -5,7 +5,7 @@
 // a save re-checks the key immediately, the confirmation pass PRE-TICKS but never
 // signs off, and a suggestion is shown, never applied by anyone but you.
 import { computed, onMounted, ref, watch } from "vue";
-import { UiButton, UiSelect, confirmDialog, pushToast } from "@delebash/llm-ui";
+import { EmptyState, UiButton, UiSelect, UiTag, UiTextarea, confirmDialog, pushToast } from "@delebash/llm-ui";
 import { useRoute } from "vue-router";
 import { langName, langOptions } from "../services/langs";
 import { useProjectStore } from "../stores/project";
@@ -53,6 +53,26 @@ const filtered = computed(() => {
   return review.rows.filter((r) => r.flags.some((f) => f.code === filter.value));
 });
 const codes = computed(() => Object.keys(review.counts).sort());
+
+// Which "nothing here" is true right now — copy for the kit EmptyState on each pane.
+const queueEmptyMessage = computed(() => {
+  if (filter.value) return `No key carries the “${filter.value}” flag.`;
+  if (review.staged.length)
+    return `Nothing flagged — apply the ${review.staged.length} staged translation(s) above and the checks run on what gets written.`;
+  return `Nothing to review — the gate is green for ${langName(review.lang)}.`;
+});
+const detailEmpty = computed(() => {
+  if (filtered.value.length) return { title: "", message: "Pick a key from the queue." };
+  if (review.staged.length)
+    return {
+      title: `${review.staged.length} translation(s) waiting`,
+      message: `The last run staged them; nothing is written to ${review.lang}.json until you apply. Use “Apply all” on the left, then review whatever the checks flag.`,
+    };
+  return {
+    title: `${langName(review.lang)} is clean`,
+    message: "No findings, nothing staged. Translate more keys from Home, or pick another language above — the picker shows where the work is.",
+  };
+});
 
 // The obvious bulk action: every row whose ONLY flags are confirmed-same
 // untranslated findings — the pile the confirmation pass pre-ticked.
@@ -169,23 +189,15 @@ async function discardAll() {
           <div class="key">{{ r.key }}</div>
           <div class="src">{{ r.source }}</div>
           <div class="flagchips">
-            <span
+            <UiTag
               v-for="f in r.flags" :key="f.code + (f.detail || '')"
-              class="flagchip"
-              :class="{ advisory: f.advisory, confirmed: f.confirmed === 'same' }"
-            >{{ f.code }}<template v-if="f.confirmed === 'same'"> ✓</template></span>
-            <span v-if="r.hasProposal" class="flagchip advisory">proposal</span>
-            <span v-if="r.note" class="flagchip advisory">note</span>
+              :intent="f.confirmed === 'same' ? 'success' : f.advisory ? 'info' : 'danger'"
+            >{{ f.code }}<template v-if="f.confirmed === 'same'"> ✓</template></UiTag>
+            <UiTag v-if="r.hasProposal" intent="info" value="proposal" />
+            <UiTag v-if="r.note" intent="info" value="note" />
           </div>
         </div>
-        <div v-if="!filtered.length" style="padding: 24px" class="muted">
-          <template v-if="filter">No key carries the “{{ filter }}” flag.</template>
-          <template v-else-if="review.staged.length">
-            Nothing flagged — apply the {{ review.staged.length }} staged translation(s) above
-            and the checks run on what gets written.
-          </template>
-          <template v-else>Nothing to review — the gate is green for {{ langName(review.lang) }}.</template>
-        </div>
+        <EmptyState v-if="!filtered.length" compact icon="CheckSquare" :message="queueEmptyMessage" />
       </div>
     </div>
 
@@ -196,7 +208,7 @@ async function discardAll() {
         <div style="padding: 8px 10px; background: var(--surface-2); border-radius: 6px; margin-bottom: 8px">
           {{ review.activeRow.source }}
         </div>
-        <textarea v-model="draft" class="detail-text" />
+        <UiTextarea v-model="draft" class="detail-text" />
         <div class="row" style="margin-top: 8px">
           <UiButton intent="primary" label="Save" @click="saveDraft" />
           <UiButton intent="secondary" label="Accept as correct" @click="review.accept(review.activeRow)" />
@@ -232,8 +244,8 @@ async function discardAll() {
           "¿Por qué?". Fix it once, it stays fixed.
         </p>
         <div class="row">
-          <textarea v-model="noteDraft" class="detail-text" style="min-height: 40px"
-                    placeholder="e.g. a label above a reasoning block, not a question" />
+          <UiTextarea v-model="noteDraft" class="detail-text" style="min-height: 40px"
+                      placeholder="e.g. a label above a reasoning block, not a question" />
         </div>
         <div class="row" style="margin-top: 8px">
           <UiButton intent="secondary" label="Save note"
@@ -251,24 +263,8 @@ async function discardAll() {
     </div>
     <div class="review-detail" v-else>
       <!-- "Pick a key from the queue" beside an EMPTY queue is an instruction you
-           cannot follow — say what is actually true of this language instead. -->
-      <div class="card">
-        <p v-if="filtered.length" class="muted">Pick a key from the queue.</p>
-        <template v-else-if="review.staged.length">
-          <h2>{{ review.staged.length }} translation(s) waiting</h2>
-          <p class="hint" style="margin: 0">
-            The last run staged them; nothing is written to {{ review.lang }}.json until you
-            apply. Use <b>Apply all</b> on the left, then review whatever the checks flag.
-          </p>
-        </template>
-        <template v-else>
-          <h2>{{ langName(review.lang) }} is clean</h2>
-          <p class="hint" style="margin: 0">
-            No findings, nothing staged. Translate more keys from Home, or pick another
-            language above — the picker shows where the work is.
-          </p>
-        </template>
-      </div>
+           cannot follow — the computed says what is actually true of this language. -->
+      <EmptyState icon="CheckSquare" :title="detailEmpty.title" :message="detailEmpty.message" />
     </div>
   </div>
 </template>

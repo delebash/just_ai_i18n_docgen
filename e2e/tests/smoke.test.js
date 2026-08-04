@@ -53,17 +53,29 @@ test("the AI tasks nav row is a REAL toggle: opens, STAYS open, second click clo
   assert.equal(await d.exists('[aria-label="AI tasks"]'), false, "second click must close it");
 });
 
-test("routing by feature shows ALL FOUR features as routing rows (promptless app)", async () => {
+test("routing by feature shows the THREE routed features, with the full Lab (promptless app)", async () => {
   await d.navigate("#/ai");
   await d.waitUntil(`return /Routing by feature/i.test(document.body.textContent)`, { timeout: 15_000 });
   await d.exec(`[...document.querySelectorAll('a,button')].find(x => /Routing by feature/i.test(x.textContent))?.click();`);
-  // feature_prompts={} here — the kit's promptless routing rows must render, with
-  // the assigned-preset line on each card.
-  await d.waitUntil(`return document.querySelectorAll('.lu-fw-card').length >= 4`, { timeout: 15_000 });
+  // feature_prompts={} here — the kit renders promptless rows with the assigned-preset
+  // line on each card. Extract left the catalog 2026-08-04: it never calls the engine
+  // (pure front-matter parsing), so a routing row for it was a lie; it returns the day
+  // it gains a real AI step (the CLI `extract` door is untouched).
+  await d.waitUntil(`return document.querySelectorAll('.lu-fw-card').length >= 3`, { timeout: 15_000 });
   const text = await d.exec(`return document.body.textContent;`);
-  for (const f of ["Translate", "Review", "Confirm", "Extract"]) {
+  for (const f of ["Translate", "Review", "Confirm"]) {
     assert.equal(text.includes(f), true, `feature "${f}" must be routable`);
   }
+  assert.equal(
+    await d.exec(`return [...document.querySelectorAll('.lu-fw-card')].some(c => /Extract/.test(c.textContent));`),
+    false, "extract must NOT be a routing row");
+  // The promptless Lab (2026-08-04): selecting a feature shows the REAL generated
+  // prompt — model selection, params and Save-as-preset render for a promptless app.
+  await d.exec(`[...document.querySelectorAll('.lu-fw-card')].find(c => /Translate/.test(c.textContent))?.click();`);
+  await d.waitUntil(`return /Generated prompt/.test(document.body.textContent)`, { timeout: 15_000 });
+  const page = await d.exec(`return document.body.textContent;`);
+  assert.equal(/never|nothing here is saved/i.test(page), true, "the test-only banner must state the contract");
+  assert.equal(/Save as preset/i.test(page), true, "the preset surface must render for a promptless feature");
 });
 
 test("quick setup OPENS and offers translation-measured models, not JW's", async () => {

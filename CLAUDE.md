@@ -79,9 +79,10 @@ Port **8742** (JW 17495 · JV 8741). Data-dir env: `JUST_AI_I18N_DOCGEN_DATA_DIR
 
 | For | Read |
 |---|---|
+| Open work — the live tracker | `docs/dev/TASKS.md` |
 | The family structure standard (layout/scripts/shell/ports) | `../just-llm-runner/docs/app-structure.md` |
 | Adopting the shared LLM stack | `../just-llm-runner/README.md` "Consume it" |
-| The measured evidence behind every check and rule | the Node original `../just-ai-help` (docs/HANDOFF.md; being retired) |
+| The measured evidence behind every check and rule | the retired Node original: https://github.com/delebash/just-ai-help (docs/HANDOFF.md; archived) |
 | The review workspace API surface | `server/just_ai_i18n_docgen/workspace.py` |
 
 Read branch and working-tree state from git, never from a doc.

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 import { createApp } from "vue";
 import { createPinia } from "pinia";
-import { installLlmUi } from "@delebash/llm-ui";
+import { ConnectionError, checkServer, installLlmUi, serverUrl, startWarmOnBoot } from "@delebash/llm-ui";
 import App from "./App.vue";
 import { router } from "./router";
 import { useUiStore } from "./stores/ui";
@@ -40,4 +40,25 @@ installLlmUi(app, {
 });
 
 useUiStore(pinia).boot(); // theme before first paint — no flash of the wrong mode
-app.mount("#app");
+
+// Warm the default local model BEFORE mount (JW's mechanic, via the kit's
+// startWarmOnBoot now): the splash overlay is up on the very first Vue paint — a
+// seamless hand-off from index.html's static plate, never a shell flash between
+// them. Only the decision + load kickoff is awaited; the load itself runs in the
+// background and <BootModelLoad /> renders it.
+(async () => {
+  // Server unreachable → mount the kit ConnectionError INSTEAD of the app (JW's
+  // pattern, family canon): the renderer holds no data of its own, so a dead server
+  // breaks every view — rendering empty stores looks broken and silently fails.
+  if (!(await checkServer())) {
+    createApp(ConnectionError, {
+      appName: "Just AI i18n & DocGen",
+      serverUrl: serverUrl(""),
+      need: "read your locale files and run translations",
+      devHint: "Dev: start it with `npm run server` in the project root, then retry.",
+    }).mount("#app");
+    return;
+  }
+  await startWarmOnBoot();
+  app.mount("#app");
+})();

@@ -7,11 +7,10 @@
 // DownloadBars the engine panel uses. Continue is the universal escape: a slow
 // or failed load never traps anyone on the boot screen.
 // Family rules: height:100% chain (never 100vh), one scroller per area.
-import { computed, onMounted, watch } from "vue";
-import { DownloadBar, Icon, LlmUiHosts, useAiTasksNav, useRunnerModels } from "@delebash/llm-ui";
+import { onMounted } from "vue";
+import { BootModelLoad, FAMILY_LABELS, Icon, LlmUiHosts, useAiTasksNav, warmModelId } from "@delebash/llm-ui";
 import TitleBar from "./components/TitleBar.vue";
 import splashPlate from "./assets/images/splash-plate.jpg";
-import { startWarmOnBoot, warmModelId } from "./services/warmStartup";
 import { useProjectStore } from "./stores/project";
 
 const project = useProjectStore();
@@ -22,9 +21,11 @@ const NAV = [
   { to: "/runs", label: "Runs", icon: "History" },
   { to: "/docs", label: "Docs", icon: "Book" },
 ];
+// The trio's words come from the FAMILY CONTRACT — canon by construction, the
+// same "App Settings / AI Settings / AI tasks" every family app shows.
 const TOOLS = [
-  { to: "/ai", label: "AI", icon: "Cpu" },
-  { to: "/settings", label: "Settings", icon: "Settings" },
+  { to: "/ai", label: FAMILY_LABELS.nav.aiSettings, icon: "Cpu" },
+  { to: "/settings", label: FAMILY_LABELS.nav.appSettings, icon: "Settings" },
   { to: "/setup", label: "Setup", icon: "Folder" },
 ];
 // The AI-tasks nav row (JW Sidebar parity): toggles the kit panel, badges the running
@@ -33,42 +34,16 @@ const TOOLS = [
 // without the one attribute that makes it work (see useAiTasksNav).
 const aiTasksNav = useAiTasksNav();
 
-// ── boot splash — JW's rule, restored (2026-08-03) ────────────────────────
-// The plate exists ONLY while a warm load is in flight (JW App.vue:184
-// `v-if="warmModelId"`). Nothing loading → no splash → the app just opens.
-// What was here before was mine, not the donor's: an always-on boot gate with a
-// spinner and a status line, a first-run "Set up local AI" call to action, AND a
-// second always-present Continue — which is why Continue looked unaligned, there
-// were two of them. The offer to set up local AI belongs on Home's welcome (where
-// it already is), not stapled to a loading screen.
-
-// JW's warm-boot bars, reused verbatim: the engine-install bar during the
-// install phase, then the model's own load bar until it goes resident.
-const rm = useRunnerModels();
-const warmTask = computed(() => (warmModelId.value ? rm.taskFor(warmModelId.value) : null));
-const engineTask = computed(() =>
-  rm.engineGateTask?.value && rm.engineGateTask.value.state === "running" ? rm.engineGateTask.value : null);
-const warmRowStatus = computed(() =>
-  warmModelId.value ? (rm.models.value.find((m) => m.id === warmModelId.value)?.status || "") : "");
-// Auto-dismiss shortly after the model goes resident — a 700ms beat (JW App.vue:54:
-// taskFor emits running/error/empty, never a "done" state, so the bar simply stops).
-// A cancel or an error leaves the bar showing its own Retry; Continue is the universal
-// escape, so a slow or failed load never traps anyone on the boot screen.
-watch(warmRowStatus, (s) => {
-  if (warmModelId.value && (s === "loaded" || s === "sleeping")) {
-    setTimeout(dismissSplash, 700);
-  }
-});
-function dismissSplash() {
-  warmModelId.value = ""; // the ONE thing the splash renders on
-}
+// ── boot splash — the PAGE is this app's, the load group is the KIT's ─────
+// (2026-08-04 ruling: the loading-model control is shared, the splash page is
+// not.) `warmModelId` comes from the kit now — set by main.js's PRE-MOUNT
+// startWarmOnBoot(), the one signal this overlay renders on. Everything inside
+// the load group — the engine bar, the model bar titled with the MODEL NAME,
+// Continue, the auto-dismiss on resident — lives in <BootModelLoad />, so it
+// cannot drift from JW again. Nothing loading → no splash → the app just opens.
 
 onMounted(async () => {
   await project.refresh();
-  // Warm-boot runs the SAME workflow every load button runs; it no-ops when the
-  // toggle is off or the default isn't a local model. `warmModelId` — set inside —
-  // is the only thing that puts a splash on screen.
-  await startWarmOnBoot();
 });
 </script>
 
@@ -126,17 +101,14 @@ onMounted(async () => {
          so the failure mode is "forgot the hosts", not "mounted some of them". -->
     <LlmUiHosts />
 
-    <!-- ── the boot splash — JW's shape (App.vue:184-193): the plate ONLY while a warm
-         load is in flight, its bars in the art's clear bottom strip (this plate is
-         centre-composed; JW's is left-empty), and ONE Continue, inside the load group
-         it belongs to. No spinner, no status line, no setup CTA — nothing to look at
-         when there is nothing to wait for. ── -->
+    <!-- ── the boot splash — this app's plate (centre-composed, bars in the art's
+         clear bottom strip; JW's is left-empty), the KIT's load group inside it.
+         KEEP the plate + fit IN SYNC with index.html #app-boot — the static layer
+         shows the same image, so boot is one continuous plate, never two splashes. ── -->
     <div v-if="warmModelId" class="splash">
       <img class="splash__plate" :src="splashPlate" alt="" />
       <div class="splash__strip">
-        <DownloadBar v-if="engineTask" :task="engineTask" title="llama.cpp engine" />
-        <DownloadBar v-else-if="warmTask" :task="warmTask" :title="warmModelId" />
-        <button class="splash__quiet" @click="dismissSplash">Continue without waiting</button>
+        <BootModelLoad />
       </div>
     </div>
   </div>

@@ -104,7 +104,7 @@ async function save() {
         </div>
         <p v-if="project.inspectError" class="mono setup__error">{{ project.inspectError }}</p>
 
-        <table class="plain" style="margin-top: 12px">
+        <table class="ui-formgrid" style="margin-top: 12px">
           <tbody>
             <tr>
               <th>Keys</th>

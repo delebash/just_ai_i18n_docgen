@@ -36,12 +36,13 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from . import appmeta
 from .accepted import acceptance_entry, acceptance_hash, load_accepted, save_accepted
 from .checks import build_context, check_one, run_checks
+from .confirm import build_confirm_prompt
 from .engine import EngineNotConfigured, make_send
 from .init import gitignore_lines, plan_init, write_init
 from .jobs import JobBusyError, JobManager
-from .jsonio import flatten, rebuild
+from .jsonio import flatten, placeholder_re, rebuild
 from .service import Project, all_findings
-from .shieldlib import parse_items
+from .shieldlib import build_system_prompt, build_user_message, parse_items, shield
 from .state import (
     action_history,
     drop_all_proposals,
@@ -193,6 +194,62 @@ class Workspace:
                 "langs": p.targets, "total": len(rows)}
 
 
+def _preview_translate(p: Project, lang: str, keys: list[str] | None, n: int = 6) -> dict:
+    """The REAL translate prompt over a small live sample — the same builders the batch
+    loop uses (`loop.translate_language`), shielding included, so the kit's promptless
+    Lab shows exactly what a production run sends. Nothing to sample = a NAMED 400,
+    never a fabricated prompt."""
+    cfg = p.cfg
+    ph_re = placeholder_re(cfg["placeholder"])
+    terms = (cfg.get("glossary") or {}).get("doNotTranslate") or []
+    system = build_system_prompt(
+        source=cfg.get("sourceLanguage", "en"),
+        target_lang=lang,
+        do_not_translate=terms,
+        conventions_line=cfg.get("conventionsLine", ""),
+        plural_separator=cfg.get("pluralSeparator"),
+    )
+    existing = p.target_flat(lang) or {}
+    if keys:
+        pick = [k for k in keys if k in p.src][:n]
+        if not pick:
+            raise HTTPException(400, "None of the requested keys exist in the source catalogue.")
+    else:
+        pick = [k for k in p.src if k not in existing][:n]
+        if not pick:
+            raise HTTPException(
+                400, f"Nothing pending for {lang} — every key is translated. "
+                     "Pass keys to preview specific ones.")
+    shielded = []
+    for i, k in enumerate(pick):
+        sh, _tokens = shield(p.src[k], ph_re, terms)
+        shielded.append({"key": k, "text": p.src[k], "i": i, "shielded": sh})
+    user = build_user_message(shielded, cfg)
+    return {"system": system, "user": user,
+            "sample": f"{len(shielded)} pending key(s) · {lang}"}
+
+
+def _preview_confirm(p: Project, lang: str, keys: list[str] | None) -> dict:
+    """The REAL confirm probe prompt: one byte-identical key, exactly the shape
+    `confirm.make_ask` sends (one key per call — never batched, by design)."""
+    dst = p.target_flat(lang) or {}
+    if keys:
+        same = [k for k in keys if k in p.src and dst.get(k) == p.src[k]]
+    else:
+        same = [k for k in p.src if dst.get(k) == p.src[k]]
+    if not same:
+        raise HTTPException(
+            400, f"No byte-identical keys in {lang} — the confirm pass has nothing "
+                 "to probe right now.")
+    cfg = p.cfg
+    terms = (cfg.get("glossary") or {}).get("doNotTranslate") or []
+    system = build_confirm_prompt(target_lang=lang, context=cfg.get("context", ""),
+                                  do_not_translate=terms)
+    src = p.src[same[0]]
+    user = f"Translate items: {json.dumps([{'id': 0, 'text': src}])}"
+    return {"system": system, "user": user, "sample": f"identical key {same[0]} · {lang}"}
+
+
 def make_workspace_router(ws: Workspace) -> APIRouter:
     # /v1 like every family route — JW and JV put their OWN app routes under /v1
     # beside the shared stack's; /api was a Node-era habit, corrected 2026-08-02.
@@ -335,6 +392,25 @@ def make_workspace_router(ws: Workspace) -> APIRouter:
             "progress": {lg: review_progress(p.state, lg) for lg in p.targets},
             "proposals": {lg: proposal_count(p.state, lg) for lg in p.targets},
         }
+
+    @router.post("/ai/prompt-preview")
+    def prompt_preview(body: dict) -> dict:
+        """The family contract for pipeline-owned prompts (app-structure.md): the kit's
+        promptless Lab POSTs {feature, lang?, keys?} and renders the REAL generated
+        prompt read-only. Loud named 400s; 409 needsSetup like every project route."""
+        p = project()
+        feature = str(body.get("feature") or "")
+        lang = str(body.get("lang") or "") or (p.targets[0] if p.targets else "")
+        if not lang:
+            raise HTTPException(400, "No target languages configured — add one in Setup.")
+        keys = body.get("keys") or None
+        if feature == "translate":
+            return _preview_translate(p, lang, keys)
+        if feature == "confirm":
+            return _preview_confirm(p, lang, keys)
+        raise HTTPException(
+            400, f'No prompt preview for "{feature}" yet — routing still picks its '
+                 "engine preset.")
 
     @router.get("/rows")
     def rows(lang: str | None = None) -> dict:

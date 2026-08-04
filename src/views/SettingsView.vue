@@ -8,9 +8,9 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import {
-  LogsPanel, UiButton, UiInput, UiSelect, UiToggle,
-  confirmDialog, fmtBytes, get, openExternal, post, pushToast, put, refreshRunnerModels,
-  safeRequest, serverUrl,
+  FAMILY_LABELS, LogsPanel, PaneHeader, SettingsShell, UiButton, UiInput, UiSelect,
+  UiToggle, confirmDialog, fmtBytes, get, openExternal, post, pushToast, put,
+  refreshRunnerModels, safeRequest, serverUrl,
 } from "@delebash/llm-ui";
 import { UI_FONTS, UI_SCALES } from "../services/appearance";
 import { useProjectStore } from "../stores/project";
@@ -21,13 +21,15 @@ const router = useRouter();
 const ui = useUiStore();
 const project = useProjectStore();
 
+// Shared-concept sections take their words from the FAMILY CONTRACT; Reviewer is
+// this app's own (tool identity — no family equivalent).
 const SECTIONS = [
-  { id: "appearance", label: "Appearance" },
-  { id: "storage", label: "Storage" },
-  { id: "server", label: "Server" },
-  { id: "logs", label: "Logs" },
+  { id: "appearance", label: FAMILY_LABELS.settingsSections.appearance },
+  { id: "storage", label: FAMILY_LABELS.settingsSections.storage },
+  { id: "server", label: FAMILY_LABELS.settingsSections.server },
+  { id: "logs", label: FAMILY_LABELS.settingsSections.logs },
   { id: "reviewer", label: "Reviewer" },
-  { id: "about", label: "About" },
+  { id: "about", label: FAMILY_LABELS.settingsSections.about },
 ];
 const active = ref(props.section || "appearance");
 watch(() => props.section, (s) => { if (s) active.value = s; });
@@ -167,15 +169,10 @@ onMounted(async () => {
 
 <template>
   <div class="settings">
-    <aside class="settings__rail">
-      <button
-        v-for="s in SECTIONS" :key="s.id"
-        class="settings__navbtn" :class="{ active: active === s.id }"
-        @click="go(s.id)"
-      >{{ s.label }}</button>
-    </aside>
-
-    <div class="settings__panel">
+    <!-- The family Settings chrome: PaneHeader + the kit's top-tab shell (the rail
+         this page invented died in the 2026-08-04 consistency pass). -->
+    <PaneHeader eyebrow="App" title="Settings" />
+    <SettingsShell :sections="SECTIONS" :model-value="active" @update:model-value="go">
       <!-- Appearance — JV's setting-rows -->
       <template v-if="active === 'appearance'">
         <section class="card">
@@ -243,7 +240,7 @@ onMounted(async () => {
             One folder holds everything this tool saves — your connections, presets,
             the AI engine and models, and logs. Delete the folder, delete it all.
           </p>
-          <table class="plain">
+          <table class="ui-formgrid">
             <tbody>
               <tr>
                 <th>Folder</th>
@@ -273,19 +270,19 @@ onMounted(async () => {
             <div class="row">
               <span>{{ diskSize(diskUsage?.modelsCache) }}</span>
               <UiButton intent="secondary" size="small" :disabled="!!diskBusy"
-                        :label="diskBusy === 'models' ? 'Clearing…' : 'Clear'" @click="clearModelsCache" />
+                        :label="diskBusy === 'models' ? 'Clearing…' : FAMILY_LABELS.storage.clearShort" @click="clearModelsCache" />
             </div>
             <span class="muted">Engine spawn logs</span>
             <div class="row">
               <span>{{ diskSize(diskUsage?.spawnLogs) }}</span>
               <UiButton intent="secondary" size="small" :disabled="!!diskBusy"
-                        :label="diskBusy === 'spawn' ? 'Clearing…' : 'Clear'" @click="clearSpawnLogs" />
+                        :label="diskBusy === 'spawn' ? 'Clearing…' : FAMILY_LABELS.storage.clearShort" @click="clearSpawnLogs" />
             </div>
             <span class="muted">Engine builds</span><span>{{ diskSize(diskUsage?.engineBuilds) }}</span>
             <span class="muted">Database</span><span>{{ diskSize(diskUsage?.database) }}</span>
-            <span class="muted">App logs</span><span>{{ diskSize(diskUsage?.appLogs) }}</span>
-            <span class="muted"><b>Total</b></span><span><b>{{ diskSize(diskUsage?.total) }}</b></span>
-            <span class="muted">Free on disk</span><span>{{ diskSize(diskUsage?.diskFree) }}</span>
+            <span class="muted">{{ FAMILY_LABELS.storage.serverLogs }}</span><span>{{ diskSize(diskUsage?.appLogs) }}</span>
+            <span class="muted"><b>{{ FAMILY_LABELS.storage.total }}</b></span><span><b>{{ diskSize(diskUsage?.total) }}</b></span>
+            <span class="muted">{{ FAMILY_LABELS.storage.freeSpace }}</span><span>{{ diskSize(diskUsage?.diskFree) }}</span>
           </div>
           <p v-if="diskErr" class="mono setup__error">{{ diskErr }}</p>
         </section>
@@ -299,7 +296,7 @@ onMounted(async () => {
             The server hosts the UI itself — <span class="mono">just-ai-i18n-docgen-server serve</span>
             plus a browser gives the full app without the desktop shell.
           </p>
-          <table class="plain">
+          <table class="ui-formgrid">
             <tbody>
               <tr><th>URL</th><td class="mono">{{ headlessUrl }}</td></tr>
             </tbody>
@@ -311,7 +308,7 @@ onMounted(async () => {
             Bearer tokens gate <span class="mono">/v1/*</span> when the server runs exposed —
             off while this list is empty. Local (loopback) requests stay exempt unless required below.
           </p>
-          <table class="plain" v-if="auth.tokens.length">
+          <table class="ui-formgrid" v-if="auth.tokens.length">
             <tbody>
               <tr v-for="t in auth.tokens" :key="t">
                 <td class="mono">{{ t }}</td>
@@ -363,7 +360,7 @@ onMounted(async () => {
         <section class="card">
           <h2>Just AI i18n &amp; DocGen</h2>
           <p class="hint">Simple translation &amp; help docs for your application — translated locally or online, verified, and reviewed by you.</p>
-          <table class="plain">
+          <table class="ui-formgrid">
             <tbody>
               <tr><th>Version</th><td class="mono">0.1.0</td></tr>
               <tr>
@@ -374,6 +371,6 @@ onMounted(async () => {
           </table>
         </section>
       </template>
-    </div>
+    </SettingsShell>
   </div>
 </template>
