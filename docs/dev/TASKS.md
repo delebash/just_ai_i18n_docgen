@@ -48,12 +48,20 @@
   it never touches the real repos. Today's smoke only asserts the Setup form
   renders.
 
-- **Cold-boot warm kickoff exceeds the design intent** — `main.js` awaits
-  "decision + kickoff" only, yet on a cold data dir (first router spawn + CUDA
-  init) the awaited kickoff evidently ran past 14.5 s (found 2026-08-04). Decision:
-  measure what the await actually costs cold, then decide (with evidence, in chat)
-  whether kickoff should return earlier — kit/server change, a real boot-latency
-  item for first launches.
+- **Cold-boot warm kickoff — MEASURED 2026-08-04, numbers say the intent holds;
+  your ruling on what (if anything) to do.** The awaited chain is: `checkServer`
+  (8×500 ms budget = 3.5 s ceiling) → `engine-config` GET → `refreshApplied`'s
+  three parallel GETs → `retryLoad` **fire-and-forget (never awaited)**. Measured
+  on this box: time-to-health **2.31 s** (real data dir) / **2.29 s** (virgin
+  scratch dir — measurement-only deviation, deleted after) through the npm chain
+  (the release sidecar is ≤ that); first-request GETs 3–12 ms; warm GETs ≤95 ms
+  total. **Worst case awaited ≈ 2.5 s — the 14.5 s plate-sit cannot come from the
+  awaited path as the code now stands.** Remaining suspects for the original
+  observation: OS-cold python imports on first launch after a reboot (not
+  measurable without one), or a pre-refactor boot shape. Recommendation: NO code
+  change; the splash staying up during a long MODEL load afterward is the
+  designed honest UI (Continue button + auto-dismiss). If the plate-sit recurs,
+  re-measure time-to-health once right after a machine reboot.
 
 - **App-run jobs must gain the confirmation pass — a GAP, not a question** (the
   audit's correction 2026-08-04: root CLAUDE.md records "the confirmation pass
