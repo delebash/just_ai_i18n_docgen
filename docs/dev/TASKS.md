@@ -124,15 +124,16 @@
   the DONOR** — tray with Show/Hide · Start/Stop/Restart server · Quit,
   `keep_running_on_close` in its `lib.rs`, the setting at Settings → Lifecycle,
   user docs in its `system-tray.md`/`run-modes.md`.
-  **THIS APP'S HALF SHIPPED 2026-08-04 late** (in git): tray with the decided
-  generic entries, `keep_running_on_close` + `set_keep_server_running`, the
-  CloseRequested intercept, the Settings → Server toggle persisted + re-applied
-  each boot, `settings.md` documents it; cargo check + lint + build green. The
-  tray/close behavior itself is your eyes-on QC (webdriver can't see a tray).
-  **REMAINING: the JW mirror** (same port into JW's `lib.rs` — its SidecarState
-  differs slightly, read it first — + its Settings Server-section toggle + en/es
-  keys + its tray-icon Cargo feature) **and the `app-structure.md` section**
-  codifying the family shape.
+  **ALL THREE APPS SHIP IT as of 2026-08-04 late** (in git): this app AND JW got
+  the full port (tray with the decided generic entries, `keep_running_on_close`
+  + `set_keep_server_running`, the CloseRequested intercept — in JW slotted
+  BEFORE its D5 drain grace since a kept server needs no draining — the
+  Settings → Server toggle persisted + re-applied each boot, en/es keys in JW,
+  `settings.md` here); `app-structure.md` §11 codifies the family row. Gates:
+  cargo check ×2 + lint/build ×2 + JW vitest, all green. **The tray + close
+  behavior itself is your eyes-on QC** (webdriver can't see a tray): check both
+  apps — toggle OFF ⇒ close kills everything; ON ⇒ close hides to tray, server
+  stays, left-click restores, menu Quit really quits.
 
 - **Appearance — DIAGNOSED + FIXED 2026-08-04 (your QC "doesn't work" was real,
   three defects):** the tokens defined static hex `--accent*` (so the hue slider
