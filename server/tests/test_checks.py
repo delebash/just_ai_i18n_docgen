@@ -63,6 +63,17 @@ def test_glossary_translated_bites_when_a_brand_name_is_translated():
     assert "glossary-translated" in codes("Open JustWrite now", "Abrir Escribir ahora")
 
 
+def test_glossary_matches_whole_words_never_inside_them():
+    # audit 2026-08-05: the substring test matched glossary terms INSIDE words —
+    # a false finding when the term only appears inside a longer source word,
+    # and a false PASS when the translation only carries it inside one.
+    assert codes("Stranded ships", "Barcos varados") == [], (
+        '"Strands" inside "Stranded" is not a glossary hit')
+    assert "glossary-translated" in codes(
+        "Strands here", "Stranded aquí"), (
+        '"Strands" inside dst "Stranded" must not count as surviving')
+
+
 def test_untranslated_bites_on_a_skipped_string_but_not_a_shielded_only_one():
     assert "untranslated" in codes("Chapters", "Chapters")
     # Shielded content is meant to come back unchanged. Flagging our own correct

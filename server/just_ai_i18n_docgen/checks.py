@@ -29,6 +29,8 @@ from __future__ import annotations
 
 import re
 
+from .shieldlib import term_present
+
 Finding = dict  # {"key": str, "code": str, "detail": str} — kept dict-shaped: it IS the JSON feed
 
 
@@ -76,10 +78,13 @@ def check_plural(src: str, dst: str, ctx: dict) -> list[Finding]:
 
 
 def check_glossary(src: str, dst: str, ctx: dict) -> list[Finding]:
-    """Do-not-translate terms survived."""
+    """Do-not-translate terms survived. Occurrence = shieldlib's boundary rule,
+    THE one definition (audit 2026-08-05: this check used a bare substring while
+    shield() used the boundary — "Act" inside "Actor" raised a false finding,
+    and inside dst "Action" silently passed a translation that lost the term)."""
     out = []
     for term in ctx.get("do_not_translate") or []:
-        if term in src and term not in dst:
+        if term_present(term, src) and not term_present(term, dst):
             out.append({
                 "code": "glossary-translated",
                 "detail": f'"{term}" is missing from the translation',

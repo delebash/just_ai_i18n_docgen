@@ -59,19 +59,32 @@ const totals = computed(() => {
     accepted: ls.reduce((n, l) => n + l.accepted, 0),
   };
 });
+// The rows the FILTER currently shows — the same contains-match UiTable applies
+// over the same fields. Select-all works on THESE (audit 2026-08-05: it ticked
+// every language while the table showed three, and the run started forty).
+const visibleRows = computed(() => {
+  const q = filter.value.trim().toLowerCase();
+  if (!q) return rows.value;
+  return rows.value.filter(
+    (l) => l.name.toLowerCase().includes(q) || l.code.toLowerCase().includes(q),
+  );
+});
 const allTicked = computed(
-  () => rows.value.length > 0 && rows.value.every((l) => selected.value.includes(l.code)),
+  () => visibleRows.value.length > 0
+    && visibleRows.value.every((l) => selected.value.includes(l.code)),
 );
 
+// `sortable` is the kit column key (audit 2026-08-05: `enableSorting: false` was
+// TanStack's name, silently ignored — no column sorted at all).
 const COLUMNS = [
-  { id: "sel", header: "", enableSorting: false },
-  { id: "name", header: "Language", accessorKey: "name" },
-  { id: "progress", header: "Progress", accessorKey: "done" },
+  { id: "sel", header: "" },
+  { id: "name", header: "Language", accessorKey: "name", sortable: true },
+  { id: "progress", header: "Progress", accessorKey: "done", sortable: true },
   // "Status", not "Findings": the chips under it say "not yet translated" / "6 staged"
   // / "clean" as often as they say findings.
-  { id: "findings", header: "Status", accessorKey: "findings" },
-  { id: "lastRun", header: "Last run", enableSorting: false },
-  { id: "go", header: "", enableSorting: false },
+  { id: "findings", header: "Status", accessorKey: "findings", sortable: true },
+  { id: "lastRun", header: "Last run" },
+  { id: "go", header: "" },
 ];
 
 function toggle(code, on) {
@@ -80,7 +93,7 @@ function toggle(code, on) {
     : selected.value.filter((c) => c !== code);
 }
 function toggleAll(on) {
-  selected.value = on ? rows.value.map((l) => l.code) : [];
+  selected.value = on ? visibleRows.value.map((l) => l.code) : [];
 }
 function openReview(code) {
   router.push({ path: "/review", query: { lang: code } });
@@ -123,6 +136,14 @@ function lastRunLabel(l) {
     <div class="row" style="justify-content: center; gap: 12px">
       <UiButton intent="primary" label="Open Setup" @click="router.push('/setup')" />
     </div>
+  </div>
+
+  <!-- Server unreachable AFTER boot (main.js's gate only covers boot): say so and
+       keep retrying — a blank page reads as broken (audit 2026-08-05). -->
+  <div v-else-if="project.serverDown" class="intro">
+    <p class="muted" style="text-align: center">
+      Can't reach the server — retrying…
+    </p>
   </div>
 
   <div v-else-if="project.summary" class="dash">

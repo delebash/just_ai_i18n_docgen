@@ -43,7 +43,11 @@ onMounted(async () => {
   await review.refresh(wanted ?? review.lang ?? busiestLang() ?? project.langs[0] ?? null);
 });
 
-watch(() => review.activeRow, (row) => {
+// Seed the editors when the SELECTED KEY changes — never on row identity.
+// Watching activeRow reseeded on every background refresh (each save/accept
+// replaces the rows array), wiping a draft mid-typing (audit 2026-08-05).
+watch(() => review.activeKey, () => {
+  const row = review.activeRow;
   draft.value = row?.target ?? "";
   noteDraft.value = row?.note ?? "";
 });
@@ -59,6 +63,9 @@ const queueEmptyMessage = computed(() => {
   if (filter.value) return `No key carries the “${filter.value}” flag.`;
   if (review.staged.length)
     return `Nothing flagged — apply the ${review.staged.length} staged translation(s) above and the checks run on what gets written.`;
+  // No language resolved yet (still loading / none configured) — naming one
+  // printed "the gate is green for ." (audit 2026-08-05).
+  if (!review.lang) return "Nothing to review yet.";
   return `Nothing to review — the gate is green for ${langName(review.lang)}.`;
 });
 const detailEmpty = computed(() => {
@@ -68,6 +75,7 @@ const detailEmpty = computed(() => {
       title: `${review.staged.length} translation(s) waiting`,
       message: `The last run staged them; nothing is written to ${review.lang}.json until you apply. Use “Apply all” on the left, then review whatever the checks flag.`,
     };
+  if (!review.lang) return { title: "Nothing here yet", message: "Pick a language above." };
   return {
     title: `${langName(review.lang)} is clean`,
     message: "No findings, nothing staged. Translate more keys from Home, or pick another language above — the picker shows where the work is.",
@@ -81,16 +89,37 @@ const preTicked = computed(() =>
     r.flags.length && r.flags.every((f) => f.code === "untranslated" && f.confirmed === "same"))
 );
 
+// Every mutation says when it FAILED — these all awaited store actions bare, so
+// a server error surfaced nowhere and the click read as a no-op (audit 2026-08-05).
+function toastFail(title) {
+  return (e) => pushToast({ kind: "error", title, description: String(e?.message || e) });
+}
 async function saveDraft() {
-  const out = await review.save(review.activeRow, draft.value);
-  pushToast(out.flags.length
-    ? { kind: "info", title: "Saved — still flagged", description: out.flags.map((f) => f.code).join(", ") }
-    : { kind: "success", title: "Saved, checks clean" });
+  try {
+    const out = await review.save(review.activeRow, draft.value);
+    pushToast(out.flags.length
+      ? { kind: "info", title: "Saved — still flagged", description: out.flags.map((f) => f.code).join(", ") }
+      : { kind: "success", title: "Saved, checks clean" });
+  } catch (e) { toastFail("Save failed")(e); }
 }
 async function acceptBulk() {
-  const out = await review.acceptMany(review.lang, preTicked.value.map((r) => r.key));
-  pushToast({ kind: "success", title: `${out.recorded} finding(s) accepted`,
-              description: "One click, one undo." });
+  try {
+    const out = await review.acceptMany(review.lang, preTicked.value.map((r) => r.key));
+    pushToast({ kind: "success", title: `${out.recorded} finding(s) accepted`,
+                description: "One click, one undo." });
+  } catch (e) { toastFail("Accept failed")(e); }
+}
+const acceptActive = () => review.accept(review.activeRow).catch(toastFail("Accept failed"));
+const unacceptActive = () =>
+  review.unaccept(review.activeRow.lang, review.activeRow.key).catch(toastFail("Unaccept failed"));
+const applyProposalActive = () =>
+  review.applyProposal(review.activeRow).catch(toastFail("Apply failed"));
+const undoLast = () => review.undo().catch(toastFail("Nothing undone"));
+async function saveNote() {
+  try {
+    await review.setNote(review.activeRow, noteDraft.value);
+    pushToast({ kind: "success", title: "Note saved" });
+  } catch (e) { toastFail("Note not saved")(e); }
 }
 async function backtranslate() {
   try {
@@ -156,7 +185,7 @@ async function discardAll() {
         <UiSelect v-if="codes.length" v-model="filter" :options="codes"
                   placeholder="all flags" show-clear width="id" />
         <span class="spacer" />
-        <UiButton intent="ghost" label="Undo" @click="review.undo()" />
+        <UiButton intent="ghost" label="Undo" @click="undoLast" />
       </div>
 
       <!-- The staged pile: what the run produced and has NOT been written yet. This is
@@ -211,11 +240,10 @@ async function discardAll() {
         <UiTextarea v-model="draft" class="detail-text" />
         <div class="row" style="margin-top: 8px">
           <UiButton intent="primary" label="Save" @click="saveDraft" />
-          <UiButton intent="secondary" label="Accept as correct" @click="review.accept(review.activeRow)" />
+          <UiButton intent="secondary" label="Accept as correct" @click="acceptActive" />
           <UiButton v-if="review.activeRow.hasProposal" intent="secondary" label="Apply proposal"
-                    @click="review.applyProposal(review.activeRow)" />
-          <UiButton intent="ghost" label="Unaccept"
-                    @click="review.unaccept(review.activeRow.lang, review.activeRow.key)" />
+                    @click="applyProposalActive" />
+          <UiButton intent="ghost" label="Unaccept" @click="unacceptActive" />
           <span class="spacer" />
           <UiButton intent="ghost" label="What does it say? (back-translate)" @click="backtranslate" />
         </div>
@@ -248,8 +276,7 @@ async function discardAll() {
                       placeholder="e.g. a label above a reasoning block, not a question" />
         </div>
         <div class="row" style="margin-top: 8px">
-          <UiButton intent="secondary" label="Save note"
-                    @click="review.setNote(review.activeRow, noteDraft)" />
+          <UiButton intent="secondary" label="Save note" @click="saveNote" />
         </div>
       </div>
 

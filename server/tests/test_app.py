@@ -105,6 +105,26 @@ def test_bearer_auth_gates_v1_only_when_tokens_exist(client):
     assert client.get("/v1/setup/state").status_code == 200
 
 
+def test_lockout_escape_health_and_auth_door_stay_open_from_loopback(client, monkeypatch):
+    """audit 2026-08-05: requireForLoopback + a lost token gated even /v1/health
+    (the desktop's boot gate died on ConnectionError FOREVER) and /v1/server-auth
+    (the very door to fix it) — the route's own docstring promises the local user
+    can never lock themselves out. From the machine itself both stay open (the
+    tokens already sit plaintext in the app DB any local process can read, so
+    this exposes nothing new); everything else stays gated."""
+    from just_ai_i18n_docgen import auth as auth_mod
+    monkeypatch.setattr(auth_mod, "_is_loopback", lambda host: True)
+    client.put("/v1/server-auth", json={"tokens": ["s3cret"],
+                                        "requireForLoopback": True})
+    try:
+        assert client.get("/v1/health").status_code == 200, "the boot probe never locks"
+        assert client.get("/v1/server-auth").status_code == 200, "the fix-it door never locks"
+        assert client.get("/v1/setup/state").status_code == 401, "the rest stays gated"
+    finally:
+        client.put("/v1/server-auth", json={"tokens": []})
+    assert client.get("/v1/setup/state").status_code == 200
+
+
 def test_a_browser_origin_gets_cors_headers(client):
     """Vite dev (:1420) hits :8742 DIRECTLY (the kit's origin-aware resolver), so
     without CORSMiddleware every browser dev request dies as a silent block.

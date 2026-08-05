@@ -31,6 +31,14 @@ export const useJobsStore = defineStore("jobs", {
     async refresh() {
       const cur = await safeRequest("/v1/jobs/current", null);
       this.job = cur?.job ?? null;
+      // Rejoining a live run (page reload mid-job): the strip/panel task must
+      // exist too, not only the SSE stream — without this the rejoined run was
+      // invisible everywhere but the raw state (audit 2026-08-05).
+      if (this.job && !this._task
+          && (this.job.state === "running" || this.job.state === "confirming")) {
+        this._openTask(this.job.lang);
+        this._task?.setProgress(this.job.done, this.job.total);
+      }
       const hist = await safeRequest("/v1/runs", null);
       this.runs = hist?.runs ?? [];
     },
@@ -83,7 +91,14 @@ export const useJobsStore = defineStore("jobs", {
       const [first, ...rest] = langs;
       this.queue = rest;
       this.queueScope = scope;
-      return this.start({ lang: first, scope });
+      try {
+        return await this.start({ lang: first, scope });
+      } catch (e) {
+        // A failed FIRST start must not strand a silent queue that would fire
+        // whenever some later run finishes (audit 2026-08-05).
+        this.queue = [];
+        throw e;
+      }
     },
     async _advanceQueue() {
       if (!this.queue.length || this.job?.state === "running" || this.job?.state === "confirming") return;
@@ -134,15 +149,27 @@ export const useJobsStore = defineStore("jobs", {
           this._closeTask(state === "done" ? "done" : state === "cancelled" ? "cancelled" : "failed");
           this._advanceQueue();
         });
-        es.onerror = () => { this.unwatch(); };
+        // A dropped stream must not freeze the page on a stale state (audit
+        // 2026-08-05: onerror closed the stream and nothing took over). Fall
+        // back to the poll loop — it re-arms nothing when the job is over.
+        es.onerror = () => { this.unwatch(); this._pollTick(); };
       } catch {
         // SSE unavailable — poll instead.
-        const tick = async () => {
-          await this.refresh();
-          if (this.job && (this.job.state === "running" || this.job.state === "confirming")) setTimeout(tick, 1500);
-        };
-        tick();
+        this._pollTick();
       }
+    },
+    _pollTick() {
+      const tick = async () => {
+        await this.refresh();
+        if (this.job && (this.job.state === "running" || this.job.state === "confirming")) {
+          setTimeout(tick, 1500);
+        } else if (this.job) {
+          const state = this.job.state;
+          this._closeTask(state === "done" ? "done" : state === "cancelled" ? "cancelled" : "failed");
+          this._advanceQueue();
+        }
+      };
+      tick();
     },
     unwatch() {
       if (this._source) {

@@ -35,7 +35,14 @@ from .infer import infer_config
 from .jsonio import flatten, rebuild
 from .loop import translate_language
 from .paths import ProjectPaths, project_paths
-from .state import JsonStore, confirmations, open_project, put_confirmation
+from .state import (
+    JsonStore,
+    confirmations,
+    drop_confirmation,
+    open_project,
+    put_confirmation,
+    set_review_status,
+)
 from .suspects import rank_suspects, spread
 
 PROBE_CACHE_FILE = ".just-ai-i18n-docgen-probe-cache.json"
@@ -70,6 +77,26 @@ class Project:
         self.cfg.setdefault("sourceLanguage", self.paths.source_language)
         self.conventions = _conventions()
         self.state: JsonStore = open_project(self.paths.config_dir)
+        self._src_mtime = self._source_mtime()
+
+    def _source_mtime(self) -> float | None:
+        try:
+            return self.paths.source_file.stat().st_mtime
+        except OSError:
+            return None
+
+    def refresh_source_if_changed(self) -> None:
+        """The source catalogue can change UNDER a running server — the CLI's
+        `extract` writes front-matter keys into en.json, and git/editors touch
+        it too. The load-once cache then reports findings about a file that no
+        longer exists as read (audit 2026-08-05). One stat per request at the
+        workspace's route seam; a changed mtime re-reads. The term cache
+        self-invalidates — its stamp is computed from the content."""
+        m = self._source_mtime()
+        if m is not None and m != self._src_mtime:
+            self.source_raw = _read_json(self.paths.source_file)
+            self.src = flatten(self.source_raw)
+            self._src_mtime = m
 
     @property
     def targets(self) -> list[str]:
@@ -110,6 +137,27 @@ def all_findings(project: Project, lang: str, target_flat: dict, *,
     #22 and #30 OF THE THIRTY SHOWN. `term_cache` memoises the terminology index on the
     content it was computed from (measured: the index is over half the cost of a
     request, and a request happens after every accept and every edit)."""
+    findings = unfiltered_findings(project, lang, target_flat, top_n=top_n,
+                                   include_terms=include_terms,
+                                   term_cache=term_cache)
+    findings = attach_confirmations(
+        findings, confirmations(project.state, lang), project.src, target_flat,
+    )
+    return partition_accepted(
+        findings, load_accepted(project.paths.accepted_file(lang)),
+        project.src, target_flat,
+    )
+
+
+def unfiltered_findings(project: Project, lang: str, target_flat: dict, *,
+                        top_n: int | None = None, include_terms: bool = False,
+                        term_cache: dict | None = None) -> list:
+    """Checks + disagreement suspects + (optionally) terminology — the findings
+    BEFORE confirmation attach and the acceptance filter. `/accept` records against
+    THIS: the filtered list makes a second accept a silent no-op, and a compose of
+    run_checks alone dropped advisory (terminology) and suspect findings from
+    acceptance entirely (audit 2026-08-05 — accepting a key whose one finding was
+    terminology recorded nothing and the flag survived the click)."""
     findings = run_checks(
         source_flat=project.src, target_flat=target_flat,
         ctx=build_context(project.cfg, project.conventions, lang),
@@ -124,13 +172,7 @@ def all_findings(project: Project, lang: str, target_flat: dict, *,
         )
     if include_terms:
         findings = findings + _term_findings(project, lang, target_flat, term_cache)
-    findings = attach_confirmations(
-        findings, confirmations(project.state, lang), project.src, target_flat,
-    )
-    return partition_accepted(
-        findings, load_accepted(project.paths.accepted_file(lang)),
-        project.src, target_flat,
-    )
+    return findings
 
 
 def _term_findings(project: Project, lang: str, target_flat: dict,
@@ -384,8 +426,10 @@ def accept_keys(project: Project, keys: list[str], *, by: str = "",
             continue
         path = project.paths.accepted_file(lang)
         store = load_accepted(path)
-        raw = run_checks(source_flat=project.src, target_flat=dst,
-                         ctx=build_context(project.cfg, project.conventions, lang))
+        # The SAME composition the workspace door records against — advisory
+        # (terminology) and suspect findings included (two doors, one meaning;
+        # audit 2026-08-05: this door consulted run_checks alone).
+        raw = unfiltered_findings(project, lang, dst, include_terms=True)
         for key in keys:
             for_key = [f for f in raw if f["key"] == key]
             if not for_key:
@@ -399,6 +443,11 @@ def accept_keys(project: Project, keys: list[str], *, by: str = "",
                                       src=entry["src"], dst=entry["dst"])] = entry
                 log(f"{lang}: accepted {f['code']} on {key}")
                 recorded += 1
+            # A machine's opinion has served its purpose once a human has ruled —
+            # the workspace door already did both of these; this door left stale
+            # pre-ticks behind (audit 2026-08-05).
+            set_review_status(project.state, lang=lang, key=key, status="reviewed")
+            drop_confirmation(project.state, lang=lang, key=key)
         save_accepted(path, store)
     log(f"\n{recorded} finding(s) recorded as reviewed by \"{reviewer}\".")
     if reviewer == UNKNOWN_REVIEWER:

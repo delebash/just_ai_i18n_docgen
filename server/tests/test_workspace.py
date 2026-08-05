@@ -263,6 +263,113 @@ def test_pending_scope_selects_missing_plus_flagged_keys(client, monkeypatch):
     assert "common.no" in staged, "the flagged key must be in a pending run"
 
 
+def test_flagged_scope_is_checked_and_flagged_only_a_missing_key_is_not_flagged(client):
+    """The ruled semantics (2026-08-05, the original's intent): `flagged` = a
+    finding on an EXISTING translation. A key with no translation was never
+    checked — it is `pending` material and must NOT ride a flagged run."""
+    es_path = client.config_path.parent.parent / "src" / "locales" / "es.json"
+    # Every present key clean; `greet` entirely missing.
+    es_path.write_text(json.dumps({
+        "sidebar": {"books": "Libros"}, "common": {"no": "Nop"},
+    }), encoding="utf-8")
+    r = client.post("/v1/jobs", json={"lang": "es", "scope": "flagged"})
+    assert r.status_code == 400
+    assert "selected no keys" in r.json()["detail"], (
+        "a lone missing key must leave `flagged` empty — it belongs to `pending`")
+
+
+def test_an_externally_changed_source_is_picked_up_without_a_restart(client):
+    """audit 2026-08-05: the CLI's `extract` (or git, or an editor) writes new
+    keys into en.json UNDER a running server, and the load-once source cache
+    kept reporting the old catalogue until a restart. The route seam re-reads
+    on mtime change."""
+    import os
+    import time
+
+    en_path = client.config_path.parent.parent / "src" / "locales" / "en.json"
+    en = json.loads(en_path.read_text(encoding="utf-8"))
+    en["docs"] = {"intro": "Welcome to the manual"}
+    en_path.write_text(json.dumps(en), encoding="utf-8")
+    # Filesystems with coarse mtime granularity need a nudge for the test.
+    os.utime(en_path, (time.time() + 2, time.time() + 2))
+
+    body = client.get("/v1/rows").json()
+    keys = [r["key"] for r in body["rows"]]
+    assert "docs.intro" in keys, "the new source key surfaces as work (missing)"
+
+
+def test_discarding_proposals_is_undoable_and_counts_honestly(client):
+    """Discard destroys staged work by hand — so it records ONE undoable action
+    (audit 2026-08-05: it recorded nothing, and the next undo silently reversed
+    some OLDER action instead). The count is what was dropped, never len(keys)."""
+    from just_ai_i18n_docgen.state import proposals as list_proposals
+    from just_ai_i18n_docgen.state import put_proposal
+
+    p = client.app.state.workspace.project
+    put_proposal(p.state, lang="es", key="common.no", engine="e", value="Nada")
+    put_proposal(p.state, lang="es", key="greet", engine="e", value="Buenas {name}")
+
+    r = client.request("DELETE", "/v1/proposals",
+                       json={"lang": "es", "keys": ["common.no", "nope-no-proposal"]})
+    assert r.json()["discarded"] == 1, "a key with no proposal is not a discard"
+    assert {x["key"] for x in list_proposals(p.state, lang="es")} == {"greet"}
+
+    client.post("/v1/undo", json={})
+    staged = list_proposals(p.state, lang="es")
+    assert {x["key"] for x in staged} == {"greet", "common.no"}
+    assert next(x for x in staged if x["key"] == "common.no")["value"] == "Nada"
+
+
+def test_accepting_an_advisory_terminology_finding_is_recorded(tmp_path, monkeypatch):
+    """All findings are acceptable, advisory ones included (audit 2026-08-05):
+    accept consulted run_checks alone, so accepting a key whose ONE finding was
+    the terminology sweep's recorded nothing and the flag survived the click."""
+    monkeypatch.setattr(lifecycle, "_service", None)
+    monkeypatch.setattr(seed, "_APP", dict(seed._APP))
+    app_dir = tmp_path / "termapp"
+    (app_dir / "src" / "locales").mkdir(parents=True)
+    (app_dir / "package.json").write_text("{}", encoding="utf-8")
+    en = {f"w{i}": f"Window {i}" for i in range(1, 8)}
+    es = {f"w{i}": f"Ventana {i}" for i in range(1, 7)}
+    es["w7"] = "Cristal 7"  # the outlier the sweep flags (6/7 say Ventana)
+    (app_dir / "src" / "locales" / "en.json").write_text(json.dumps(en), encoding="utf-8")
+    (app_dir / "src" / "locales" / "es.json").write_text(json.dumps(es), encoding="utf-8")
+    (app_dir / "just-ai-i18n-docgen").mkdir()
+    config = app_dir / "just-ai-i18n-docgen" / "config.json"
+    config.write_text(json.dumps({"source": "../src/locales/en.json",
+                                  "targets": ["es"], "context": "t"}), encoding="utf-8")
+    client = TestClient(create_app(tmp_path / "data", config_path=config))
+
+    rows = client.get("/v1/rows").json()["rows"]
+    w7 = next(r for r in rows if r["key"] == "w7")
+    assert "terminology" in [f["code"] for f in w7["flags"]], "fixture sanity"
+
+    r = client.post("/v1/accept", json={"lang": "es", "keys": ["w7"]})
+    assert r.json()["recorded"] >= 1, "the advisory finding IS recorded"
+    rows = client.get("/v1/rows").json()["rows"]
+    w7 = next((r for r in rows if r["key"] == "w7"), None)
+    assert w7 is None or "terminology" not in [f["code"] for f in w7["flags"]], (
+        "the accepted advisory finding leaves the page")
+
+
+def test_prompt_preview_carries_conventions_and_notes_like_the_real_run(client):
+    """Preview fidelity (audit 2026-08-05): the Lab must show EXACTLY what a
+    production run sends — the per-language conventions line and the reviewer's
+    per-key note were both dropped here while the real run carried them."""
+    es_path = client.config_path.parent.parent / "src" / "locales" / "es.json"
+    es = json.loads(es_path.read_text(encoding="utf-8"))
+    del es["greet"]  # pending → the sample picks it first
+    es_path.write_text(json.dumps(es), encoding="utf-8")
+    client.put("/v1/notes", json={"lang": "es", "key": "greet",
+                                   "note": "a greeting, not a farewell"})
+
+    body = client.post("/v1/ai/prompt-preview",
+                       json={"feature": "translate", "lang": "es"}).json()
+    assert "a greeting, not a farewell" in body["user"], "the note rides the preview"
+    assert "Spanish punctuation is paired" in body["system"], (
+        "the packaged es conventions line rides the preview system prompt")
+
+
 def test_an_edit_retires_the_stale_machine_opinions(client):
     """The writeKey contract: probe entry, cached reference, staged proposal and
     confirmation verdict were all ABOUT the old text."""

@@ -134,6 +134,20 @@ async function clearSpawnLogs() {
   }
 }
 
+// ── reviewer: saved on blur/Enter, never per keystroke (audit 2026-08-05) ──
+const reviewerDraft = ref("");
+watch(() => project.reviewer, (v) => { reviewerDraft.value = v || ""; },
+      { immediate: true });
+async function saveReviewer() {
+  if ((reviewerDraft.value || "").trim() === (project.reviewer || "")) return;
+  try {
+    await project.setReviewer(reviewerDraft.value.trim());
+    pushToast({ kind: "success", title: "Reviewer saved" });
+  } catch (e) {
+    pushToast({ kind: "error", title: "Could not save", description: String(e?.message || e) });
+  }
+}
+
 // ── server (headless access + bearer tokens — JW's section) ───────────────
 const auth = ref({ tokens: [], requireForLoopback: false });
 const tokenDraft = ref("");
@@ -329,9 +343,13 @@ onMounted(async () => {
         </section>
         <section class="card">
           <h2>Access tokens</h2>
+          <!-- The donor's words (JW settings.server) — "loopback" was invented at
+               port time; JW's user-facing label says localhost (audit 2026-08-05). -->
           <p class="hint">
-            Bearer tokens gate <span class="mono">/v1/*</span> when the server runs exposed —
-            off while this list is empty. Local (loopback) requests stay exempt unless required below.
+            Off by default. Add a token to require an
+            <span class="mono">Authorization: Bearer</span> header on every
+            <span class="mono">/v1</span> API call — for when you run the server
+            exposed beyond this machine.
           </p>
           <table class="ui-formgrid" v-if="auth.tokens.length">
             <tbody>
@@ -349,7 +367,7 @@ onMounted(async () => {
           </div>
           <div class="row" style="margin-top: 12px">
             <UiToggle
-              :model-value="auth.requireForLoopback" label="Require tokens for loopback too"
+              :model-value="auth.requireForLoopback" label="Require a token even on localhost"
               @update:model-value="(v) => saveAuth({ requireForLoopback: v })"
             />
           </div>
@@ -373,9 +391,12 @@ onMounted(async () => {
             Your name, stamped on every acceptance — so a verdict can say who made it.
             Never taken from the OS. Tool-level: one name across every project.
           </p>
+          <!-- Saved on blur/Enter, never per keystroke — typing "dana" used to PUT
+               four times, and a mid-word snapshot could stamp an acceptance
+               (audit 2026-08-05). -->
           <UiInput
-            :model-value="project.reviewer || ''" width="name" placeholder="your name"
-            @update:model-value="(v) => project.setReviewer(v)"
+            v-model="reviewerDraft" width="name" placeholder="your name"
+            @blur="saveReviewer" @keydown.enter="saveReviewer"
           />
         </section>
       </template>

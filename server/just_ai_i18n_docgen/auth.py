@@ -82,7 +82,16 @@ class BearerAuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         client_host = request.client.host if request.client else ""
-        if _is_loopback(client_host) and not require_for_loopback:
+        is_loop = _is_loopback(client_host)
+        # The lockout escape (audit 2026-08-05: requireForLoopback + a lost token
+        # gated even the boot probe and this very settings door — the desktop app
+        # died on its ConnectionError gate FOREVER with no way back in). From the
+        # machine itself, /v1/health and /v1/server-auth always answer: physical
+        # access could edit the DB anyway, and read_auth already commits to
+        # never-lock-out on read errors. Remote clients still need the token.
+        if is_loop and (path == "/v1/health" or path.startswith("/v1/server-auth")):
+            return await call_next(request)
+        if is_loop and not require_for_loopback:
             return await call_next(request)
 
         header = request.headers.get("authorization", "")

@@ -59,6 +59,19 @@ three apps, JV's donor bugs fixed, localization noted, docs written.
 runner's half-built no-caller surfaces, the kit-UI solo audit slice, the README
 refresh, the remaining word-decisions.
 
+**Batch 2 executed 2026-08-05** — all Group 1 + Group 2 items closed with tests
+(148 pytest + lint/build + JW vitest 567 over the shared kit) EXCEPT: the
+unaccept surface (accepted rows never reach the queue — the fix IS a surface,
+folded into Batch 3's buckets) · "two doors" wording (rides Batch 5's docs
+sweep) · **Setup targets pre-fill — DECISION NEEDED**: the audit says the
+original left targets never-pre-decided; SetupView:47 pre-fills every found
+locale on Check (its comment argues "facts, offered — not pre-decided").
+Keep the pre-fill or match the original? Your call. · Two audit lines proved
+NON-REPRODUCIBLE against the code and were compressions gone bad ("finish_run
+counts failures as translated" — job `done` counts only STAGED keys;
+"build_rows loops proposals twice" — one findings pass + one proposal_keys
+query); the real lockout finding was "auth lockout is REACHABLE", fixed.
+
 The audit enumerations the batches execute (pinned 2026-08-05 — they existed
 only in chat, against this file's own charter):
 
@@ -82,6 +95,18 @@ only in chat, against this file's own charter):
   words (no boundary) · finish_run counts failures as translated · build_rows
   loops proposals twice · "two doors" wording drift · Setup pre-fills targets
   the original left never-pre-decided.
+- **Batch 3's detail doc IS the original's client** (read whole 2026-08-05;
+  clone: the session scratchpad's `just-ai-help/`, or re-clone the archived
+  github.com/delebash/just-ai-help): `App.vue` (keyboard map + editing()
+  suppression + Escape), `stores/review.js` (BUCKETS + visible + move/select +
+  pickAll/pickConfirmed + mutate-refreshes-everything), `QueuePane.vue`
+  (buckets + per-check breakdown + language rail + search), `KeyList.vue`
+  (windowed rows + identical-bucket bulkbar + verdict chips + dots + reviewed
+  class), `DetailPane.vue` (WHY plain-English map + marked placeholders +
+  hard/soft flags + blur-commit + proposal Use-this/Discard + the gt-frame
+  iframe + back-translate honesty copy + siblings + note + Accept/Un-accept/
+  Skip/Undo), `TopBar.vue` (progress meter + scoped re-translate + cancel),
+  `api.js:94` gtFrameUrl = `/gt-frame?text=…&tl=…`.
 - **Batch 3's port list (from the original, tested by the user):** buckets
   (Needs review / Unsure / Terminology / Missing / Came back identical /
   Proposed / All flagged + per-check breakdown + search) · keyboard j/k/arrows

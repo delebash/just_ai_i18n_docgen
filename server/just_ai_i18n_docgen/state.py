@@ -30,7 +30,7 @@ STATE_VERSION = 1
 # The mutations an undo has to be able to reverse. A `bulk-` kind is ONE action over
 # many keys, so a batch stays one click and one undo (`prev` is a {key: value} map).
 ACTION_KINDS = ["edit", "accept", "unaccept", "apply", "discard", "note",
-                "bulk-accept", "bulk-apply"]
+                "bulk-accept", "bulk-apply", "bulk-discard"]
 
 
 def _now() -> str:

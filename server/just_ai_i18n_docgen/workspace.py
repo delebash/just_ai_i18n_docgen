@@ -35,13 +35,13 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 
 from . import appmeta
 from .accepted import acceptance_entry, acceptance_hash, load_accepted, save_accepted
-from .checks import build_context, check_one, run_checks
+from .checks import build_context, check_one
 from .confirm import CONFIRM_CODE, build_confirm_prompt, confirm_identical, make_ask
 from .engine import EngineNotConfigured, make_send
 from .init import gitignore_lines, plan_init, write_init
 from .jobs import JobBusyError, JobManager
 from .jsonio import flatten, placeholder_re, rebuild
-from .service import Project, all_findings
+from .service import Project, all_findings, unfiltered_findings
 from .shieldlib import build_system_prompt, build_user_message, parse_items, shield
 from .state import (
     action_history,
@@ -55,6 +55,7 @@ from .state import (
     proposal_keys,
     proposals,
     put_confirmation,
+    put_proposal,
     put_reference,
     record_action,
     review_progress,
@@ -221,14 +222,20 @@ def _preview_translate(p: Project, lang: str, keys: list[str] | None, n: int = 6
     Lab (ruling 2026-08-04: "def show the full lab" — the prompt SHAPE is identical),
     sampling already-translated keys and saying so; the loud 400s are for explicit keys
     that don't exist and a catalogue with no keys at all."""
-    cfg = p.cfg
+    # The SAME cfg the real run builds (start_job): the per-language conventions
+    # line and the reviewer notes ride the preview too, or the Lab shows a prompt
+    # production never sends (audit 2026-08-05 — both were dropped here). The
+    # glossary goes through _glossary_list: both shapes are legal everywhere.
+    cfg = {**p.cfg,
+           "conventionsLine": (p.conventions.get(lang) or {}).get("promptLine", ""),
+           "notes": flatten(p.read_notes(lang))}
     ph_re = placeholder_re(cfg["placeholder"])
-    terms = (cfg.get("glossary") or {}).get("doNotTranslate") or []
+    terms = _glossary_list(cfg)
     system = build_system_prompt(
         source=cfg.get("sourceLanguage", "en"),
         target_lang=lang,
         do_not_translate=terms,
-        conventions_line=cfg.get("conventionsLine", ""),
+        conventions_line=cfg["conventionsLine"],
         plural_separator=cfg.get("pluralSeparator"),
     )
     existing = p.target_flat(lang) or {}
@@ -307,6 +314,9 @@ def make_workspace_router(ws: Workspace) -> APIRouter:
         if ws.project is None:
             raise HTTPException(status_code=409,
                                 detail={"error": "no project loaded yet", "needsSetup": True})
+        # Every project route passes here — the one seam where an externally
+        # changed en.json (CLI extract, git, an editor) gets picked up.
+        ws.project.refresh_source_if_changed()
         return ws.project
 
     # ── setup: works with NO project — it is the screen that CREATES one ─────────
@@ -563,10 +573,14 @@ def make_workspace_router(ws: Workspace) -> APIRouter:
 
         target_flat = p.target_flat(lang) or {}
         wanted_set = set(wanted)
-        # Re-run the checks WITHOUT the acceptance filter: accepting is about what the
-        # checks currently say, and filtering first makes a second accept a silent no-op.
-        raw = [f for f in run_checks(source_flat=p.src, target_flat=target_flat,
-                                     ctx=build_context(p.cfg, p.conventions, lang))
+        # Re-run EVERY finding source WITHOUT the acceptance filter: accepting is
+        # about what the page currently says, and filtering first makes a second
+        # accept a silent no-op. unfiltered_findings carries the advisory
+        # (terminology) and suspect findings run_checks alone dropped — accepting
+        # those recorded NOTHING and the flag survived (audit 2026-08-05).
+        raw = [f for f in unfiltered_findings(p, lang, target_flat, top_n=_UNLIMITED,
+                                              include_terms=True,
+                                              term_cache=ws.term_cache)
                if f["key"] in wanted_set]
         path = p.paths.accepted_file(lang)
         store = load_accepted(path)
@@ -648,6 +662,11 @@ def make_workspace_router(ws: Workspace) -> APIRouter:
                     ws.write_key(a["lang"], key, prev)
             else:
                 ws.write_key(a["lang"], a["key"], a["prev"])
+        elif a["kind"] == "bulk-discard":
+            # Re-stage what the discard dropped — proposals only, no locale write.
+            for r in a["prev"] or []:
+                put_proposal(p.state, lang=a["lang"], key=r["key"],
+                             engine=r.get("engine") or "engine", value=r["value"])
         return {"undone": a}
 
     @router.get("/history")
@@ -693,11 +712,26 @@ def make_workspace_router(ws: Workspace) -> APIRouter:
         lang, keys = body.get("lang"), body.get("keys")
         if not isinstance(lang, str):
             raise HTTPException(400, "lang required")
-        if keys is None:
-            return {"lang": lang, "discarded": drop_all_proposals(p.state, lang)}
-        for key in keys:
-            drop_proposal(p.state, lang=lang, key=key)
-        return {"lang": lang, "discarded": len(keys)}
+        # Discard destroys staged work by hand, so it is UNDOABLE like every other
+        # human action (audit 2026-08-05: it recorded nothing — the next undo
+        # silently reversed some OLDER action instead). prev holds the dropped
+        # rows; undo re-stages them. The count is what was actually dropped,
+        # never len(keys) (a key with no proposal is not a discard).
+        wanted = None if keys is None else {k for k in keys if isinstance(k, str)}
+        dropped = [r for r in proposals(p.state, lang=lang)
+                   if wanted is None or r["key"] in wanted]
+        if wanted is None:
+            drop_all_proposals(p.state, lang)
+        else:
+            for key in wanted:
+                drop_proposal(p.state, lang=lang, key=key)
+        if dropped:
+            record_action(p.state, lang=lang, kind="bulk-discard",
+                          prev=[{"key": r["key"], "value": r["value"],
+                                 "engine": r.get("engine") or "engine"}
+                                for r in dropped],
+                          key=dropped[0]["key"] if len(dropped) == 1 else None)
+        return {"lang": lang, "discarded": len(dropped)}
 
     @router.get("/siblings")
     def siblings(key: str, lang: str | None = None) -> dict:
@@ -811,11 +845,15 @@ def make_workspace_router(ws: Workspace) -> APIRouter:
         elif scope == "all":
             wanted = list(p.src)
         else:
-            _t, findings, _a = ws.findings_for(lang)
+            tflat, findings, _a = ws.findings_for(lang)
+            # The ruled semantics (2026-08-05, the original's intent): `flagged` =
+            # only CHECKED-AND-FLAGGED keys — a finding on an EXISTING translation.
+            # A missing key was never checked, so it belongs to `pending`, never
+            # `flagged` (same translated-only filter /summary already applies).
             wanted = sorted({f["key"] for f in findings
-                             if scope != "unsure" or f["code"] == "disagreement"})
+                             if f["key"] in tflat
+                             and (scope != "unsure" or f["code"] == "disagreement")})
             if scope == "pending":
-                tflat = p.target_flat(lang) or {}
                 wanted = sorted(set(wanted) | {
                     k for k in p.src
                     if not (isinstance(tflat.get(k), str) and tflat[k] != "")})

@@ -61,14 +61,9 @@ export const useProjectStore = defineStore("project", {
         this.inspect = await post("/v1/setup/inspect", { path });
       } catch (e) {
         this.inspect = null;
-        // Show the server's `detail` sentence, not the raw JSON envelope.
-        const m = String(e?.message || e);
-        const brace = m.indexOf("{");
-        let msg = m;
-        if (brace >= 0) {
-          try { msg = JSON.parse(m.slice(brace)).detail ?? m; } catch { /* raw */ }
-        }
-        this.inspectError = typeof msg === "string" ? msg : JSON.stringify(msg);
+        // The transport pre-parses the envelope now (serverApi 2026-08-05) —
+        // just shed the "400 Bad Request: " prefix for the inline sentence.
+        this.inspectError = String(e?.message || e).replace(/^\d+ [^:]*: /, "");
       }
       return this.inspect;
     },

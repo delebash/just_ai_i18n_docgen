@@ -83,8 +83,16 @@ def test_check_is_offline_and_the_cognate_costs_one_finding(project):
 
 def test_accept_flips_the_gate_green_and_expires_with_the_source(project):
     run_translate(project, send=fake_send, no_confirm=True, log=quiet)
+    # A machine verdict sits on the key; the CLI accept must retire it like the
+    # workspace door does (audit 2026-08-05: it didn't — stale pre-ticks).
+    from just_ai_i18n_docgen.state import confirmations, put_confirmation
+
+    put_confirmation(project.state, lang="es", key="common.no",
+                     hash="h-stale", verdict="same", engine="e")
     result = accept_keys(project, ["common.no"], by="tester", log=quiet)
     assert result == {"recorded": 1, "reviewer": "tester"}
+    assert confirmations(project.state, "es").get("common.no") is None, (
+        "the CLI accept retires the machine verdict")
     assert run_check(project, log=quiet)["failed"] == 0, "the gate CAN go green"
     accepted = json.loads(project.paths.accepted_file("es").read_text(encoding="utf-8"))
     entry = next(iter(accepted.values()))

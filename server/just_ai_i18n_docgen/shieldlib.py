@@ -35,6 +35,14 @@ _SHIELD_RE = re.compile(r"⟦\s*(\d+)\s*⟧")
 _BOUNDED = "(?<![^\\W_]){term}(?![^\\W_])"
 
 
+def term_present(term: str, text: str) -> bool:
+    """The ONE definition of "this term occurs here" — shared by shield() and
+    check_glossary so they can never disagree (audit 2026-08-05: the check used
+    a bare substring while shield used this boundary, so a term inside a longer
+    word was left alone by one and flagged — or silently passed — by the other)."""
+    return re.search(_BOUNDED.format(term=re.escape(term)), text) is not None
+
+
 def shield(text: str, placeholder_pattern: re.Pattern[str], terms: list[str] | None = None):
     """Replaces each interpolation — and each do-not-translate term — with an indexed
     shield token. Terms are matched longest-first so a term that contains another is
