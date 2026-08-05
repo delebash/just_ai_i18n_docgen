@@ -321,6 +321,33 @@ test("a language whose run staged proposals shows the staged chip", async () => 
     `the ${stagedLang.code} row (done=0, staged=${stagedLang.staged}) must show its staged work`);
 });
 
+test("review is the ported workspace: buckets, keyboard, the second-opinion panel", async () => {
+  // Batch 3 (2026-08-05): the ORIGINAL's tested shape — the bucket rail with an
+  // Accepted surface (the audit's unaccept-no-op fix), terse windowed rows, and
+  // the keyboard layer.
+  await d.navigate("#/review");
+  await d.waitUntil(`return document.querySelectorAll('.review-rail .bucket').length >= 8`, { timeout: 15_000 });
+  const labels = await d.exec(
+    `return [...document.querySelectorAll('.review-rail .bucket')].map(b => b.textContent.trim());`);
+  for (const want of ["Needs review", "Came back identical", "All flagged", "Accepted"]) {
+    assert.equal(labels.some((l) => l.includes(want)), true, `bucket "${want}" on the rail`);
+  }
+  // Work the widest bucket so rows exist when the project has only advisory flags.
+  await d.exec(`[...document.querySelectorAll('.review-rail .bucket')].find(b => /All flagged/.test(b.textContent))?.click();`);
+  await d.sleep(500);
+  const rows = await d.exec(`return document.querySelectorAll('.rrow').length;`);
+  if (rows > 1) {
+    const before = await d.exec(`return document.querySelector('.rrow.on .k')?.textContent || '';`);
+    await d.exec(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'j', bubbles: true }));`);
+    await d.sleep(300);
+    const after = await d.exec(`return document.querySelector('.rrow.on .k')?.textContent || '';`);
+    assert.equal(before !== after && after !== "", true, "j moves the selection");
+    const text = await d.exec(`return document.querySelector('.review-detail')?.textContent || '';`);
+    assert.equal(/Google Translate/.test(text), true, "the second-opinion panel exists");
+    assert.equal(/Skip/.test(text), true, "Skip exists");
+  }
+});
+
 test("docs page renders the extract story", async () => {
   await d.navigate("#/docs");
   await d.waitUntil(`return /front-matter/i.test(document.body.textContent)`);

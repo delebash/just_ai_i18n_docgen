@@ -107,14 +107,18 @@ only in chat, against this file's own charter):
   iframe + back-translate honesty copy + siblings + note + Accept/Un-accept/
   Skip/Undo), `TopBar.vue` (progress meter + scoped re-translate + cancel),
   `api.js:94` gtFrameUrl = `/gt-frame?text=…&tl=…`.
-- **Batch 3's port list (from the original, tested by the user):** buckets
-  (Needs review / Unsure / Terminology / Missing / Came back identical /
-  Proposed / All flagged + per-check breakdown + search) · keyboard j/k/arrows
-  a u e g b / + Ctrl/⌘Z with typing suppression + Escape · the `/gt-frame`
-  Google second-opinion panel (42px crop + measured honesty copy + `g`) ·
-  terminology surfacing · Skip · reviewed-marks. Runner promptless test gaps
-  ride along: stream parity, jsonMode-no-spec, `_effective_think` None,
-  history contract, feature_key side-effects.
+- **Batch 3 BUILT 2026-08-05:** the original's workspace ported whole — the 7
+  buckets + the Accepted surface (the unaccept door) + per-check breakdown +
+  search · keyboard j/k/arrows a u e g b / + Ctrl/⌘Z with typing suppression +
+  Escape · windowed terse rows + identical-bucket bulk bar (pickConfirmed) +
+  reviewed strike-through · detail pane: WHY plain-English map, marked
+  placeholders, proposal Use-this/Apply/Discard, the `/v1/gt-frame` Google
+  panel with the measured honesty copy, back-translate honesty copy, siblings,
+  note, Skip · `docs/review.md` rewritten to match. Runner promptless pins
+  added (stream parity · stream-404 · `_effective_think(None)` ·
+  body-governed jsonMode · history contract + no-spec-row side-effect):
+  32 pass in test_prompts, 761 suite (1 pre-existing environmental fail,
+  tracked in the runner's TASKS). Smoke grew the workspace test (20 total).
 
 ## Open — needs your go (each item = the approved decision, in full)
 
@@ -177,7 +181,10 @@ only in chat, against this file's own charter):
   (e) `POST /v1/undo` with no `lang` pops across ALL languages, and the Review page
   sends none. (f) Six routes have no caller in this app (`/v1/terms`, `/history`,
   `/accepted`, `/reference`, `/gt-frame` — which ships a third-party Google script
-  with no visible entry — and `/ai/prompt-preview` is kit-consumed). (g) About
+  with no visible entry — SINCE Batch 3 (2026-08-05) `/gt-frame` HAS its entry:
+  the review detail's second-opinion panel + the `g` key — and
+  `/ai/prompt-preview` is kit-consumed; `/accepted` is consumed by the Accepted
+  bucket; `/history`, `/terms`, `/reference` remain caller-less). (g) About
   hardcodes `0.1.0` beside pyproject's version. *((h) glossary shape drift:
   CLOSED 2026-08-05, Batch 1 — both shapes are legal everywhere; `_glossary_list`
   in workspace.py + infer.py's normalize; tests pin it.)*

@@ -3,6 +3,34 @@
 Open **Review**. The language picker shows outstanding counts and lands you on
 the *busiest* language — where the work actually is.
 
+## The workspace
+
+Three panes. On the left, the **queue rail**: buckets with live counts — *Needs
+review* (anything a hard check flagged), *Unsure*, *Terminology*, *Missing*,
+*Came back identical*, *Proposed*, *All flagged* — plus **Accepted** (every
+verdict you've recorded, with an **Un-accept** on each: a decision can always be
+revisited). Under the buckets, a **per-check breakdown** — ten spurious
+questions are ten instances of the same decision, so working one code at a time
+beats context-switching — and a **search** box over keys and text.
+
+In the middle, the **list**: one terse row per key. Its job is only to let you
+move; judging happens in the detail pane. A reviewed key shows struck-through.
+In the *Came back identical* bucket the list grows a bulk bar: tick rows (or
+press "tick the N the engine calls correct" — a suggested selection, nothing
+more) and **Approve** them in one click, one undo.
+
+On the right, the **detail pane** — everything a reviewer once left the page to
+find out: why it's flagged in plain English, the source with placeholders
+marked, the engine's proposal, a **Google Translate second opinion** (an
+independent reading — neither source is reliably better; copy it across only if
+you agree), a **back-translation**, the namespace siblings, and the note box.
+
+## The keyboard
+
+`j`/`k` (or arrows) move · `a` accept · `u` undo · `e` edit the target ·
+`g` toggle the Google panel · `b` back-translate · `/` search ·
+`Ctrl/⌘Z` undo · `Escape` leaves a text box. Keys never fire while you type.
+
 ## The staged pile
 
 If the last run staged translations, a banner offers **Apply all** (with a
