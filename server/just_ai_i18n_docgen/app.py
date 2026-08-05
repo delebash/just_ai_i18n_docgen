@@ -267,6 +267,15 @@ def create_app(data_dir: Path | None = None,
     app.include_router(make_logs_router(PRODUCT))
     app.include_router(make_disk_router(data_dir))
 
+    # The boot-gate contract: the kit's checkServer() pings /v1/health eight times
+    # before main.js mounts the app; without this route every ping 404'd and the
+    # RELEASE webview showed ConnectionError forever — found 2026-08-04 by the
+    # real-webview smoke against the real project (TestClient and dev never boot
+    # through main.js, so no other gate could see it).
+    @app.get("/v1/health")
+    def health() -> dict:
+        return {"ok": True, "product": PRODUCT}
+
     # The review workspace: starts with NO project (the setup screen creates one);
     # `config_path` pre-loads one for the CLI / a configured desktop launch.
     from .workspace import Workspace, make_workspace_router

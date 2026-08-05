@@ -27,8 +27,8 @@ def make_project(tmp_path):
     (app_dir / "src" / "locales" / "es.json").write_text(json.dumps({
         "greet": "Hola {name}", "sidebar": {"books": "Libros"}, "common": {"no": "No"},
     }), encoding="utf-8")
-    (app_dir / "just-ai-help").mkdir()
-    config = app_dir / "just-ai-help" / "config.json"
+    (app_dir / "just-ai-i18n-docgen").mkdir()
+    config = app_dir / "just-ai-i18n-docgen" / "config.json"
     config.write_text(json.dumps({
         "source": "../src/locales/en.json", "targets": ["es"], "context": "a test app",
     }), encoding="utf-8")

@@ -25,7 +25,7 @@ from pathlib import Path
 from .infer import infer_placeholder, infer_plural_separator
 from .jsonio import flatten
 
-CONFIG_DIR = "just-ai-help"
+CONFIG_DIR = "just-ai-i18n-docgen"
 CONFIG_NAME = "config.json"
 
 _LOCALE_FILE = re.compile(r"^([a-z]{2}(?:-[A-Za-z]{2,4})?)\.json$")
@@ -163,7 +163,7 @@ def gitignore_lines() -> list[str]:
     <lang>.notes.json — those are your work and travel with the repo."""
     return [
         f"{CONFIG_DIR}/*.probe.json",
-        f"{CONFIG_DIR}/.jah-cache.json",
-        f"{CONFIG_DIR}/.jah-probe-cache.json",
-        f"{CONFIG_DIR}/.jah-state.json",
+        f"{CONFIG_DIR}/.just-ai-i18n-docgen-cache.json",
+        f"{CONFIG_DIR}/.just-ai-i18n-docgen-probe-cache.json",
+        f"{CONFIG_DIR}/.just-ai-i18n-docgen-state.json",
     ]

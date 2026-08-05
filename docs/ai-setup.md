@@ -40,3 +40,11 @@ translation used), and `confirm`. Selecting `translate` or `confirm` shows the
 preview is for understanding and test-tuning, never something that saves. The
 preset surface below it (model, temperature, samplers, save/load presets, "Use in
 production") is live and is where you'd point a feature at a stronger model.
+
+To experiment with wording, **Edit copies for this test** unlocks editable copies
+inside the test columns — they run once and are never saved (every real run
+rebuilds its own prompt); **Restore generated** re-seeds the columns from the
+generated prompt, and the sample line always names what fed the preview and when
+it was built. On a language that's already fully translated there's nothing
+pending to sample, so the preview samples already-translated keys and says so —
+the Lab still renders and tuning still works on a finished project.

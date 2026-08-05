@@ -31,7 +31,7 @@ def test_open_project_creates_on_first_mutation_and_roundtrips(tmp_path):
 
 
 def test_a_corrupt_state_file_costs_state_never_work(tmp_path):
-    (tmp_path / ".jah-state.json").write_text("{ not json", encoding="utf-8")
+    (tmp_path / ".just-ai-i18n-docgen-state.json").write_text("{ not json", encoding="utf-8")
     s = open_project(tmp_path)
     assert s.read()["version"] == 1, "corrupt -> fresh empty state, no crash"
 

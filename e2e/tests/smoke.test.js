@@ -20,13 +20,43 @@ process.env.JAID_DEV_NO_SIDECAR = "1";
 
 const d = new Driver();
 
+const API = "http://127.0.0.1:8742/v1";
+let warmWas = null; // the user's real warm-on-startup setting; restored in after()
+
 before(async () => {
+  // Park warm-on-boot for the run, restore after: on a REAL data dir with warm
+  // ON, boot kicks an engine spawn + model load and the app sits on the static
+  // plate far past the .shell budget below (found 2026-08-04 against the real
+  // project). Same save→flip→restore pattern the wizard test uses for presets.
+  try {
+    const cfg = await (await fetch(`${API}/ai/engine-config`)).json();
+    if (cfg.warmDefaultOnStartup === true) {
+      warmWas = true;
+      await fetch(`${API}/ai/engine-config`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ warmDefaultOnStartup: false }),
+      });
+    }
+  } catch { /* no server → the suite's stated precondition failure names itself */ }
   await d.launch();
   await d.maximize();
   await d.waitUntil(`return !!document.querySelector('.shell')`);
 });
 
-after(async () => { await d.close(); });
+after(async () => {
+  try {
+    await d.close();
+  } finally {
+    if (warmWas === true) {
+      await fetch(`${API}/ai/engine-config`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ warmDefaultOnStartup: true }),
+      }).catch(() => {});
+    }
+  }
+});
 
 test("titlebar names the app", async () => {
   const title = await d.title();
@@ -53,7 +83,7 @@ test("the AI tasks nav row is a REAL toggle: opens, STAYS open, second click clo
   assert.equal(await d.exists('[aria-label="AI tasks"]'), false, "second click must close it");
 });
 
-test("routing by feature shows the THREE routed features, with the full Lab (promptless app)", async () => {
+test("routing by feature shows the THREE routed features; the promptless pane AGREES with the API", async () => {
   await d.navigate("#/ai");
   await d.waitUntil(`return /Routing by feature/i.test(document.body.textContent)`, { timeout: 15_000 });
   await d.exec(`[...document.querySelectorAll('a,button')].find(x => /Routing by feature/i.test(x.textContent))?.click();`);
@@ -69,13 +99,33 @@ test("routing by feature shows the THREE routed features, with the full Lab (pro
   assert.equal(
     await d.exec(`return [...document.querySelectorAll('.lu-fw-card')].some(c => /Extract/.test(c.textContent));`),
     false, "extract must NOT be a routing row");
-  // The promptless Lab (2026-08-04): selecting a feature shows the REAL generated
-  // prompt — model selection, params and Save-as-preset render for a promptless app.
+  // The promptless Lab (2026-08-04): the UI must AGREE with the API. A healthy
+  // project — pending OR finished — answers 200 (a finished language samples
+  // already-translated keys, the same-day ruling: "def show the full lab"), so the
+  // REAL generated prompt + the preset surface render; the loud fallback pane is
+  // only for genuinely broken states (no targets configured, unknown feature),
+  // where the named reason renders with the Engine-preset select still working.
   await d.exec(`[...document.querySelectorAll('.lu-fw-card')].find(c => /Translate/.test(c.textContent))?.click();`);
-  await d.waitUntil(`return /Generated prompt/.test(document.body.textContent)`, { timeout: 15_000 });
-  const page = await d.exec(`return document.body.textContent;`);
-  assert.equal(/never|nothing here is saved/i.test(page), true, "the test-only banner must state the contract");
-  assert.equal(/Save as preset/i.test(page), true, "the preset surface must render for a promptless feature");
+  const pv = await fetch(`${API}/ai/prompt-preview`, {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ feature: "translate" }),
+  });
+  if (pv.ok) {
+    await d.waitUntil(`return /Generated prompt/.test(document.body.textContent)`, { timeout: 15_000 });
+    const page = await d.exec(`return document.body.textContent;`);
+    assert.equal(/never|nothing here is saved/i.test(page), true, "the test-only banner must state the contract");
+    assert.equal(/Save as preset/i.test(page), true, "the preset surface must render for a promptless feature");
+    assert.equal(/Edit copies for this test/.test(page), true, "the unlock affordance must render (the read-only-with-unlock decision)");
+  } else {
+    // The pane shows the kit's raw error text, where FastAPI —-escapes the
+    // em-dash — so assert the pre-em-dash head of the parsed reason.
+    const reasonHead = ((await pv.json()).detail || "").split("—")[0].trim();
+    await d.waitUntil(`return !!document.querySelector('.lu-fw-route .lu-error')`, { timeout: 15_000 });
+    const pane = await d.exec(`return document.querySelector('.lu-fw-route').textContent;`);
+    assert.equal(reasonHead.length > 0 && pane.includes(reasonHead), true,
+      `the server's named reason must render loud (wanted "${reasonHead}")`);
+    assert.equal(/Engine preset/.test(pane), true, "assignment must stay possible in the fallback");
+  }
 });
 
 test("quick setup OPENS and offers translation-measured models, not JW's", async () => {
@@ -258,7 +308,9 @@ test("the AI area mounts — the kit's providers/models/usage surface", async ()
 
 test("settings renders its sections and the logs panel", async () => {
   await d.navigate("#/settings");
-  await d.waitUntil(`return document.querySelectorAll('.settings__navbtn').length >= 5`);
+  // The kit SettingsShell's top tabs (the old .settings__navbtn rail is DEAD —
+  // the contract build replaced it; selector updated 2026-08-04).
+  await d.waitUntil(`return document.querySelectorAll('.set-tab').length >= 5`);
   await d.navigate("#/settings/logs");
   await d.waitUntil(`return /server logs/i.test(document.body.textContent)`);
   // The storage panel is JW's, strings verbatim — assert the donor's wording so a
@@ -277,7 +329,9 @@ test("a confirmed action really opens its confirm dialog (the host is mounted)",
   // Cancel is clicked at the end, so this test destroys nothing.
   await d.navigate("#/settings/storage");
   await d.waitUntil(`return /Disk usage/.test(document.body.textContent)`, { timeout: 15_000 });
-  await d.exec(`[...document.querySelectorAll('button')].find(b => /^Clear$/.test(b.textContent.trim())).click();`);
+  // The contract renamed the button "Clear…" (the ellipsis IS the canon word —
+  // asserting it exactly is the donor-words check).
+  await d.exec(`[...document.querySelectorAll('button')].find(b => /^Clear…$/.test(b.textContent.trim())).click();`);
   await d.waitUntil(`return !!document.querySelector('[role=dialog]')`, { timeout: 8_000 });
   const text = await d.exec(`return document.querySelector('[role=dialog]').textContent;`);
   assert.match(text, /Clear downloaded models\?/, "the confirm must state what it will do");

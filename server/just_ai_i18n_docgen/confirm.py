@@ -17,7 +17,7 @@ WHY IT NEVER WRITES A TRANSLATION: of 10 proposals, "{n} w" → "{n} min" invent
 minutes, "TODO" → "TODO POR HACER" mangled a do-not-translate term, and "elevator
 pitch" got two different answers in one run. A proposal is shown, never applied.
 
-THE ENGINE NEVER SIGNS OFF. Both outcomes are annotations in `.jah-state.json`; nothing
+THE ENGINE NEVER SIGNS OFF. Both outcomes are annotations in `.just-ai-i18n-docgen-state.json`; nothing
 here writes `<lang>.accepted.json` — that is the human record. A "same" verdict
 PRE-TICKS a row so seventy keys are one click; the approval recorded is still a
 person's, with their name on it.

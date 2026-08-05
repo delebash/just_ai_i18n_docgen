@@ -18,8 +18,22 @@ npm run tauri build -- --no-bundle    # or: npm run build — the harness drives
 ## Run what the USER runs
 
 The server these scripts talk to must be **the app's own** — same data dir, same
-project, same state you see in the window. `npm run server` starts it on the app's
-default data dir; `npm run dev` has the shell spawn it for you.
+project, same state you see in the window. **THE real project is JustWrite**
+(source `justwrite-app/src/i18n/locales/en.json`, config
+`justwrite-app/just-ai-i18n-docgen/config.json`). The server loads a project ONLY
+from `--config` at start or a live Setup save — nothing persists across restarts —
+so start it as:
+
+```bash
+npm run server -- --data-dir E:\Dev\Web\just_ai_i18n_docgen\src-tauri\target\debug\data --config E:\Dev\Web\justwrite-app\just-ai-i18n-docgen\config.json
+```
+
+(Absolute paths on purpose: the npm script `cd server`s first, so relative paths
+resolve from the wrong directory.)
+
+(`npm run dev` has the shell spawn the server for you; a bare `npm run server`
+boots UNLOADED on the default data dir — the 2026-08-04 lesson: three smoke runs
+failed on the ConnectionError screen because of exactly that.)
 
 Pointing the harness at a throwaway config + data dir (as this repo did on
 2026-08-03) means the two of you are looking at different apps: the user hit a

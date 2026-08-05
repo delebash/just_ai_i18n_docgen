@@ -6,7 +6,7 @@ The same brain as the app, no window. Installed in the server venv:
 server/.venv/Scripts/just-ai-i18n-docgen <command> <config> [options]
 ```
 
-`<config>` is the path to your project's `just-ai-help/config.json` — every path
+`<config>` is the path to your project's `just-ai-i18n-docgen/config.json` — every path
 in a run resolves against that file, never against where you ran the command.
 
 ## Commands
@@ -22,7 +22,7 @@ in a run resolves against that file, never against where you ran the command.
 - **`escalate <config> <preset-id>`** — re-translate only flagged keys with a
   stronger preset.
 - **`accept <config> key1,key2 --by "Your Name"`** — record acceptances from the
-  terminal; `JAH_REVIEWER` supplies the name when `--by` is omitted.
+  terminal; `JUST_AI_I18N_DOCGEN_REVIEWER` supplies the name when `--by` is omitted.
 - **`extract <config> [--check]`** — docs front-matter → locale keys
   ([details](docs-authoring.md)). Makes no engine call.
 

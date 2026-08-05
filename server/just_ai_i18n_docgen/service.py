@@ -38,7 +38,7 @@ from .paths import ProjectPaths, project_paths
 from .state import JsonStore, confirmations, open_project, put_confirmation
 from .suspects import rank_suspects, spread
 
-PROBE_CACHE_FILE = ".jah-probe-cache.json"
+PROBE_CACHE_FILE = ".just-ai-i18n-docgen-probe-cache.json"
 
 
 def _read_json(path: Path) -> dict:

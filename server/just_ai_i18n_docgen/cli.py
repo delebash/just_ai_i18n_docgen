@@ -44,8 +44,8 @@ def main(argv: list[str] | None = None) -> int:
     p_ac = sub.add_parser("accept", help="record current findings for keys as reviewed-correct")
     p_ac.add_argument("config")
     p_ac.add_argument("keys", help="comma-separated key list")
-    p_ac.add_argument("--by", default=os.environ.get("JAH_REVIEWER", ""),
-                      help="who is signing these off (or set JAH_REVIEWER)")
+    p_ac.add_argument("--by", default=os.environ.get("JUST_AI_I18N_DOCGEN_REVIEWER", ""),
+                      help="who is signing these off (or set JUST_AI_I18N_DOCGEN_REVIEWER)")
 
     p_ex = sub.add_parser("extract", help="docs front-matter -> locale keys in the source file")
     p_ex.add_argument("config")

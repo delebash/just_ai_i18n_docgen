@@ -26,7 +26,7 @@ fix it here — a wrong placeholder inference would flag every translated string
 
 ## What Save writes
 
-**Save project** writes `just-ai-help/config.json` beside your app's
+**Save project** writes `just-ai-i18n-docgen/config.json` beside your app's
 `package.json` and hot-loads it — no restart. The page also shows the
 `.gitignore` lines to paste into your app's repo (the tool's cache and state
 files stay out of git; the config and review records go in — see

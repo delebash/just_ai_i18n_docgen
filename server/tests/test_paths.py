@@ -21,10 +21,10 @@ def far_away_cwd(tmp_path_factory, monkeypatch):
 
 def _project(tmp_path, cfg):
     app = tmp_path / "app"
-    (app / "just-ai-help").mkdir(parents=True)
+    (app / "just-ai-i18n-docgen").mkdir(parents=True)
     (app / "src" / "i18n" / "locales").mkdir(parents=True)
     (app / "src" / "i18n" / "locales" / "en.json").write_text("{}", encoding="utf-8")
-    config = app / "just-ai-help" / "config.json"
+    config = app / "just-ai-i18n-docgen" / "config.json"
     config.write_text(json.dumps(cfg), encoding="utf-8")
     return config
 
@@ -63,7 +63,7 @@ def test_sidecars_sit_beside_the_config_and_cache_anchors_there_too(tmp_path):
     p = project_paths(config, {"source": "../src/i18n/locales/en.json"})
     assert p.sidecar_dir == config.parent
     assert p.accepted_file("es") == config.parent / "es.accepted.json"
-    assert p.cache_path == config.parent / ".jah-cache.json"
+    assert p.cache_path == config.parent / ".just-ai-i18n-docgen-cache.json"
 
 
 def test_legacy_sidecars_in_locales_win_so_an_upgrade_orphans_nothing(tmp_path):

@@ -43,7 +43,7 @@ def fake_send(system: str, user: str) -> str:
 
 @pytest.fixture
 def project(tmp_path):
-    tool_dir = tmp_path / "app" / "just-ai-help"
+    tool_dir = tmp_path / "app" / "just-ai-i18n-docgen"
     locales = tmp_path / "app" / "src" / "locales"
     tool_dir.mkdir(parents=True)
     locales.mkdir(parents=True)

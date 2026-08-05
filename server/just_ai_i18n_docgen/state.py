@@ -3,7 +3,7 @@
 
 Ported from just-ai-help's `server/state.js`, reasoning intact:
 
-WHAT IS AND IS NOT IN HERE. `.jah-state.json` is gitignored and holds only what a re-run
+WHAT IS AND IS NOT IN HERE. `.just-ai-i18n-docgen-state.json` is gitignored and holds only what a re-run
 can rebuild: the review cursor, the undo log, staged proposals, confirmation verdicts,
 cached second opinions, run history. Delete it and you lose your place in a review, never
 your work. The committed human record (`config.json`, `<lang>.accepted.json`,
@@ -24,7 +24,7 @@ import json
 import os
 from pathlib import Path
 
-STATE_FILE = ".jah-state.json"
+STATE_FILE = ".just-ai-i18n-docgen-state.json"
 STATE_VERSION = 1
 
 # The mutations an undo has to be able to reverse. A `bulk-` kind is ONE action over

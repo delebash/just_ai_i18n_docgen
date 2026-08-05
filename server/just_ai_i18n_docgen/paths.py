@@ -11,12 +11,12 @@ minutes and 464 hand-corrected keys on 2026-07-31.
 
 THE LAYOUT this enables — the tool's whole footprint in a host app is one visible folder:
 
-    <app>/just-ai-help/           <- next to package.json, obvious to a newcomer
+    <app>/just-ai-i18n-docgen/           <- next to package.json, obvious to a newcomer
       config.json                 <- the four fields
       es.accepted.json            <- reviewer verdicts       (committed)
       es.notes.json               <- per-key knowledge       (committed)
       es.probe.json               <- second-pass measurement (not committed)
-      .jah-cache.json             <- disposable              (not committed)
+      .just-ai-i18n-docgen-cache.json             <- disposable              (not committed)
 
 Engine connections and API keys are NOT here — they live in the shared LLM stack's DB
 (machine state), which in this rewrite is what replaced the Node tool's settings.json.
@@ -32,7 +32,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-CACHE_FILE = ".jah-cache.json"
+CACHE_FILE = ".just-ai-i18n-docgen-cache.json"
 
 _SIDECAR_RE = re.compile(r"\.(accepted|notes|probe)\.json$")
 

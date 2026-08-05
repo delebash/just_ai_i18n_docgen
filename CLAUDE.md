@@ -19,7 +19,7 @@ npm run test:server    # pytest — 128 tests
 npm test               # e2e smoke: the REAL app via tauri-driver (build release first)
 npm run screenshots    # every surface shot from the REAL WebView2 → e2e/shots/
 npm run tauri build -- --no-bundle   # the release exe the e2e harness drives
-npm run build:vite     # the web build (committed dist/)
+npm run build:vite     # the web build (dist/ is gitignored — the exe embeds it)
 npm run lint           # biome over src/
 cd server && .venv/Scripts/python -m ruff check just_ai_i18n_docgen tests
 
@@ -64,7 +64,8 @@ server/.venv/Scripts/just-ai-i18n-docgen translate|check|escalate|accept|extract
   never with a Chrome tab (user ruling 2026-08-02; browser driving is banned).
 - **The standard app chrome is mandatory** (`app-structure.md` §11): `/ai` =
   kit `AiModelsArea`, `AiStatusButton` in the shell footer, Settings =
-  appearance/storage/logs/reviewer/about, server wires the platform log ring +
+  appearance/storage/server/logs/reviewer/about (Server = the headless/token
+  section, ruling 2026-08-04), server wires the platform log ring +
   file log + logs/disk routers. This app shipped without ALL of it once
   (2026-08-02) — that is why the section exists.
 
@@ -79,6 +80,7 @@ Port **8742** (JW 17495 · JV 17494). Data-dir env: `JUST_AI_I18N_DOCGEN_DATA_DI
 
 | For | Read |
 |---|---|
+| **THE REAL PROJECT — what this tool translates** | JustWrite: source `E:\Dev\Web\justwrite-app\src\i18n\locales\en.json`, config `justwrite-app/just-ai-i18n-docgen/config.json` (the app creates it via Setup; the server loads it via `--config` or a live Setup save — nothing persists across restarts) |
 | Open work — the live tracker | `docs/dev/TASKS.md` |
 | The family structure standard (layout/scripts/shell/ports) | `../just-llm-runner/docs/app-structure.md` |
 | Adopting the shared LLM stack | `../just-llm-runner/README.md` "Consume it" |

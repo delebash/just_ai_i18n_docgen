@@ -73,6 +73,16 @@ def test_disk_usage_reports_the_data_dir(client):
     assert "totalBytes" in r.text or body, "the shared disk route must answer with usage"
 
 
+def test_health_answers_the_boot_gate(client):
+    """The kit's checkServer() pings /v1/health before main.js mounts the app.
+    Without this route every RELEASE boot showed ConnectionError forever
+    (found 2026-08-04 by the real-webview smoke; nothing else boots through
+    main.js, so this test is the only cheap tripwire)."""
+    r = client.get("/v1/health")
+    assert r.status_code == 200
+    assert r.json()["ok"] is True
+
+
 def test_bearer_auth_gates_v1_only_when_tokens_exist(client):
     """The headless lock: no tokens → open; tokens set → /v1 needs the bearer
     (TestClient's host is not loopback, so the gate bites), UI assets stay open."""

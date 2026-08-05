@@ -6,7 +6,7 @@ WHAT WRITES WHAT — the rule the whole design rests on:
     locale JSON       only ever written by an explicit human action in here
     accepted.json     accept / unaccept
     notes.json        the per-key note that feeds the next translation
-    .jah-state.json   this project: progress, undo, proposals, confirmations, runs
+    .just-ai-i18n-docgen-state.json   this project: progress, undo, proposals, confirmations, runs
     the shared DB     providers, presets, reviewer — machine state, never per-project
 
 A job never writes a locale file. Engine output is staged and applied by a person.
@@ -194,11 +194,32 @@ class Workspace:
                 "langs": p.targets, "total": len(rows)}
 
 
+def _pick_preview_lang(p: Project, feature: str) -> str:
+    """The default sample language is the BUSIEST one (the agreed A922 default):
+    most pending keys for translate; for confirm most byte-identical, then most
+    translated. Ties keep target order (Python max returns the first maximum)."""
+    if not p.targets:
+        return ""
+
+    def counts(lg: str) -> tuple[int, int, int]:
+        dst = p.target_flat(lg) or {}
+        pending = sum(1 for k in p.src if k not in dst)
+        identical = sum(1 for k in p.src if dst.get(k) == p.src[k])
+        translated = sum(1 for k in p.src if isinstance(dst.get(k), str) and dst.get(k))
+        return pending, identical, translated
+
+    if feature == "confirm":
+        return max(p.targets, key=lambda lg: (counts(lg)[1], counts(lg)[2]))
+    return max(p.targets, key=lambda lg: counts(lg)[0])
+
+
 def _preview_translate(p: Project, lang: str, keys: list[str] | None, n: int = 6) -> dict:
     """The REAL translate prompt over a small live sample — the same builders the batch
     loop uses (`loop.translate_language`), shielding included, so the kit's promptless
-    Lab shows exactly what a production run sends. Nothing to sample = a NAMED 400,
-    never a fabricated prompt."""
+    Lab shows exactly what a production run sends. A FINISHED language still shows the
+    Lab (ruling 2026-08-04: "def show the full lab" — the prompt SHAPE is identical),
+    sampling already-translated keys and saying so; the loud 400s are for explicit keys
+    that don't exist and a catalogue with no keys at all."""
     cfg = p.cfg
     ph_re = placeholder_re(cfg["placeholder"])
     terms = (cfg.get("glossary") or {}).get("doNotTranslate") or []
@@ -210,6 +231,7 @@ def _preview_translate(p: Project, lang: str, keys: list[str] | None, n: int = 6
         plural_separator=cfg.get("pluralSeparator"),
     )
     existing = p.target_flat(lang) or {}
+    sampled_done = False
     if keys:
         pick = [k for k in keys if k in p.src][:n]
         if not pick:
@@ -217,37 +239,53 @@ def _preview_translate(p: Project, lang: str, keys: list[str] | None, n: int = 6
     else:
         pick = [k for k in p.src if k not in existing][:n]
         if not pick:
-            raise HTTPException(
-                400, f"Nothing pending for {lang} — every key is translated. "
-                     "Pass keys to preview specific ones.")
+            pick = [k for k in p.src if k in existing][:n]
+            sampled_done = True
+        if not pick:
+            raise HTTPException(400, "The source catalogue has no keys to sample.")
     shielded = []
     for i, k in enumerate(pick):
         sh, _tokens = shield(p.src[k], ph_re, terms)
         shielded.append({"key": k, "text": p.src[k], "i": i, "shielded": sh})
     user = build_user_message(shielded, cfg)
-    return {"system": system, "user": user,
-            "sample": f"{len(shielded)} pending key(s) · {lang}"}
+    label = (f"every key translated — sampling {len(shielded)} done key(s)"
+             if sampled_done else f"{len(shielded)} pending key(s)")
+    return {"system": system, "user": user, "sample": f"{label} · {lang}"}
 
 
 def _preview_confirm(p: Project, lang: str, keys: list[str] | None) -> dict:
-    """The REAL confirm probe prompt: one byte-identical key, exactly the shape
-    `confirm.make_ask` sends (one key per call — never batched, by design)."""
+    """The REAL confirm probe prompt: one key, exactly the shape `confirm.make_ask`
+    sends (one key per call — never batched, by design). Prefers a byte-identical key
+    (confirm's real prey); a healthy project without one still shows the Lab (ruling
+    2026-08-04: "def show the full lab") — the prompt SHAPE is identical over any key,
+    and the sample line names which fallback fed it. Explicit keys stay loud."""
     dst = p.target_flat(lang) or {}
     if keys:
         same = [k for k in keys if k in p.src and dst.get(k) == p.src[k]]
+        if not same:
+            raise HTTPException(
+                400, f"None of the requested keys are byte-identical in {lang}.")
+        picked, note = same[0], "identical key"
     else:
         same = [k for k in p.src if dst.get(k) == p.src[k]]
-    if not same:
-        raise HTTPException(
-            400, f"No byte-identical keys in {lang} — the confirm pass has nothing "
-                 "to probe right now.")
+        if same:
+            picked, note = same[0], "identical key"
+        else:
+            translated = [k for k in p.src
+                          if isinstance(dst.get(k), str) and dst.get(k)]
+            if translated:
+                picked, note = translated[0], "no byte-identical targets right now — sampling"
+            elif p.src:
+                picked, note = next(iter(p.src)), "nothing translated yet — sampling"
+            else:
+                raise HTTPException(400, "The source catalogue has no keys to sample.")
     cfg = p.cfg
     terms = (cfg.get("glossary") or {}).get("doNotTranslate") or []
     system = build_confirm_prompt(target_lang=lang, context=cfg.get("context", ""),
                                   do_not_translate=terms)
-    src = p.src[same[0]]
+    src = p.src[picked]
     user = f"Translate items: {json.dumps([{'id': 0, 'text': src}])}"
-    return {"system": system, "user": user, "sample": f"identical key {same[0]} · {lang}"}
+    return {"system": system, "user": user, "sample": f"{note} {picked} · {lang}"}
 
 
 def make_workspace_router(ws: Workspace) -> APIRouter:
@@ -400,7 +438,7 @@ def make_workspace_router(ws: Workspace) -> APIRouter:
         prompt read-only. Loud named 400s; 409 needsSetup like every project route."""
         p = project()
         feature = str(body.get("feature") or "")
-        lang = str(body.get("lang") or "") or (p.targets[0] if p.targets else "")
+        lang = str(body.get("lang") or "") or _pick_preview_lang(p, feature)
         if not lang:
             raise HTTPException(400, "No target languages configured — add one in Setup.")
         keys = body.get("keys") or None
