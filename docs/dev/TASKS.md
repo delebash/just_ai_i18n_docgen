@@ -39,14 +39,88 @@
   round-tripped — after fixing the run route's promptless 404 (below). Your QC is
   now eyes-on-the-surface, not functionality.
 
+## THE APPROVED FIX PLAN (user: "do it all your rec", 2026-08-05) — in flight
+
+The approved order, verbatim from the rec: **Batch 1 — Hotfixes**: docgen's
+glossary-erasure chain · appearance persistence + the exact-brand-colors ruling
+(q2b) · JW's two tray races (close-drain interception + Quit bypassing the
+drain) + moving the invokes behind JW's bridge · JV's one-line keep-running
+param fix (+ collapse its two persistences, add boot re-apply) · the
+confirm-pass visibility (subscribe the two events) with its `confirming`
+job-state fix. Each with its test. **Batch 2** — docgen's remaining Group 1 +
+Group 2, under the ruling (approved with the rec): `flagged` = only
+checked-and-flagged findings; `pending` = flagged + untranslated (the
+original's intent). **Batch 3** — the review-workspace port (buckets, keyboard
+layer, Google panel, terminology, skip, reviewed-marks) with the runner's
+promptless test gaps pinned in the same batch. **Batch 4** — the tray family
+work under the rulings: full professional menu with WORKING entries in all
+three apps, JV's donor bugs fixed, localization noted, docs written.
+**Batch 5** — the docs sweeps across all four repos. Deferred for rulings: the
+runner's half-built no-caller surfaces, the kit-UI solo audit slice, the README
+refresh, the remaining word-decisions.
+
+The audit enumerations the batches execute (pinned 2026-08-05 — they existed
+only in chat, against this file's own charter):
+
+- **Group 1 (UI/behavior defects):** unaccept is a no-op · Home renders blank on
+  serverDown · no SSE reconnect · rejoining a running job never `_openTask`s ·
+  a cancelled run closes its task as "done" · unseenErrors badge never clears ·
+  startMany can strand a ghost queue · reviewer field saves per keystroke ·
+  opening the note editor wipes a draft · silent empty catches · "gate is green
+  for ." when no language · raw JSON error toasts · `?providers=online` deep
+  link never consumed · select-all ignores the active filter · "loopback"
+  label leaks jargon · Home language list unsorted (kit `sortable` unused).
+  *(Already closed in Batch 1: the glossary-erasure chain, appearance
+  persistence, the confirm-pass's two unsubscribed events + `confirming`
+  state.)*
+- **Group 2 (semantics vs the original's ledger):** scope semantics under the
+  approved ruling (flagged = checked-and-flagged only; pending = flagged +
+  untranslated) · preview drops conventionsLine + per-key notes · advisory
+  accept isn't recorded · CLI `accept` still takes the retired verdict arg ·
+  stale source cache after extract · auth lockout counts successes · undo's
+  discard branch reports success on no-op · glossary check matches inside
+  words (no boundary) · finish_run counts failures as translated · build_rows
+  loops proposals twice · "two doors" wording drift · Setup pre-fills targets
+  the original left never-pre-decided.
+- **Batch 3's port list (from the original, tested by the user):** buckets
+  (Needs review / Unsure / Terminology / Missing / Came back identical /
+  Proposed / All flagged + per-check breakdown + search) · keyboard j/k/arrows
+  a u e g b / + Ctrl/⌘Z with typing suppression + Escape · the `/gt-frame`
+  Google second-opinion panel (42px crop + measured honesty copy + `g`) ·
+  terminology surfacing · Skip · reviewed-marks. Runner promptless test gaps
+  ride along: stream parity, jsonMode-no-spec, `_effective_think` None,
+  history contract, feature_key side-effects.
+
 ## Open — needs your go (each item = the approved decision, in full)
 
-- **e2e: a Setup create-flow fixture test** (your call 2026-08-04: first-run setup
-  belongs in the test surface). Decision: fixture-based — the test creates its own
-  scratch `en.json` inside the harness, walks the real Setup form's Check path →
-  Save → asserts the server answers `loaded: true`, then cleans up its fixture;
-  it never touches the real repos. Today's smoke only asserts the Setup form
-  renders.
+- **Tray menu — the user's QC ruling (2026-08-04 late, verbatim): "it should have
+  start stop sever, why would you take easy way instead of professional way."**
+  The shipped tray has Show/Hide · Server (Start/Stop/Restart) · Quit; what was
+  stripped on my own was the REST of JV's donor menu. Ruling: port the donor
+  WHOLE — Show/Hide window · Server Start/Stop/Restart · Open settings · Copy
+  server URL · Open log file · About · Quit, with JV's emoji styling, the same in
+  docgen AND JW (JV-specific entries like dictate/MCP stay JV's). Open-settings/
+  About route to each app's own pages; Copy URL copies `http://127.0.0.1:<port>`.
+  **User note + verified 2026-08-04 late: the tray must be the SAME across apps —
+  all 3 HAVE tray + keep_running (checked in each lib.rs), but menus differ:
+  JV 12 items (full donor) vs docgen 6 vs JW 6 — the gap IS the four missing
+  shared entries + emoji styling this ruling adds.**
+  **Audit evidence 2026-08-05 (changes HOW to port, not whether): the donor's six
+  extra entries are DEAD in JV itself — `tray:*` emits with zero renderer
+  listeners (Open settings never navigates, Copy URL copies nothing, logs/about
+  no-op), its tray Quit orphans the sidecar, and it sets no tray icon; the
+  docgen/JW ports already fixed those three donor bugs. So "port the donor
+  whole" = implement Open settings (show + navigate to /settings), Copy server
+  URL (real clipboard write), Open log file, About — working, Rust-side or with
+  real renderer listeners — NOT copying the dead emits. JV gets the same fixes
+  (tracked in JV's TASKS).**
+
+- *(NOTE 2026-08-04 late: the e2e Setup create-flow fixture test below is BUILT —
+  `smoke.test.js` "setup CREATE-FLOW…", 19/19 — kept here only until your QC;
+  the audit caught me failing to close it.)* The original decision: fixture-based —
+  the test creates its own scratch `en.json` inside the harness, walks the real
+  Setup form's Check path → Save → asserts the server answers `loaded: true`,
+  then cleans up its fixture; it never touches the real repos.
 
 - **Cold-boot warm kickoff — MEASURED 2026-08-04, numbers say the intent holds;
   your ruling on what (if anything) to do.** The awaited chain is: `checkServer`
@@ -79,8 +153,9 @@
   sends none. (f) Six routes have no caller in this app (`/v1/terms`, `/history`,
   `/accepted`, `/reference`, `/gt-frame` — which ships a third-party Google script
   with no visible entry — and `/ai/prompt-preview` is kit-consumed). (g) About
-  hardcodes `0.1.0` beside pyproject's version. (h) `glossary` shape drifts (bare
-  array vs `{doNotTranslate}`).
+  hardcodes `0.1.0` beside pyproject's version. *((h) glossary shape drift:
+  CLOSED 2026-08-05, Batch 1 — both shapes are legal everywhere; `_glossary_list`
+  in workspace.py + infer.py's normalize; tests pin it.)*
 
 - **Test-mode links to the prompt's real data — RULED Option A (2026-08-04, in
   build):** a small kit seam, per the user: "this is our standard kit mode — we
@@ -127,7 +202,10 @@
   **ALL THREE APPS SHIP IT as of 2026-08-04 late** (in git): this app AND JW got
   the full port (tray with the decided generic entries, `keep_running_on_close`
   + `set_keep_server_running`, the CloseRequested intercept — in JW slotted
-  BEFORE its D5 drain grace since a kept server needs no draining — the
+  BEFORE its D5 drain grace since a kept server needs no draining, and since
+  2026-08-05 (Batch 1) GUARDED by a CLOSING check above it so a mid-drain
+  toggle can't intercept the drain's own close; JW's tray Quit takes the same
+  400ms drain — the
   Settings → Server toggle persisted + re-applied each boot, en/es keys in JW,
   `settings.md` here); `app-structure.md` §11 codifies the family row. Gates:
   cargo check ×2 + lint/build ×2 + JW vitest, all green. **The tray + close
@@ -141,7 +219,9 @@
   the kit engine stamps `[data-theme]` (so the MODE picker changed nothing), and
   only the font worked (the engine writes it inline). Fix: JV's hue-driven
   vocabulary ported into `tokens.css` (accent = `oklch(L C var(--accent-hue))`,
-  dark keys on `[data-theme="dark"]`, default hue 243 = this app's indigo); the
+  dark keys on `[data-theme="dark"]`, default hue 277 = this app's indigo — the
+  original 243 claim was wrong, corrected by the exact oklch conversions
+  2026-08-05); the
   smoke now cycles the titlebar mode and asserts the dark stamp + restores your
   mode. Verdicts: the raw hue SLIDER stands (kit `UiColorPicker` models a full
   color string; this system is hue-driven — a swap would round-trip lossily);
@@ -152,9 +232,10 @@
   (in git): the QuickSetup surgery (copy seam · family cache-offer in the kit ·
   capability gate incl. AiModelsArea:573 · onApplied seam · the 359-line fork
   DELETED · canon words by construction), the configured-state truth (band
-  "Local AI is set up — <model> is the default · Re-run setup"; wizard "Already
-  set up" → Change model/Close), and the once-ever `AiSetupOffer` (kit lift of
-  JW's donor; docgen's permanent Home button retired, flag persisted,
+  "Local AI is set up — <model> is the default · Re-run Quick Setup" — button
+  renamed + scope line restored 2026-08-05 per your naming ruling; wizard
+  "Already set up" → Change model/Close), and the once-ever `AiSetupOffer` (kit
+  lift of JW's donor; docgen's permanent Home button retired, flag persisted,
   providers=online deep link fixed). 19/19 smoke against the rebuilt exe on the
   real project. ALSO SHIPPED same night: the kit TitleBar FRAME (JW's mechanics
   + docgen's post-nav settle; right side = the app's slot; docgen swapped on),

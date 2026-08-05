@@ -9,7 +9,7 @@
 // what makes translate runs visible (and cancellable) from the same window as
 // model downloads — one task surface, no bespoke strip (JobStrip died 2026-08-03).
 import { defineStore } from "pinia";
-import { get, post, safeRequest, serverUrl, useAiTasksStore } from "@delebash/llm-ui";
+import { get, post, pushToast, safeRequest, serverUrl, useAiTasksStore } from "@delebash/llm-ui";
 
 const langNames = new Intl.DisplayNames(undefined, { type: "language" });
 function nameOf(code) {
@@ -86,7 +86,7 @@ export const useJobsStore = defineStore("jobs", {
       return this.start({ lang: first, scope });
     },
     async _advanceQueue() {
-      if (!this.queue.length || this.job?.state === "running") return;
+      if (!this.queue.length || this.job?.state === "running" || this.job?.state === "confirming") return;
       const lang = this.queue.shift();
       try {
         await this.start({ lang, scope: this.queueScope || "pending" });
@@ -112,6 +112,21 @@ export const useJobsStore = defineStore("jobs", {
         for (const t of ["hello", "start", "progress", "done", "cancelling", "error"]) {
           es.addEventListener(t, update);
         }
+        // The confirmation pass (2026-08-05: the server emitted these and nobody
+        // listened — pre-ticks appeared unexplained or silently never appeared).
+        es.addEventListener("confirming", (e) => {
+          try {
+            const { count } = JSON.parse(e.data);
+            pushToast({ message: `Confirming ${count} identical key(s) — pre-ticks appear when it finishes.` });
+          } catch { /* info-only */ }
+        });
+        es.addEventListener("confirm-error", (e) => {
+          try {
+            const { message } = JSON.parse(e.data);
+            pushToast({ kind: "error", title: "Confirmation pass failed",
+                        description: `${message} — the run's translations are staged; the pre-ticks just didn't happen.` });
+          } catch { /* toast-only */ }
+        });
         es.addEventListener("done", async () => {
           this.unwatch();
           await this.refresh();
@@ -124,7 +139,7 @@ export const useJobsStore = defineStore("jobs", {
         // SSE unavailable — poll instead.
         const tick = async () => {
           await this.refresh();
-          if (this.job && this.job.state === "running") setTimeout(tick, 1500);
+          if (this.job && (this.job.state === "running" || this.job.state === "confirming")) setTimeout(tick, 1500);
         };
         tick();
       }

@@ -63,18 +63,32 @@ useUiStore(pinia).boot(); // theme before first paint — no flash of the wrong 
 // them. Only the decision + load kickoff is awaited; the load itself runs in the
 // background and <BootModelLoad /> renders it.
 (async () => {
-  // Server unreachable → mount the kit ConnectionError INSTEAD of the app (JW's
-  // pattern, family canon): the renderer holds no data of its own, so a dead server
-  // breaks every view — rendering empty stores looks broken and silently fails.
-  if (!(await checkServer())) {
-    createApp(ConnectionError, {
-      appName: "Just AI i18n & DocGen",
-      serverUrl: serverUrl(""),
-      need: "read your locale files and run translations",
-      devHint: "Dev: start it with `npm run server` in the project root, then retry.",
-    }).mount("#app");
-    return;
+  try {
+    // Server unreachable → mount the kit ConnectionError INSTEAD of the app (JW's
+    // pattern, family canon): the renderer holds no data of its own, so a dead server
+    // breaks every view — rendering empty stores looks broken and silently fails.
+    if (!(await checkServer())) {
+      createApp(ConnectionError, {
+        appName: "Just AI i18n & DocGen",
+        serverUrl: serverUrl(""),
+        need: "read your locale files and run translations",
+        devHint: "Dev: start it with `npm run server` in the project root, then retry.",
+      }).mount("#app");
+      return;
+    }
+    await startWarmOnBoot();
+    app.mount("#app");
+  } catch (e) {
+    // Boot must NEVER strand the static splash plate (found 2026-08-05: a dead
+    // server left the plate on screen forever with nothing mounted — the user
+    // stares at artwork instead of being told what's wrong). Whatever threw,
+    // tear the plate down and say so in place.
+    window.__bootErr = e;
+    document.getElementById("app-boot")?.remove();
+    const el = document.getElementById("app");
+    if (el && !el.childElementCount) {
+      el.textContent = `The app could not start: ${e?.message || e}`;
+    }
+    throw e;
   }
-  await startWarmOnBoot();
-  app.mount("#app");
 })();

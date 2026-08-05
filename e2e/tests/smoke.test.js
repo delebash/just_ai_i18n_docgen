@@ -133,18 +133,24 @@ test("routing by feature shows the THREE routed features; the promptless pane AG
 test("quick setup OPENS and offers translation-measured models, not JW's", async () => {
   await d.navigate("#/ai");
   // The configured-state truth (A1190, built 2026-08-04): a set-up box shows
-  // "Re-run setup" + "Local AI is set up — <model> is the default"; a fresh box
-  // shows "Run Quick Setup". Both are the manual door.
-  await d.waitUntil(`return [...document.querySelectorAll('button')].some(b => /Run Quick Setup|Re-run setup/i.test(b.textContent))`, { timeout: 15_000 });
+  // "Re-run Quick Setup" + "Local AI is set up — <model> is the default"; a fresh
+  // box shows "Run Quick Setup". Both are the manual door. The feature's NAME is
+  // never dropped and the QC-42 scope line renders in BOTH states (naming+scope
+  // ruling 2026-08-04).
+  await d.waitUntil(`return [...document.querySelectorAll('button')].some(b => /Run Quick Setup|Re-run Quick Setup/i.test(b.textContent))`, { timeout: 15_000 });
+  assert.equal(await d.exec(`return /Sets up the built-in llama\\.cpp provider only/i.test(document.body.textContent);`), true,
+    "the band carries the built-in-only scope wording in both states");
   // The band itself carries NO model dropdown — the wizard is a MODAL (3rd-report fix).
   assert.equal(await d.exec(`return document.querySelectorAll('.lu-qs-band [role=combobox], .lu-qs-band select').length;`), 0,
     "no inline model dropdown on the AI page");
-  await d.exec(`[...document.querySelectorAll('button')].find(b => /Run Quick Setup|Re-run setup/i.test(b.textContent)).click();`);
+  await d.exec(`[...document.querySelectorAll('button')].find(b => /Run Quick Setup|Re-run Quick Setup/i.test(b.textContent)).click();`);
   // A configured box lands on the "Already set up" truth screen first — walk
   // through Change model to reach the confirm step both ways.
   await d.waitUntil(`return !!document.querySelector('[role=dialog]')`, { timeout: 20_000 });
   await d.waitUntil(`return /Already set up|Local translation AI/i.test(document.body.textContent)`, { timeout: 20_000 });
   if (await d.exec(`return /Already set up/i.test(document.querySelector('[role=dialog]').textContent);`)) {
+    assert.equal(await d.exec(`return /built-in llama\\.cpp provider only/i.test(document.querySelector('[role=dialog]').textContent);`), true,
+      "the Already-set-up screen carries the built-in-only scope (naming+scope ruling)");
     await d.exec(`[...document.querySelectorAll('[role=dialog] button')].find(b => /^Change model$/.test(b.textContent.trim()))?.click();`);
   }
   await d.waitUntil(`return /Local translation AI/i.test(document.body.textContent)`);
@@ -175,8 +181,8 @@ test("quick setup RUNS: one Cancel at a time, the routing it writes is valid, no
   const before = saved.find((p) => p.id === "p_translate");
 
   await d.navigate("#/ai");
-  await d.waitUntil(`return [...document.querySelectorAll('button')].some(b => /Run Quick Setup|Re-run setup/i.test(b.textContent))`, { timeout: 15_000 });
-  await d.exec(`[...document.querySelectorAll('button')].find(b => /Run Quick Setup|Re-run setup/i.test(b.textContent)).click();`);
+  await d.waitUntil(`return [...document.querySelectorAll('button')].some(b => /Run Quick Setup|Re-run Quick Setup/i.test(b.textContent))`, { timeout: 15_000 });
+  await d.exec(`[...document.querySelectorAll('button')].find(b => /Run Quick Setup|Re-run Quick Setup/i.test(b.textContent)).click();`);
   // Wait for the wizard to be READY, not merely present: it primes the catalog, the
   // ranking and the engine status first (its detect step). Clicking the instant the
   // dialog existed hit a disabled button and no run ever started — found by this test
@@ -227,7 +233,13 @@ test("quick setup RUNS: one Cancel at a time, the routing it writes is valid, no
 
   const applyStep = await d.exec(`return (() => { ${snapshot} })();`);
   assert.equal(applyStep.footerCancels, 0, "the footer carries NO Cancel during a run — the bar owns it");
-  assert.equal(applyStep.cancels <= 1, true, `at most one Cancel on screen, saw ${applyStep.cancels}`);
+  // The donor defect was the FOOTER duplicate (two controls, one word, different
+  // meanings) — per-bar Cancels are the family's parallel-bar pattern. On a box
+  // where engine AND model are both fast (already installed/resident) the two
+  // task bars overlap, one Cancel each (seen 2026-08-05; the old `<= 1` assert
+  // mis-encoded the rule and only ever passed because the bars never overlapped).
+  assert.equal(applyStep.cancels <= applyStep.bars, true,
+    `every Cancel belongs to a bar — one each at most, saw ${applyStep.cancels} across ${applyStep.bars} bar(s)`);
   if (applyStep.running) {
     assert.equal(applyStep.closeX, 0, "the modal is un-closable while a task runs (donor rule)");
   }
@@ -344,6 +356,11 @@ test("settings renders its sections and the logs panel", async () => {
   }
   assert.equal(sawDark, true, "cycling the mode must stamp [data-theme=dark] (the tokens vocabulary fix)");
   assert.equal(await stamp(), modeWas, "three clicks = a full cycle back to the user's own mode");
+  // Persistence SHAPE: the kit migrator reads {appearance:{...}} — the flat doc
+  // silently lost mode/font/scale every restart (2026-08-05 audit).
+  const persisted = await d.exec(`return localStorage.getItem('jaid.appearance');`);
+  assert.equal(!!persisted && typeof JSON.parse(persisted).appearance === "object", true,
+    "appearance persists as the {appearance:{...}} wrapper the migrator reads");
   await d.navigate("#/settings/logs");
   await d.waitUntil(`return /server logs/i.test(document.body.textContent)`);
   // The storage panel is JW's, strings verbatim — assert the donor's wording so a

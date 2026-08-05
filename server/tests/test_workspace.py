@@ -331,3 +331,46 @@ def test_setup_save_preserves_fields_it_does_not_manage(tmp_path, monkeypatch):
 def test_terms_endpoint_answers_by_term(client):
     body = client.get("/v1/terms", params={"lang": "es", "term": "books"}).json()
     assert body["term"] == "books"
+
+
+def test_setup_state_glossary_is_always_a_bare_list(tmp_path, monkeypatch):
+    """The loaded cfg normalizes a list glossary to {"doNotTranslate": [...]} —
+    the wire must hand the UI a BARE LIST anyway. The dict on the wire blew up
+    the Setup prefill spread and let a Save erase the glossary (2026-08-05)."""
+    monkeypatch.setattr(lifecycle, "_service", None)
+    monkeypatch.setattr(seed, "_APP", dict(seed._APP))
+    config = make_project(tmp_path)
+    cfg = json.loads(config.read_text(encoding="utf-8"))
+    cfg["glossary"] = ["Strands", "TODO"]
+    config.write_text(json.dumps(cfg), encoding="utf-8")
+
+    client = TestClient(create_app(tmp_path / "data", config_path=config))
+    st = client.get("/v1/setup/state").json()
+    assert st["glossary"] == ["Strands", "TODO"], "a bare list, never the dict"
+
+
+def test_setup_save_without_glossary_preserves_the_existing_one(tmp_path, monkeypatch):
+    """A field the caller didn't send falls back to the EXISTING config's value —
+    plan_init's defaults must never overwrite the real glossary through the merge
+    (the erasure chain, 2026-08-05)."""
+    monkeypatch.setattr(lifecycle, "_service", None)
+    monkeypatch.setattr(seed, "_APP", dict(seed._APP))
+    config = make_project(tmp_path)
+    cfg = json.loads(config.read_text(encoding="utf-8"))
+    cfg["glossary"] = ["Strands"]
+    cfg["context"] = "the real context"
+    config.write_text(json.dumps(cfg), encoding="utf-8")
+
+    client = TestClient(create_app(tmp_path / "data", config_path=config))
+    en_path = config.parent.parent / "src" / "locales" / "en.json"
+    r = client.post("/v1/setup/save", json={"path": str(en_path), "targets": ["es"]})
+    assert r.json()["ok"] is True
+    after = json.loads(config.read_text(encoding="utf-8"))
+    assert after["glossary"] == ["Strands"], "an omitted glossary is PRESERVED"
+    assert after["context"] == "the real context", "an omitted context is PRESERVED"
+
+    # And sending one explicitly still writes it.
+    client.post("/v1/setup/save", json={"path": str(en_path), "targets": ["es"],
+                                        "glossary": ["RAG"]})
+    after2 = json.loads(config.read_text(encoding="utf-8"))
+    assert after2["glossary"] == ["RAG"]

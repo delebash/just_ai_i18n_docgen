@@ -289,6 +289,15 @@ def _preview_confirm(p: Project, lang: str, keys: list[str] | None) -> dict:
     return {"system": system, "user": user, "sample": f"{note} {picked} · {lang}"}
 
 
+def _glossary_list(cfg: dict) -> list:
+    """The glossary as a bare list whichever shape the config holds (the original's
+    deliberate both-shapes design, infer.py:84 normalizes to the dict on load)."""
+    g = cfg.get("glossary")
+    if isinstance(g, dict):
+        return list(g.get("doNotTranslate") or [])
+    return list(g or [])
+
+
 def make_workspace_router(ws: Workspace) -> APIRouter:
     # /v1 like every family route — JW and JV put their OWN app routes under /v1
     # beside the shared stack's; /api was a Node-era habit, corrected 2026-08-02.
@@ -318,7 +327,12 @@ def make_workspace_router(ws: Workspace) -> APIRouter:
             # Prefill, not decoration: an edit screen that shows blanks over a
             # configured project invites "save" to feel like it erased something.
             "context": (p.cfg.get("context") or "") if p else "",
-            "glossary": (p.cfg.get("glossary") or []) if p else [],
+            # ALWAYS a bare list on the wire: the loaded cfg normalizes a list to
+            # {"doNotTranslate": [...]} (infer.py), and handing that dict to the UI
+            # blew up the Setup prefill and let a Save erase the real glossary
+            # (found by the 2026-08-05 audit — the exact failure this prefill
+            # comment says it exists to prevent).
+            "glossary": _glossary_list(p.cfg) if p else [],
             "reviewer": appmeta.get_reviewer(),
             # Codes only. The display name is derived in the browser from
             # Intl.DisplayNames, so the menu reads in the user's own language and no
@@ -371,12 +385,26 @@ def make_workspace_router(ws: Workspace) -> APIRouter:
         path = str(body.get("path") or "").strip().strip("\"'")
         if not path:
             raise HTTPException(400, "give me the path to your en.json")
+        # A field the caller DIDN'T send falls back to the EXISTING config's value,
+        # never to plan_init's defaults — the defaults overwrote the real glossary
+        # through the merge below (found by the 2026-08-05 audit). The existing file
+        # is read for fallbacks BEFORE planning; the merge still preserves every
+        # unmanaged key ("the UI is a writer, never an owner").
+        body_targets = body.get("targets") if isinstance(body.get("targets"), list) else None
+        body_context = body.get("context") if isinstance(body.get("context"), str) else None
+        body_glossary = body.get("glossary") if isinstance(body.get("glossary"), list) else None
         try:
+            probe = plan_init(path)
+            existing_cfg = (json.loads(Path(probe["configPath"]).read_text(encoding="utf-8"))
+                            if Path(probe["configPath"]).exists() else {})
             plan = plan_init(
                 path,
-                targets=body.get("targets") if isinstance(body.get("targets"), list) else None,
-                context=body.get("context") if isinstance(body.get("context"), str) else None,
-                glossary=body.get("glossary") if isinstance(body.get("glossary"), list) else None,
+                targets=body_targets if body_targets is not None
+                        else (existing_cfg.get("targets") if isinstance(existing_cfg.get("targets"), list) else None),
+                context=body_context if body_context is not None
+                        else (existing_cfg.get("context") if isinstance(existing_cfg.get("context"), str) else None),
+                glossary=body_glossary if body_glossary is not None
+                         else (_glossary_list(existing_cfg) if existing_cfg.get("glossary") is not None else None),
             )
         except (FileNotFoundError, ValueError) as e:
             raise HTTPException(400, str(e)) from e
@@ -811,26 +839,32 @@ def make_workspace_router(ws: Workspace) -> APIRouter:
         # DONE run's byte-identical proposals; the hash carries the STAGED value,
         # so the rows arrive pre-annotated the moment they're applied. Annotations
         # only — the engine never writes <lang>.accepted.json.
-        def confirm_pass(identical: dict) -> None:
+        def confirm_pass(identical: dict, *, is_cancelled=None) -> None:
+            # One key per call is the pass's own design ("a batch is how the
+            # original skip happened") — looping here lets Cancel take effect
+            # between keys (the 2026-08-05 confirming-state fix).
             ask = make_ask("confirm")
-            res = confirm_identical(
-                keys=sorted(identical), source_flat=p.src, target_flat=identical,
-                target_lang=lang, context=p.cfg.get("context", ""),
-                do_not_translate=(p.cfg.get("glossary") or {}).get("doNotTranslate", []),
-                ask=ask,
-            )
             by = "engine (confirm preset)"
-            for c in res["cleared"]:
-                put_confirmation(p.state, lang=lang, key=c["key"],
-                                 hash=acceptance_hash(key=c["key"], code=CONFIRM_CODE,
-                                                      src=c["src"], dst=c["dst"] or ""),
-                                 verdict="same", engine=by)
-            for pr in res["proposed"]:
-                put_confirmation(p.state, lang=lang, key=pr["key"],
-                                 hash=acceptance_hash(key=pr["key"], code=CONFIRM_CODE,
-                                                      src=pr["src"], dst=pr["dst"] or ""),
-                                 verdict="translate", suggestion=pr["suggestion"],
-                                 engine=by)
+            for key in sorted(identical):
+                if is_cancelled is not None and is_cancelled():
+                    return
+                res = confirm_identical(
+                    keys=[key], source_flat=p.src, target_flat=identical,
+                    target_lang=lang, context=p.cfg.get("context", ""),
+                    do_not_translate=_glossary_list(p.cfg),
+                    ask=ask,
+                )
+                for c in res["cleared"]:
+                    put_confirmation(p.state, lang=lang, key=c["key"],
+                                     hash=acceptance_hash(key=c["key"], code=CONFIRM_CODE,
+                                                          src=c["src"], dst=c["dst"] or ""),
+                                     verdict="same", engine=by)
+                for pr in res["proposed"]:
+                    put_confirmation(p.state, lang=lang, key=pr["key"],
+                                     hash=acceptance_hash(key=pr["key"], code=CONFIRM_CODE,
+                                                          src=pr["src"], dst=pr["dst"] or ""),
+                                     verdict="translate", suggestion=pr["suggestion"],
+                                     engine=by)
 
         try:
             status = ws.jobs.start(lang=lang, engine=preset_id or "translate",

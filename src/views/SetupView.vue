@@ -9,8 +9,10 @@ import { computed, onMounted, ref } from "vue";
 import { UiButton, UiCheckbox, UiInput, UiMultiSelect, UiTag, pushToast } from "@delebash/llm-ui";
 import { useRouter } from "vue-router";
 import { useProjectStore } from "../stores/project";
+import { useUiStore } from "../stores/ui";
 
 const project = useProjectStore();
+const ui = useUiStore();
 const router = useRouter();
 const path = ref("");
 const context = ref("");
@@ -66,6 +68,10 @@ async function save() {
       context: context.value, glossary: glossary.value,
     });
     pushToast({ kind: "success", title: "Project saved", description: "The dashboard is live." });
+    // The once-ever AI offer's moment (the trigger ruling: Setup-save, JW's
+    // donor semantics). Not awaited — navigation stays snappy; the App-level
+    // modal pops when the provider check answers.
+    ui.maybeOfferAiSetup();
     router.push("/");
   } catch (e) {
     pushToast({ kind: "error", title: "Could not save", description: String(e?.message || e) });

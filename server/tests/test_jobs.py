@@ -88,28 +88,37 @@ def test_a_dead_engine_is_a_recorded_outcome_not_a_hang(tmp_path):
 
 
 def test_done_run_hands_its_identical_proposals_to_the_confirm_pass(tmp_path):
-    """The design's pre-tick (2026-08-04 — only the CLI ran it before): a DONE run
-    calls the injected confirm with EXACTLY the byte-identical proposals; a failure
-    inside confirm never fails the run whose translations already staged."""
+    """The design's pre-tick (2026-08-04 — only the CLI ran it before): a finished
+    run calls the injected confirm with EXACTLY the byte-identical proposals, in a
+    NON-terminal `confirming` state (busy HOLDS — the 2026-08-05 busy-guard fix);
+    a failure inside confirm never fails the run whose translations already staged."""
     store = open_project(tmp_path)
     jobs = JobManager(store=store)
     gate = threading.Event()
     seen: list[dict] = []
+    states_during_confirm: list[tuple[str, bool]] = []
+
+    def confirm(identical, *, is_cancelled=None):
+        states_during_confirm.append((jobs.status()["state"], jobs.busy))
+        seen.append(identical)
+
     jobs.start(lang="es", engine="e", send=None, scope="all",
                subset={"same": "No", "moved": "Hello"},
                cfg={}, cache_path=tmp_path / "c.json",
                translate=controllable_translate(gate, [{"same": "No", "moved": "Hola"}]),
-               confirm=seen.append)
+               confirm=confirm)
     gate.set()
     jobs.settled()
     assert jobs.status()["state"] == "done"
     assert seen == [{"same": "No"}], "only the byte-identical proposal is confirmed"
+    assert states_during_confirm == [("confirming", True)], \
+        "the pass runs INSIDE a busy, non-terminal state — a second job cannot start over it"
 
     # A confirm that BLOWS UP is an annotation failure, not a run failure.
     jobs2 = JobManager(store=store)
     gate2 = threading.Event()
 
-    def boom(_identical):
+    def boom(_identical, *, is_cancelled=None):
         raise RuntimeError("engine down")
 
     jobs2.start(lang="es", engine="e", send=None, scope="all", subset={"same": "No"},
@@ -119,3 +128,25 @@ def test_done_run_hands_its_identical_proposals_to_the_confirm_pass(tmp_path):
     gate2.set()
     jobs2.settled()
     assert jobs2.status()["state"] == "done"
+
+    # Cancel DURING confirming stops the pass between keys; the run stays done
+    # (the translate outcome), and the callable saw the cancel flag.
+    jobs3 = JobManager(store=store)
+    gate3 = threading.Event()
+    confirmed_keys: list[str] = []
+
+    def slow_confirm(identical, *, is_cancelled=None):
+        for k in sorted(identical):
+            if is_cancelled():
+                return
+            confirmed_keys.append(k)
+            jobs3.cancel()  # cancel arrives after the first key
+    jobs3.start(lang="es", engine="e", send=None, scope="all",
+                subset={"a": "A", "b": "B"},
+                cfg={}, cache_path=tmp_path / "c3.json",
+                translate=controllable_translate(gate3, [{"a": "A", "b": "B"}]),
+                confirm=slow_confirm)
+    gate3.set()
+    jobs3.settled()
+    assert confirmed_keys == ["a"], "the second key was never confirmed after cancel"
+    assert jobs3.status()["state"] == "done"

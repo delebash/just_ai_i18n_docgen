@@ -21,7 +21,8 @@ Run Quick Setup (local, private & free), Connect an online provider, or Skip for
 now. Whatever you pick, it never appears again; the AI page remains the manual door.
 
 **A set-up machine is told the truth.** Once a default exists, the AI page's band
-reads "Local AI is set up — *model* is the default · Re-run setup", and re-running
+reads "Local AI is set up — *model* is the default · Re-run Quick Setup" (the
+"built-in llama.cpp provider only" scope note stays beside it), and re-running
 opens on an "Already set up" screen offering only *Change model* or *Close* —
 nothing changes until you apply. The `?quicksetup=1` deep link stays away once a
 default provider exists.

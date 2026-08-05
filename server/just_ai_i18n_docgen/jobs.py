@@ -139,21 +139,28 @@ class JobManager:
             stage(result["values"])
             job["requests"] = result["requests"]
             job["failed"] = result["failed"]
-            job["state"] = "cancelled" if result.get("cancelled") else "done"
-            # The confirmation pass (the design: pre-tick the obvious — only the CLI
-            # ran it until 2026-08-04). Over the DONE run's byte-identical proposals
-            # only; annotations, never verdicts; a confirm failure never fails the
-            # run whose translations already staged.
-            if job["state"] == "done" and confirm is not None:
-                identical = {k: v for k, v in result["values"].items()
-                             if subset.get(k) == v}
-                if identical:
-                    self._emit("confirming", {"count": len(identical),
-                                              "lang": job["lang"]})
-                    try:
-                        confirm(identical)
-                    except Exception as err:  # noqa: BLE001 — annotation-only
-                        self._emit("confirm-error", {"message": str(err)})
+            if result.get("cancelled"):
+                job["state"] = "cancelled"
+            else:
+                # The confirmation pass (the design: pre-tick the obvious). Runs in a
+                # NON-terminal "confirming" state so `busy` HOLDS (a second job cannot
+                # start over the confirm's engine calls — the 2026-08-05 audit's
+                # busy-guard escape) and Cancel still works (the callable checks
+                # between keys). Annotations only; a confirm failure never fails the
+                # run whose translations already staged; the run's final state
+                # reflects the TRANSLATE outcome.
+                if confirm is not None:
+                    identical = {k: v for k, v in result["values"].items()
+                                 if subset.get(k) == v}
+                    if identical:
+                        job["state"] = "confirming"
+                        self._emit("confirming", {"count": len(identical),
+                                                  "lang": job["lang"]})
+                        try:
+                            confirm(identical, is_cancelled=job["cancelled"].is_set)
+                        except Exception as err:  # noqa: BLE001 — annotation-only
+                            self._emit("confirm-error", {"message": str(err)})
+                job["state"] = "done"
         except Exception as err:  # noqa: BLE001 — a dead engine is a job outcome
             job["state"] = "failed"
             job["error"] = str(err)

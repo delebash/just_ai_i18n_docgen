@@ -2,14 +2,15 @@
 /* just-ai-i18n-docgen tokens — the kit's token contract, retuned.
    Contract reference: @delebash/llm-ui common/tokens.contract.css. */
 :root {
-  /* Accent — HUE-DRIVEN (the JV vocabulary, ported 2026-08-04: the kit engine
-     sets --accent-hue and stamps [data-theme]; static hexes here were why the
-     Appearance hue slider and mode picker did NOTHING — the user's QC). Default
-     hue 243 = this app's indigo (DEFAULT_APPEARANCE.accentHue). */
-  --accent-hue: 243;
-  --accent:      oklch(0.538 0.190 var(--accent-hue));
-  --accent-ink:  oklch(0.446 0.160 var(--accent-hue));
-  --accent-soft: oklch(0.948 0.020 var(--accent-hue));
+  /* Accent — HUE-DRIVEN (the shared recipe STRUCTURE, ruling q2b 2026-08-05:
+     mechanism shared, each app's own EXACT brand values). L/C below are the
+     deterministic OKLCH conversions of this app's original brand hexes
+     (#4f46e5 / #eef0fe / #4338ca) — never eyeballed. Default hue 277 IS the
+     brand's true hue (the old "243 ≈ #4f46e5" claim was wrong). */
+  --accent-hue: 277;
+  --accent:      oklch(0.511 0.230 var(--accent-hue));
+  --accent-ink:  oklch(0.457 0.215 var(--accent-hue));
+  --accent-soft: oklch(0.958 0.019 var(--accent-hue));
   --on-accent: #fff;
   --ink: #1a1a1a;
   --ink-2: #4a4a4a;
@@ -42,9 +43,10 @@
 /* Dark keys on the ENGINE's stamp, never the OS media query — the engine
    resolves mode "system" itself and writes [data-theme], so the picker works. */
 [data-theme="dark"] {
-  --accent:      oklch(0.673 0.150 var(--accent-hue));
-  --accent-soft: oklch(0.300 0.060 var(--accent-hue));
-  --accent-ink:  oklch(0.800 0.120 var(--accent-hue));
+  /* Exact conversions of the dark brand hexes (#818cf8 / #272a44 / #a5b0fa). */
+  --accent:      oklch(0.680 0.158 var(--accent-hue));
+  --accent-soft: oklch(0.295 0.047 var(--accent-hue));
+  --accent-ink:  oklch(0.776 0.106 var(--accent-hue));
   --ink: #e6e6e6;
   --ink-2: #b8b8b8;
   --ink-3: #8a8a8a;
