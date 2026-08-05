@@ -9,7 +9,7 @@
 // Family rules: height:100% chain (never 100vh), one scroller per area.
 import { onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { AiSetupOffer, BootModelLoad, FAMILY_LABELS, HelpDrawer, Icon, LlmUiHosts, useAiTasksNav, warmModelId } from "@delebash/llm-ui";
+import { AiSetupOffer, BootModelLoad, FAMILY_LABELS, HelpDrawer, Icon, LlmUiHosts, pushToast, useAiTasksNav, warmModelId } from "@delebash/llm-ui";
 import TitleBar from "./components/TitleBar.vue";
 import splashPlate from "./assets/images/splash-plate.jpg";
 import { useProjectStore } from "./stores/project";
@@ -59,6 +59,22 @@ onMounted(async () => {
       .catch(() => {});
   }
   await project.refresh();
+  // The tray's renderer half (the full-donor ruling 2026-08-04): settings/about
+  // navigate, Copy URL writes the clipboard + says so — the donor's versions
+  // were dead emits with no listeners (audit 2026-08-05). Dynamic import so
+  // plain `vite dev` in a browser stays a no-op.
+  import("@tauri-apps/api/event").then(({ listen }) => {
+    listen("tray:open-settings", () => router.push("/settings"));
+    listen("tray:about", () => router.push("/settings/about"));
+    listen("tray:copy-url", async (e) => {
+      try {
+        await navigator.clipboard.writeText(String(e.payload));
+        pushToast({ kind: "success", title: "Server URL copied", description: String(e.payload) });
+      } catch (err) {
+        pushToast({ kind: "error", title: "Copy failed", description: String(err?.message || err) });
+      }
+    });
+  }).catch(() => {});
 });
 </script>
 

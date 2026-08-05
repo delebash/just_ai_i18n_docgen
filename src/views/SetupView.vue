@@ -211,7 +211,7 @@ async function save() {
         :disabled="project.saving || !path.trim() || !targets.length" @click="save"
       />
       <span class="hint" style="margin: 0">
-        Saving writes config.json beside your locales and loads it — no restart.
+        Saving writes config.json into a just-ai-i18n-docgen folder at your app's root and loads it — no restart.
         Your reviewer name lives in <router-link to="/settings/reviewer">Settings → Reviewer</router-link>.
       </span>
     </div>

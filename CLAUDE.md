@@ -15,7 +15,7 @@ reference implementation.**
 npm run dev            # THE APP — desktop window; spawns the Python server itself
 npm run dev:vite       # browser-only dev at :1420 (start the server yourself: npm run server)
 npm run server         # the Python server on :8742 (venv-resolved via scripts/py.js)
-npm run test:server    # pytest — 128 tests
+npm run test:server    # pytest — 148 tests
 npm test               # e2e smoke: the REAL app via tauri-driver (build release first)
 npm run screenshots    # every surface shot from the REAL WebView2 → e2e/shots/
 npm run tauri build -- --no-bundle   # the release exe the e2e harness drives
@@ -45,8 +45,9 @@ server/.venv/Scripts/just-ai-i18n-docgen translate|check|escalate|accept|extract
   ignored; found live, 6/6 keys exhausted (2026-08-02).
 - **Every path anchors to the CONFIG FILE**, never the cwd (`paths.py` — the
   27-minute/464-key cache lesson). Committed per-project text: `config.json`,
-  `<lang>.accepted.json`, `<lang>.notes.json`. Workshop state: `.jah-state.json`
-  (atomic writes; a corrupt file costs state, never work).
+  `<lang>.accepted.json`, `<lang>.notes.json`. Workshop state:
+  `.just-ai-i18n-docgen-state.json` (atomic writes; a corrupt file costs
+  state, never work).
 - **`install_llm` never gets a single-shared-connection test DB** — the backfill
   daemon thread interleaves with seeding and silently rolls it back. File-backed
   SQLite in tests.
@@ -63,7 +64,8 @@ server/.venv/Scripts/just-ai-i18n-docgen translate|check|escalate|accept|extract
   LLM view rendered empty IN PRODUCTION ONLY. Verify with `npm run screenshots`,
   never with a Chrome tab (user ruling 2026-08-02; browser driving is banned).
 - **The standard app chrome is mandatory** (`app-structure.md` §11): `/ai` =
-  kit `AiModelsArea`, `AiStatusButton` in the shell footer, Settings =
+  kit `AiModelsArea`, `AiStatusButton` in the TitleBar (JW parity — the smoke
+  asserts it), Settings =
   appearance/storage/server/logs/reviewer/about (Server = the headless/token
   section, ruling 2026-08-04), server wires the platform log ring +
   file log + logs/disk routers. This app shipped without ALL of it once

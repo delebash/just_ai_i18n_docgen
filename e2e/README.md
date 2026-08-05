@@ -11,7 +11,9 @@ The wrapper lives in `lib/driver.js`.
 
 ```bash
 cargo install --locked tauri-driver
-npm install            # fetches msedgedriver via postinstall (Edge-version matched)
+npm install            # fetches msedgedriver via postinstall — matched to the
+                       # WEBVIEW2 RUNTIME's version, NOT Edge's (they drift;
+                       # the mismatch cost a live session 2026-08-02)
 npm run tauri build -- --no-bundle    # or: npm run build — the harness drives target/release/
 ```
 
@@ -48,9 +50,14 @@ exe — and read `<data>/logs/*.log` plus `<data>/ai-cache/llamacpp/logs/`.
 - `npm test` — the smoke suite: real app, real WebView2, BEHAVIOUR
   assertions (the AI-tasks toggle stays open, the wizard opens a real
   dialog with the translation catalog, Home shows staged work). **Needs a
-  server on :8742** (`npm run server`, or the demo config) — the suite
-  reads live endpoints. `JAID_DEV_NO_SIDECAR=1` means it never spawns or
-  evicts servers.
+  server on :8742 with YOUR real project loaded** (start it with
+  `server/.venv/Scripts/python -m just_ai_i18n_docgen.serve --config <your
+  config.json>`; a bare `npm run server` boots configless and the
+  endpoint-reading tests fail on needsSetup) — the suite reads live
+  endpoints. `JAID_DEV_NO_SIDECAR=1` means it never spawns or evicts
+  servers. The drivers LINGER after results — `taskkill /IM msedgedriver.exe
+  /IM tauri-driver.exe /F` before and after a run, or the next run inherits
+  a stale :4444 listener.
   **One test writes**: "quick setup RUNS" drives the real wizard, so it
   writes the engine presets (that write IS the assertion — a wizard that
   corrupts routing must fail here) and then restores them, verifying the

@@ -16,9 +16,9 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use serde::Serialize;
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager, WindowEvent};
+use tauri::{AppHandle, Emitter, Manager, WindowEvent};
 use tauri_plugin_dialog::DialogExt;
 
 const SERVER_PORT: u16 = 8742; // JW 17495 · JV 17494 — the family port registry
@@ -421,23 +421,34 @@ fn set_keep_server_running(
     Ok(())
 }
 
-// ── System tray (the family headless/tray spec, JV's donor — generic entries
-// only: Show/Hide · Server Start/Stop/Restart · Quit; the decided minimum) ──
+// ── System tray — the FULL donor menu (user ruling 2026-08-04: "port the donor
+// WHOLE", JV's emoji styling, the same across the family; JV-only entries like
+// dictate/MCP stay JV's). Every entry WORKS: the donor's four extra items were
+// dead emits with no listeners (audit 2026-08-05), so here settings/about/copy
+// show the window and ride a renderer listener (a focused webview's clipboard
+// write is reliable; a hidden one's is not), and Open log file goes straight
+// through the opener plugin — no renderer needed. Flat like the donor. ──
 
 fn build_tray_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
-    let show = MenuItem::with_id(app, "show", "Show window", true, None::<&str>)?;
-    let hide = MenuItem::with_id(app, "hide", "Hide window", true, None::<&str>)?;
+    let show = MenuItem::with_id(app, "show", "📺 Show window", true, None::<&str>)?;
+    let hide = MenuItem::with_id(app, "hide", "🔵 Hide window", true, None::<&str>)?;
     let sep1 = PredefinedMenuItem::separator(app)?;
-    let server_start = MenuItem::with_id(app, "server_start", "Start server", true, None::<&str>)?;
-    let server_stop = MenuItem::with_id(app, "server_stop", "Stop server", true, None::<&str>)?;
-    let server_restart = MenuItem::with_id(app, "server_restart", "Restart server", true, None::<&str>)?;
-    let server_submenu = Submenu::with_id_and_items(
-        app, "server", "Server", true,
-        &[&server_start, &server_stop, &server_restart],
-    )?;
+    let server_start = MenuItem::with_id(app, "server_start", "▶️ Start server", true, None::<&str>)?;
+    let server_stop = MenuItem::with_id(app, "server_stop", "⏹ Stop server", true, None::<&str>)?;
+    let server_restart = MenuItem::with_id(app, "server_restart", "🔄 Restart server", true, None::<&str>)?;
     let sep2 = PredefinedMenuItem::separator(app)?;
-    let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-    Menu::with_items(app, &[&show, &hide, &sep1, &server_submenu, &sep2, &quit])
+    let settings = MenuItem::with_id(app, "open_settings", "⚙️ Open settings", true, None::<&str>)?;
+    let copy_url = MenuItem::with_id(app, "copy_url", "📋 Copy server URL", true, None::<&str>)?;
+    let open_logs = MenuItem::with_id(app, "open_logs", "📜 Open log file", true, None::<&str>)?;
+    let sep3 = PredefinedMenuItem::separator(app)?;
+    let about = MenuItem::with_id(app, "about", "ℹ️ About Just AI i18n & DocGen", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "🚪 Quit Just AI i18n & DocGen", true, None::<&str>)?;
+    Menu::with_items(app, &[
+        &show, &hide, &sep1,
+        &server_start, &server_stop, &server_restart, &sep2,
+        &settings, &copy_url, &open_logs, &sep3,
+        &about, &quit,
+    ])
 }
 
 fn handle_tray_menu_event(app: &AppHandle, event_id: &str) {
@@ -472,6 +483,30 @@ fn handle_tray_menu_event(app: &AppHandle, event_id: &str) {
                 let root = resolve_data_root(app);
                 state.set_child(spawn_sidecar(&root).ok().flatten());
             }
+        }
+        "open_settings" => {
+            let _ = window.show();
+            let _ = window.set_focus();
+            let _ = app.emit("tray:open-settings", ());
+        }
+        "copy_url" => {
+            let _ = window.show();
+            let _ = window.set_focus();
+            let _ = app.emit("tray:copy-url", format!("http://127.0.0.1:{SERVER_PORT}"));
+        }
+        "open_logs" => {
+            // The server's live file log (app.py installs it at logs/<name>.log
+            // under the data root); the logs folder when it doesn't exist yet.
+            let root = resolve_data_root(app);
+            let live = root.join("logs").join("just-ai-i18n-docgen.log");
+            let target = if live.exists() { live } else { root.join("logs") };
+            let _ = tauri_plugin_opener::open_path(
+                target.to_string_lossy().into_owned(), None::<String>);
+        }
+        "about" => {
+            let _ = window.show();
+            let _ = window.set_focus();
+            let _ = app.emit("tray:about", ());
         }
         "quit" => {
             if let Some(state) = app.try_state::<SidecarState>() {

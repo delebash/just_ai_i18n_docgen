@@ -11,7 +11,7 @@ from .app import PORT, create_app, default_data_dir
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Just AI i18n & Docgen server")
+    ap = argparse.ArgumentParser(description="Just AI i18n & DocGen server")
     # JW parity: `just-ai-i18n-docgen-server serve` is the canonical form (the shell
     # and npm scripts use it); the bare form still works.
     ap.add_argument("command", nargs="?", choices=["serve"], default="serve")

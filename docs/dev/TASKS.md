@@ -120,29 +120,19 @@ only in chat, against this file's own charter):
   32 pass in test_prompts, 761 suite (1 pre-existing environmental fail,
   tracked in the runner's TASKS). Smoke grew the workspace test (20 total).
 
-## Open — needs your go (each item = the approved decision, in full)
+**Batch 4 executed 2026-08-05** — the tray ruling built as ruled, all three
+apps: the FULL donor menu with JV's emoji, flat like the donor, every entry
+WORKING (settings/about/copy show the window and ride `tray:*` renderer
+listeners; Open log file opens the server's live log Rust-side; Quit kills the
+sidecar — JW through its D5 drain; JV also got its icon + kill-then-exit +
+show-before-copy). Localization stays a NOTED gap (tray text English
+everywhere; JW's two copy toasts ride the same item in its TASKS). Docs:
+docgen settings.md · JW headless-access.md · JV system-tray.md REWRITTEN to
+truth (the fiction died) · app-structure §5 teardown + §11 tray row updated.
+Gates: cargo check ×3, JW vitest 567 + build:vite, JV build:vite, docgen
+lint/build. **The tray itself is eyes-on QC — webdriver can't see a tray.**
 
-- **Tray menu — the user's QC ruling (2026-08-04 late, verbatim): "it should have
-  start stop sever, why would you take easy way instead of professional way."**
-  The shipped tray has Show/Hide · Server (Start/Stop/Restart) · Quit; what was
-  stripped on my own was the REST of JV's donor menu. Ruling: port the donor
-  WHOLE — Show/Hide window · Server Start/Stop/Restart · Open settings · Copy
-  server URL · Open log file · About · Quit, with JV's emoji styling, the same in
-  docgen AND JW (JV-specific entries like dictate/MCP stay JV's). Open-settings/
-  About route to each app's own pages; Copy URL copies `http://127.0.0.1:<port>`.
-  **User note + verified 2026-08-04 late: the tray must be the SAME across apps —
-  all 3 HAVE tray + keep_running (checked in each lib.rs), but menus differ:
-  JV 12 items (full donor) vs docgen 6 vs JW 6 — the gap IS the four missing
-  shared entries + emoji styling this ruling adds.**
-  **Audit evidence 2026-08-05 (changes HOW to port, not whether): the donor's six
-  extra entries are DEAD in JV itself — `tray:*` emits with zero renderer
-  listeners (Open settings never navigates, Copy URL copies nothing, logs/about
-  no-op), its tray Quit orphans the sidecar, and it sets no tray icon; the
-  docgen/JW ports already fixed those three donor bugs. So "port the donor
-  whole" = implement Open settings (show + navigate to /settings), Copy server
-  URL (real clipboard write), Open log file, About — working, Rust-side or with
-  real renderer listeners — NOT copying the dead emits. JV gets the same fixes
-  (tracked in JV's TASKS).**
+## Open — needs your go (each item = the approved decision, in full)
 
 - *(NOTE 2026-08-04 late: the e2e Setup create-flow fixture test below is BUILT —
   `smoke.test.js` "setup CREATE-FLOW…", 19/19 — kept here only until your QC;
