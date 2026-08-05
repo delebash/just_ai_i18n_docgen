@@ -57,6 +57,17 @@ live tree (what imports and what doesn't, JV's port 1430, the 7 renderer files,
 the 5 test files, the missing chrome, the kit's single host tab), the phase
 order that keeps JV working at every commit, and the NINE rulings owed before
 coding with my recommendation on each. **Read that item, not this line.**
+*(2026-08-05 s2: the F1 brief was re-verified BY EXECUTION and corrected IN
+PLACE — its import-cliff claim was refuted (JV's venv already runs the live
+runner editable; everything imports), two chat rulings lost from the first
+write-up were recovered from the transcript and recorded (AiSetupOffer moment,
+`{embeddings:false}`), and phase corrections were appended (authed-blob kit
+delta, data-root moved to Phase 2, test-file union, nav-conditional-on-ruling-8).
+The convergence pass then found the arc's biggest stale claim: **JV already
+calls `install_llm`** (app.py:208-215, "convergence part 2" 2026-08-01) — the
+server half IS the third install already; Phase 2 = "complete the call +
+convergence part 3 + chrome", not a swap. Re-read the item fresh before the
+rulings.)*
 
 **Also queued, cross-app parity, presented 2026-08-05 and approved "all per
 your rec"** — these came out of a code sweep for "the apps share the same
@@ -69,6 +80,11 @@ structure, same features except app-specific ones":
   apiVersion` required everywhere, app extras allowed on top; docgen keeps `ok`
   as a legacy extra so nothing consuming it breaks. Record it in
   `app-structure.md` when it lands. JV's half rides F1's server phase.
+  *(Shapes verified in code 2026-08-05 s2: docgen `{ok, product}` app.py:277 ·
+  JW health.py:23-25 has apiVersion + dbReady · JV models.py:43-48 ALREADY has
+  `api_version` (snake_case, no camel alias) + status/version/current_engine/
+  engines, lacks `product` — so JV's delta is smaller than the line above
+  implies: add `product`, serve camel `apiVersion`, keep extras.)*
 - **C · Backup/restore/reset split three ways.** JW mounts the shared
   `/v1/data/*` + kit `DataManagement`; docgen has the DECIDED-but-unbuilt item
   (upstream the data router into `install_llm`, carrying JW's recorded lesson
@@ -76,6 +92,12 @@ structure, same features except app-specific ones":
   Settings → Storage — the full decision text is in the Backups item below);
   JV runs its own bespoke backup API. **Rec: execute docgen's decided item,
   then migrate JV onto the shared router inside F1.**
+  *(CORRECTED 2026-08-05 s2: the UPSTREAM half is already DONE — the shared
+  router exists as `llm_runner.platform.make_data_router` (data_api.py:39,
+  default prefix `/v1/data`) and JW consumes THAT shared router
+  (data_admin.py:14,83 → app.py:159), not private routes. What remains of the
+  decided item: docgen MOUNTS it + kit `DataManagement` under Settings →
+  Storage; JV migrates inside F1.)*
 - **D · Kit `UpdatesPanel`.** JW mounts it, docgen doesn't, JV doesn't.
   **Rec: rides C** (same adoption, same Settings page).
 - **E · Headless user doc.** JW has `docs/headless-access.md`; docgen covers
@@ -258,7 +280,11 @@ lint/build. **The tray itself is eyes-on QC — webdriver can't see a tray.**
   the data router into the shared stack** (`install_llm`), carrying JW's recorded
   lesson (a reset must properly RE-SEED — one once silently lost the app's extra
   catalog rows and tunes), then this app mounts kit `DataManagement` under
-  Settings → Storage. Backup scope here is honest-small: the DB holds machine
+  Settings → Storage. *(CORRECTED 2026-08-05 s2 — the premise is stale: the
+  upstream half is DONE. `llm_runner.platform.make_data_router` exists
+  (data_api.py:39) and JW already consumes the SHARED router (data_admin.py:83,
+  app.py:159); the re-seed lesson is recorded at the runner's seed.py:64. Only
+  this app's half remains: mount the shared router + kit `DataManagement`.)* Backup scope here is honest-small: the DB holds machine
   state only (providers, keys, presets, tunes, usage); the project's real truth
   (`config.json`, accepted, notes) is committed per-project in YOUR repo. Kit
   `UpdatesPanel` is part of the same adoption. "Apps are consistent but only use

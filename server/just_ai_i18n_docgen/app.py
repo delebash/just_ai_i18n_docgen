@@ -48,7 +48,7 @@ from sqlalchemy.orm import sessionmaker
 log = logging.getLogger(__name__)
 
 PRODUCT = "Just AI i18n & DocGen"  # one casing everywhere (docs sweep 2026-08-05)
-PORT = 8742  # JW 17495, JV 8741
+PORT = 8742  # JW 17495, JV 17494
 
 FEATURE_CATALOG: list[FeatureCatalogEntry] = [
     FeatureCatalogEntry(key="translate", label="Translate",

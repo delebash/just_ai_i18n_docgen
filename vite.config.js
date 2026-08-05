@@ -36,10 +36,11 @@ export default defineConfig(async () => ({
       // the kit lives outside this repo root
       allow: [resolve(__dirname), resolve(__dirname, "../just-llm-runner/ui")],
     },
-    proxy: {
-      // dev: the Python server on the family port — everything is /v1
-      "/v1": "http://127.0.0.1:8742",
-    },
+    // NO /v1 proxy: nothing requests a relative /v1 — the kit's origin-aware
+    // resolver builds ABSOLUTE URLs to :8742 from dev (CLAUDE.md "what bites":
+    // CORS is the load-bearing mechanism, §6). A proxy here sat dead since the
+    // rewrite and made the config claim a wire that never existed (audit
+    // 2026-08-05 s2; the standard's §3 snippet carried the same stale line).
     hmr: host
       ? {
           protocol: "ws",
@@ -48,8 +49,12 @@ export default defineConfig(async () => ({
         }
       : undefined,
     watch: {
-      // 3. tell Vite to ignore watching `src-tauri`
-      ignored: ["**/src-tauri/**"],
+      // src-tauri (Rust target) + the trees JW/JV also guard: the server venv,
+      // e2e (drivers + fixtures), dist. The vite root is the repo, so anything
+      // unlisted lands in chokidar's watch path — JV measured the cost of an
+      // unguarded server tree at 500 ms → 6.2 s to first HTML (its config's
+      // comment). Found by the 2026-08-05 s2 three-app audit.
+      ignored: ["**/src-tauri/**", "**/.venv/**", "**/e2e/**", "**/dist/**"],
     },
   },
 }));
