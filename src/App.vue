@@ -7,13 +7,26 @@
 // DownloadBars the engine panel uses. Continue is the universal escape: a slow
 // or failed load never traps anyone on the boot screen.
 // Family rules: height:100% chain (never 100vh), one scroller per area.
-import { onMounted } from "vue";
-import { BootModelLoad, FAMILY_LABELS, HelpDrawer, Icon, LlmUiHosts, useAiTasksNav, warmModelId } from "@delebash/llm-ui";
+import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
+import { AiSetupOffer, BootModelLoad, FAMILY_LABELS, HelpDrawer, Icon, LlmUiHosts, useAiTasksNav, useModelApply, warmModelId } from "@delebash/llm-ui";
 import TitleBar from "./components/TitleBar.vue";
 import splashPlate from "./assets/images/splash-plate.jpg";
 import { useProjectStore } from "./stores/project";
+import { useUiStore } from "./stores/ui";
 
 const project = useProjectStore();
+const ui = useUiStore();
+const router = useRouter();
+
+// The once-ever AI offer (ruling R3, 2026-08-04 — JW's donor semantics): fires
+// once, App-level, when a project is loaded but no default AI provider exists;
+// the persisted flag means never again, whatever path was taken.
+const showAiOffer = ref(false);
+function closeAiOffer() {
+  showAiOffer.value = false;
+  ui.markAiOfferShown();
+}
 
 const NAV = [
   { to: "/", label: "Home", icon: "Home" },
@@ -44,6 +57,13 @@ const aiTasksNav = useAiTasksNav();
 
 onMounted(async () => {
   await project.refresh();
+  if (!ui.aiOfferShown && project.loaded) {
+    try {
+      const { refreshApplied, currentDefaultProviderId } = useModelApply();
+      await refreshApplied();
+      if (!currentDefaultProviderId.value) showAiOffer.value = true;
+    } catch { /* unknown state → no offer; the AI page's band still serves */ }
+  }
 });
 </script>
 
@@ -103,6 +123,13 @@ onMounted(async () => {
     <!-- The kit Help drawer (content adapter in main.js over docs/*.md). LlmUiHosts
          deliberately doesn't include it — not every consumer has docs. -->
     <HelpDrawer />
+    <!-- The once-ever AI offer (ruling R3): fires once on a loaded project with no
+         default provider; the flag persists whatever path is taken. -->
+    <AiSetupOffer
+      v-if="showAiOffer" app-name="Just AI i18n &amp; DocGen"
+      @close="closeAiOffer"
+      @quick-setup="router.push('/ai?quicksetup=1')"
+      @connect-provider="router.push('/ai?providers=online')" />
 
     <!-- ── the boot splash — this app's plate (centre-composed, bars in the art's
          clear bottom strip; JW's is left-empty), the KIT's load group inside it.

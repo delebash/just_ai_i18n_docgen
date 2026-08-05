@@ -38,6 +38,17 @@ installLlmUi(app, {
     generalUse: "Translates your strings and checks its own work",
     slotsFootnote: "One model does everything here — it loads automatically on the first run; Load now just skips that first wait.",
   },
+  // This app's voice on the shared Quick Setup wizard (the surgery 2026-08-04: the
+  // 359-line fork died — the kit wizard + this voice + the shared cache-offer step
+  // replace it; canon words live in the labels store, never here).
+  quickSetupCopy: {
+    bandSub: "A free local translation engine in one click — the models offered here are the ones MEASURED on real localisation runs, sized to this PC.",
+    headSub: "A free local translation engine in one click — measured models, sized to this PC.",
+    confirmTitle: "Local translation AI",
+    modelHint: "Pick a model — best first: every one here was measured on real localisation runs rather than guessed at. One click installs the engine if it's missing, downloads the model, loads it, and makes it the model the Translate & Confirm presets run on.",
+    chatRole: "translates your strings and checks its own work",
+    doneBody: "Translate and Confirm run on this model — change it any time under Routing by feature.",
+  },
 });
 
 // In-app Help (kit drawer over docs/*.md) — the minimal drawer-only shape: no

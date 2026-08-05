@@ -132,12 +132,22 @@ test("routing by feature shows the THREE routed features; the promptless pane AG
 
 test("quick setup OPENS and offers translation-measured models, not JW's", async () => {
   await d.navigate("#/ai");
-  await d.waitUntil(`return [...document.querySelectorAll('button')].some(b => /Run Quick Setup/i.test(b.textContent))`, { timeout: 15_000 });
+  // The configured-state truth (A1190, built 2026-08-04): a set-up box shows
+  // "Re-run setup" + "Local AI is set up — <model> is the default"; a fresh box
+  // shows "Run Quick Setup". Both are the manual door.
+  await d.waitUntil(`return [...document.querySelectorAll('button')].some(b => /Run Quick Setup|Re-run setup/i.test(b.textContent))`, { timeout: 15_000 });
   // The band itself carries NO model dropdown — the wizard is a MODAL (3rd-report fix).
   assert.equal(await d.exec(`return document.querySelectorAll('.lu-qs-band [role=combobox], .lu-qs-band select').length;`), 0,
     "no inline model dropdown on the AI page");
-  await d.exec(`[...document.querySelectorAll('button')].find(b => /Run Quick Setup/i.test(b.textContent)).click();`);
-  await d.waitUntil(`return !!document.querySelector('[role=dialog]') && /Local translation AI/i.test(document.body.textContent)`);
+  await d.exec(`[...document.querySelectorAll('button')].find(b => /Run Quick Setup|Re-run setup/i.test(b.textContent)).click();`);
+  // A configured box lands on the "Already set up" truth screen first — walk
+  // through Change model to reach the confirm step both ways.
+  await d.waitUntil(`return !!document.querySelector('[role=dialog]')`, { timeout: 20_000 });
+  await d.waitUntil(`return /Already set up|Local translation AI/i.test(document.body.textContent)`, { timeout: 20_000 });
+  if (await d.exec(`return /Already set up/i.test(document.querySelector('[role=dialog]').textContent);`)) {
+    await d.exec(`[...document.querySelectorAll('[role=dialog] button')].find(b => /^Change model$/.test(b.textContent.trim()))?.click();`);
+  }
+  await d.waitUntil(`return /Local translation AI/i.test(document.body.textContent)`);
   // The preselected pick is the MEASURED flagship; JW's writing catalog is absent.
   await d.waitUntil(`return /Gemma 4 26B/i.test(document.body.textContent)`, { timeout: 10_000 });
   const page = await d.exec(`return document.body.textContent;`);
@@ -165,16 +175,22 @@ test("quick setup RUNS: one Cancel at a time, the routing it writes is valid, no
   const before = saved.find((p) => p.id === "p_translate");
 
   await d.navigate("#/ai");
-  await d.waitUntil(`return [...document.querySelectorAll('button')].some(b => /Run Quick Setup/i.test(b.textContent))`, { timeout: 15_000 });
-  await d.exec(`[...document.querySelectorAll('button')].find(b => /Run Quick Setup/i.test(b.textContent)).click();`);
+  await d.waitUntil(`return [...document.querySelectorAll('button')].some(b => /Run Quick Setup|Re-run setup/i.test(b.textContent))`, { timeout: 15_000 });
+  await d.exec(`[...document.querySelectorAll('button')].find(b => /Run Quick Setup|Re-run setup/i.test(b.textContent)).click();`);
   // Wait for the wizard to be READY, not merely present: it primes the catalog, the
   // ranking and the engine status first (its detect step). Clicking the instant the
   // dialog existed hit a disabled button and no run ever started — found by this test
   // on 2026-08-03, which is why the wizard now has a priming step to wait for.
+  // A configured box lands on "Already set up" first — Change model walks to confirm.
+  await d.waitUntil(`return !!document.querySelector('[role=dialog]') && /Already set up|Local translation AI/i.test(document.querySelector('[role=dialog]').textContent)`, { timeout: 20_000 });
+  if (await d.exec(`return /Already set up/i.test(document.querySelector('[role=dialog]').textContent);`)) {
+    await d.exec(`[...document.querySelectorAll('[role=dialog] button')].find(b => /^Change model$/.test(b.textContent.trim()))?.click();`);
+  }
+  // Canon words since the surgery (2026-08-04): the kit wizard's "Apply setup",
+  // not the dead fork's "Set it up".
   await d.waitUntil(
-    `return !!document.querySelector('[role=dialog]')
-         && [...document.querySelectorAll('[role=dialog] button')]
-              .some(b => /^Set it up$/.test(b.textContent.trim()) && !b.disabled)`,
+    `return [...document.querySelectorAll('[role=dialog] button')]
+              .some(b => /^Apply setup$/.test(b.textContent.trim()) && !b.disabled)`,
     { timeout: 20_000 },
   );
 
@@ -197,7 +213,7 @@ test("quick setup RUNS: one Cancel at a time, the routing it writes is valid, no
   assert.equal(confirmStep.cancels, 1, "confirm step: exactly one Cancel");
   assert.equal(confirmStep.bars, 0, "no progress bars before the run starts");
 
-  await d.exec(`[...document.querySelectorAll('[role=dialog] button')].find(b => /^Set it up$/.test(b.textContent.trim())).click();`);
+  await d.exec(`[...document.querySelectorAll('[role=dialog] button')].find(b => /^Apply setup$/.test(b.textContent.trim())).click();`);
   // TWO honest outcomes, and the test must not assume the slow one. A model that is
   // ALREADY RESIDENT finishes on the load channel's first poll (readLoadStatus returns
   // terminal `done` the moment /status says the router is running), so the wizard lands

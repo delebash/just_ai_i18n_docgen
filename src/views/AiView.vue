@@ -2,13 +2,12 @@
 // SPDX-License-Identifier: MIT
 // The kit's whole AI area — providers, model catalog + downloads, routing by
 // feature (live wiring: engine.make_send reads those presets), usage, console.
-// This app passes its OWN thin setup wizard through the kit's wizard seam
-// (machinery in the kit, steps and words per app — the family wizard rule),
-// and honours JW's ?quicksetup=1 deep link (the splash's "Set up local AI").
+// The KIT wizard runs here since the surgery (2026-08-04) — this app's voice
+// rides main.js's quickSetupCopy, the capability hides embeddings, the family
+// cache-offer lives in the kit step. It honours JW's ?quicksetup=1 deep link.
 import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { AiModelsArea, PaneHeader, useModelApply } from "@delebash/llm-ui";
-import QuickSetupI18n from "../components/QuickSetupI18n.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -41,7 +40,11 @@ onMounted(async () => {
     <div class="ai-area">
       <!-- No @quick-setup-closed handler: closing the wizard used to fling you to Home,
            which is disorienting when you opened the AI page on purpose. You stay here. -->
-      <AiModelsArea :wizard="QuickSetupI18n" :auto-open-quick-setup="openWizardOnce"
+      <!-- No :wizard override since the surgery (2026-08-04): the KIT wizard runs here,
+           voiced by main.js's quickSetupCopy, embeddings hidden by the capability, the
+           family cache-offer inside it. The 359-line fork is deleted. -->
+      <AiModelsArea :auto-open-quick-setup="openWizardOnce"
+        :initial-provider-scope="route.query.providers === 'online' ? 'online' : ''"
         :data-links="[
           { label: 'Context & glossary', href: '#/setup' },
           { label: 'Per-key notes', href: '#/review' },

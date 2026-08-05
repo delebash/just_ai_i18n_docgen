@@ -5,6 +5,7 @@ import { defineStore } from "pinia";
 import { applyAppearance, migrateAppearance } from "../services/appearance.js";
 
 const K_APPEARANCE = "jaid.appearance";
+const K_AI_OFFER = "jaid.aiOfferShown"; // the once-ever AI offer's flag (ruling R3)
 
 function readJson(key) {
   try {
@@ -17,8 +18,13 @@ function readJson(key) {
 export const useUiStore = defineStore("ui", {
   state: () => ({
     appearance: migrateAppearance(readJson(K_APPEARANCE)),
+    aiOfferShown: localStorage.getItem(K_AI_OFFER) === "1",
   }),
   actions: {
+    markAiOfferShown() {
+      this.aiOfferShown = true;
+      localStorage.setItem(K_AI_OFFER, "1");
+    },
     boot() {
       applyAppearance(this.appearance);
     },

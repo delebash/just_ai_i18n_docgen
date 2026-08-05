@@ -15,8 +15,16 @@ already downloaded AI files on this machine, the wizard offers to share them
 instead of downloading again. Saying yes re-points this app at the sibling's cache
 — **nothing on disk moves**, and the answer is reversible.
 
-The wizard appears once via the Home welcome or a `?quicksetup=1` link, and stays
-away once a default provider exists.
+**First contact is a one-time offer.** When a project is loaded and no AI provider
+is set up yet, the app shows the family's once-ever "Set up AI features" dialog —
+Run Quick Setup (local, private & free), Connect an online provider, or Skip for
+now. Whatever you pick, it never appears again; the AI page remains the manual door.
+
+**A set-up machine is told the truth.** Once a default exists, the AI page's band
+reads "Local AI is set up — *model* is the default · Re-run setup", and re-running
+opens on an "Already set up" screen offering only *Change model* or *Close* —
+nothing changes until you apply. The `?quicksetup=1` deep link stays away once a
+default provider exists.
 
 ## Why the model list is short
 

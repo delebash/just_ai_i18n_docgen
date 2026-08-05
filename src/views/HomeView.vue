@@ -118,9 +118,10 @@ function lastRunLabel(l) {
         <span>every finding, accept what's right, and ship translations you've actually seen.</span>
       </div>
     </div>
+    <!-- ONE door (ruling R3, 2026-08-04): the permanent "Set up local AI" button is
+         retired — the once-ever kit AiSetupOffer (App.vue) owns first AI contact. -->
     <div class="row" style="justify-content: center; gap: 12px">
       <UiButton intent="primary" label="Open Setup" @click="router.push('/setup')" />
-      <UiButton intent="secondary" label="Set up local AI" @click="router.push('/ai?quicksetup=1')" />
     </div>
   </div>
 
