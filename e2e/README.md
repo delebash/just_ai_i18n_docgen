@@ -58,6 +58,17 @@ exe — and read `<data>/logs/*.log` plus `<data>/ai-cache/llamacpp/logs/`.
   servers. The drivers LINGER after results — `taskkill /IM msedgedriver.exe
   /IM tauri-driver.exe /F` before and after a run, or the next run inherits
   a stale :4444 listener.
+  **The lingering drivers also hold the run's stdout pipe open**, so a
+  finished suite can look hung: the node process has printed all 19-20 result
+  lines and exited its tests, but nothing flushes until the drivers die
+  (2026-08-05 — a suite was declared "still running" three times when it had
+  already passed). Watch the LOG for the per-test result lines rather than
+  waiting on process exit: when the count of `^✔|^✖` lines reaches the test
+  count, kill the drivers and read the tally.
+  **Cadence** (user ruling 2026-08-05): this suite is a PRE-COMMIT gate, not a
+  per-change one — a full run is ~15 min wall clock. Per-change verification
+  is the fast gates (`npm run lint`, `npm run test:server`, `npm run
+  build:vite` — seconds), then ONE suite run before the commit.
   **One test writes**: "quick setup RUNS" drives the real wizard, so it
   writes the engine presets (that write IS the assertion — a wizard that
   corrupts routing must fail here) and then restores them, verifying the

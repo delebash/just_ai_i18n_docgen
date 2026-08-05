@@ -39,7 +39,57 @@
   round-tripped — after fixing the run route's promptless 404 (below). Your QC is
   now eyes-on-the-surface, not functionality.
 
-## THE APPROVED FIX PLAN (user: "do it all your rec", 2026-08-05) — in flight
+## WHERE WE ARE (written 2026-08-05 late, for the next session)
+
+**All five batches below are DONE, committed and pushed in all four repos**
+(docgen `dd4c889` · JW `8628cd5` · JV `8ad90eb` · runner `15374bd`; every tree
+clean and in sync with origin). Also done under separate rulings that night:
+the Setup targets pre-fill KEPT (your rec, accepted — see the Batch-2 note),
+the `/v1/server-auth` lockout escape built in JW **and** JV to match docgen
+(the apps work the same — your ruling), and the kit's `checkServer` per-probe
+500 ms abort so a dead local server shows its error in ~7.5 s instead of ~12.
+
+**THE NEXT WORK, approved and not started: the JV shared-stack integration
+(F1).** It lives in `../JustVioce/docs/dev/TASKS.md` — the F1 item there carries
+the whole thing: your verbatim frame ("simple drop in… same as jw and ai
+docgen", splash + loading model included), every fact re-verified against the
+live tree (what imports and what doesn't, JV's port 1430, the 7 renderer files,
+the 5 test files, the missing chrome, the kit's single host tab), the phase
+order that keeps JV working at every commit, and the NINE rulings owed before
+coding with my recommendation on each. **Read that item, not this line.**
+
+**Also queued, cross-app parity, presented 2026-08-05 and approved "all per
+your rec"** — these came out of a code sweep for "the apps share the same
+structure, same features except app-specific ones":
+- **B · `/v1/health` wire drift.** Three shapes for the family's one common
+  endpoint: docgen `{ok, product}` · JW `{status, product, version, apiVersion,
+  dataDir, dbReady}` · JV `{status, version, current_engine…}`. Nothing breaks
+  today (the kit only checks for HTTP 200), but "same API structure" wants one
+  shape. **Rec: JW's is the baseline superset** — `status, product, version,
+  apiVersion` required everywhere, app extras allowed on top; docgen keeps `ok`
+  as a legacy extra so nothing consuming it breaks. Record it in
+  `app-structure.md` when it lands. JV's half rides F1's server phase.
+- **C · Backup/restore/reset split three ways.** JW mounts the shared
+  `/v1/data/*` + kit `DataManagement`; docgen has the DECIDED-but-unbuilt item
+  (upstream the data router into `install_llm`, carrying JW's recorded lesson
+  that a reset must properly RE-SEED, then mount kit `DataManagement` under
+  Settings → Storage — the full decision text is in the Backups item below);
+  JV runs its own bespoke backup API. **Rec: execute docgen's decided item,
+  then migrate JV onto the shared router inside F1.**
+- **D · Kit `UpdatesPanel`.** JW mounts it, docgen doesn't, JV doesn't.
+  **Rec: rides C** (same adoption, same Settings page).
+- **E · Headless user doc.** JW has `docs/headless-access.md`; docgen covers
+  headless in one Settings bullet; JV documents run-modes its own way.
+  **Rec: give docgen its own `headless-access.md` mirroring JW's** (small —
+  the server URL, the browser door, the tokens, the keep-running switch);
+  JV's rides F1.
+- **F · Copy-URL wording.** JW's existing i18n key says "Headless URL copied";
+  the new tray toast says "Server URL copied" — one concept, two phrasings.
+  **Rec: settle on one phrase inside the recorded tray-i18n item** (the tray
+  menu is hardcoded English in all three apps — that localization gap is
+  tracked in JW's TASKS and covers these toasts too).
+
+## THE APPROVED FIX PLAN (user: "do it all your rec", 2026-08-05) — DONE
 
 The approved order, verbatim from the rec: **Batch 1 — Hotfixes**: docgen's
 glossary-erasure chain · appearance persistence + the exact-brand-colors ruling
