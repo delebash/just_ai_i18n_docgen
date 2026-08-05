@@ -29,8 +29,10 @@ pass asks the engine, string by string, ONLY about targets byte-identical to
 their source: "is this genuinely the same in this language?" Confirmed ones
 arrive in Review **pre-ticked** for one-click bulk accept. It never writes an
 acceptance itself — measured ~7.5% false-clear on short strings is exactly why
-the final click stays yours. *Today this pass runs on CLI `translate` runs; app-
-started runs skip it (tracked).*
+the final click stays yours. It runs after CLI `translate` runs AND after
+app-started runs (since 2026-08-04): a finished run's byte-identical proposals
+get the second opinion while the job shows "confirming", and Cancel still works
+between keys.
 
 ## 4 · Terminology — consistency with yourself
 
