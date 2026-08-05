@@ -33,3 +33,4 @@ dist-ssr
 e2e/drivers/
 e2e/shots/
 e2e/node_modules/
+e2e/.tmp-setup-fixture/

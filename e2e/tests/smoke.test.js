@@ -349,3 +349,81 @@ test("the global AI status button lives in the titlebar (JW parity)", async () =
     "titlebar must carry back/forward, the theme cycler and the AI status button",
   );
 });
+
+test("setup CREATE-FLOW: a fixture project round-trips the real form, then the real project is restored", async () => {
+  // The decided shape (2026-08-04): fixture-based — its own scratch en.json inside
+  // the harness, walk the REAL form's Check path → Save → loaded:true, then RESTORE
+  // the user's real project from /setup/state's own fields (the server holds ONE
+  // project) and delete the fixture. Runs LAST on purpose.
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+  const st0 = await (await fetch(`${API}/setup/state`)).json();
+  assert.equal(st0.loaded, true, "precondition: the real project is loaded");
+
+  // The config-dir derivation walks UP to the nearest package.json
+  // (init.py find_project_root — "what every JS tool does"). Without its own
+  // marker the fixture's walk escapes to e2e/package.json and the tool folder
+  // lands OUTSIDE the fixture root, dodging cleanup (it did — the stray
+  // e2e/just-ai-i18n-docgen/ got committed once, 2026-08-04). So the fixture
+  // app carries its own package.json and everything stays inside.
+  const root = path.resolve("./.tmp-setup-fixture");
+  const appRoot = path.join(root, "app");
+  const locales = path.join(appRoot, "src", "i18n", "locales");
+  fs.mkdirSync(locales, { recursive: true });
+  fs.writeFileSync(path.join(appRoot, "package.json"),
+    JSON.stringify({ name: "setup-fixture-app", private: true }));
+  const enPath = path.join(locales, "en.json");
+  fs.writeFileSync(enPath, JSON.stringify({ app: { hello: "Hello {name}", bye: "Bye" } }));
+
+  try {
+    await d.navigate("#/setup");
+    await d.waitUntil(`return !!document.querySelector('input[placeholder*="en.json"]')`);
+    // Type the fixture path through Vue's v-model (native setter + input event).
+    await d.exec(`
+      const inp = document.querySelector('input[placeholder*="en.json"]');
+      const set = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+      set.call(inp, ${JSON.stringify(enPath)});
+      inp.dispatchEvent(new Event("input", { bubbles: true }));
+    `);
+    await d.exec(`[...document.querySelectorAll('button')].find(b => /Check path/i.test(b.textContent))?.click();`);
+    await d.waitUntil(`return /Placeholders/i.test(document.body.textContent)`, { timeout: 15_000 });
+
+    // The form PREFILLS targets from the loaded real project — select a language
+    // only when none is chosen: multiselect items TOGGLE, so clicking an
+    // already-selected one deselects it and Save stays disabled (found by the
+    // 2026-08-04 flow probe: chips went empty, disabled:true, silent no-op).
+    const hasTarget = await d.exec(`return !/Pick target languages/.test(document.querySelector('.ui-mselect-trigger')?.textContent || "");`);
+    if (!hasTarget) {
+      await d.exec(`document.querySelector('.ui-mselect-trigger')?.click();`);
+      await d.waitUntil(`return document.querySelectorAll('.ui-mselect-item').length > 0`);
+      await d.exec(`[...document.querySelectorAll('.ui-mselect-item')].find(i => /Spanish/i.test(i.textContent))?.click();`);
+      await d.exec(`document.querySelector('.ui-mselect-trigger')?.click();`); // close the popover
+      await d.sleep(200);
+    }
+
+    await d.exec(`[...document.querySelectorAll('button')].find(b => /Save project/i.test(b.textContent))?.click();`);
+    let saved = null;
+    for (let i = 0; i < 20; i++) {
+      saved = await (await fetch(`${API}/setup/state`)).json();
+      if (saved.loaded && String(saved.source || "").includes(".tmp-setup-fixture")) break;
+      await new Promise((r) => setTimeout(r, 500));
+    }
+    assert.equal(saved.loaded, true, "the fixture project must be loaded");
+    assert.equal(String(saved.source || "").includes(".tmp-setup-fixture"), true,
+      "the loaded source must be the fixture en.json");
+  } finally {
+    // RESTORE the real project — never leave the server on the scratch one.
+    const restoreBody = { path: st0.source, targets: st0.langs };
+    if (typeof st0.context === "string") restoreBody.context = st0.context;
+    if (Array.isArray(st0.glossary)) restoreBody.glossary = st0.glossary;
+    const r = await fetch(`${API}/setup/save`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify(restoreBody),
+    });
+    const back = await r.json().catch(() => ({}));
+    assert.equal(r.ok && back.ok === true, true, "the real project must be restored");
+    const st1 = await (await fetch(`${API}/setup/state`)).json();
+    assert.equal(st1.configPath, st0.configPath, "restored to the same real config");
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
