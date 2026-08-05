@@ -358,6 +358,44 @@ lint/build. **The tray itself is eyes-on QC — webdriver can't see a tray.**
   layer (every string a literal) — ruled LATER (R4), after the single-source
   system.
 
+- **DOCGEN CONVERGES TO TEMPLATE ROWS — decided 2026-08-05 s2 (the user's
+  ruling: "llm runner should be same across apps, nothing hardcoded… that
+  means you need to change the docgen"; sequencing decided: the follow-on
+  item right AFTER JV F1 delivers the shared run helper — NOT folded into
+  F1). The full decision:**
+  - translate + confirm become Lab-editable template rows
+    (`{{lang}}`/`{{context}}`/`{{glossary}}`/`{{items}}`); the pipeline keeps
+    computing the VALUES (shielding, batching, retry ladder produce
+    pre-shielded item lists — rows own only the WORDING); the CLI door
+    renders the SAME rows (one resolver, two doors holds). JSON contract
+    rides the row's jsonMode/schema.
+  - **The cache key gains a template hash/revision** — the load-bearing find:
+    context already invalidates the cache when it changes; an EDITED TEMPLATE
+    must invalidate the same way or cached translations silently carry the
+    old prompt's behavior (the 27-minute lesson's extension).
+  - **Shield-before-render invariant pinned by a test**: shielding happens
+    before variable insertion; no template edit can unshield a value.
+  - Hard gate first (shared with JV's ruling 9): verify shared `render()`'s
+    missing-placeholder behavior; if silent-empty, the kit fail-loud
+    hardening lands BEFORE any conversion.
+  - **The promptless mode retires family-wide**: kit FeatureLab's promptless
+    machinery (builtPrompt/builtMeta, promptUnlocked, previewEpoch,
+    jsonToggle/promptEditable threading), the Workbench preview plumbing
+    (loadPreview, previewErr fallback, the zero-actions drop at
+    FeatureWorkbench.vue:59-60), this app's `/v1/ai/prompt-preview` route +
+    `_preview_translate`/`_preview_confirm` + test_preview.py (6 tests); the
+    smoke's promptless-Lab assertions rewrite to row-Lab assertions;
+    app-structure §11 rewrites to ONE feature kind. `dataLinks` is KEPT
+    (generic links-beside-the-prompt affordance). Kit-side half recorded in
+    the runner's TASKS.
+  - The healthy-project sampling ruling's SPIRIT transfers: live sample
+    composers via `configureTestData` (JW-style) — busiest language's
+    pending keys; finished project samples done keys and says so. Plus
+    `test_samples` seeds so every feature is Lab-testable.
+  - JW's en/es get a dead-key sweep for promptless-only manifest strings.
+  - After conversion, this app's features APPEAR in the Workbench
+    automatically (the zero-row drop stops applying).
+
 - **The single-source text system — NEXT BIG TASK, own go, docs-first order
   (ruled).** The decision in full: one authored docs page per surface is the
   single source for (1) the Help page, (2) the in-app short texts — front-matter
