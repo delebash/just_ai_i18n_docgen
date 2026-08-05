@@ -63,10 +63,11 @@ refresh, the remaining word-decisions.
 (148 pytest + lint/build + JW vitest 567 over the shared kit) EXCEPT: the
 unaccept surface (accepted rows never reach the queue — the fix IS a surface,
 folded into Batch 3's buckets) · "two doors" wording (rides Batch 5's docs
-sweep) · **Setup targets pre-fill — DECISION NEEDED**: the audit says the
-original left targets never-pre-decided; SetupView:47 pre-fills every found
-locale on Check (its comment argues "facts, offered — not pre-decided").
-Keep the pre-fill or match the original? Your call. · Two audit lines proved
+sweep) · **Setup targets pre-fill — RULED 2026-08-05 ("1 your rec"): KEEP the
+pre-fill.** An existing es.json is near-proof of intent; Save stays the
+explicit decision and the ticks stay editable; the code already pre-fills
+only when the target list is empty, so a returning project keeps its saved
+choices. No code change. · Two audit lines proved
 NON-REPRODUCIBLE against the code and were compressions gone bad ("finish_run
 counts failures as translated" — job `done` counts only STAGED keys;
 "build_rows loops proposals twice" — one findings pass + one proposal_keys
