@@ -7,11 +7,11 @@
 // button — the splash plate, the three steps, and the two ways in.
 // The run strip is the kit's AiTaskStrip over the translate task the jobs store
 // registers — same surface as the AI-tasks panel, no bespoke strip.
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import {
   AiTaskStrip, Icon, UiButton, UiCheckbox, UiInput, UiProgress, UiTable,
-  UiTag, pushToast, useAiTasksStore,
+  UiTag, pushToast, useAiTasksStore, usePoll,
 } from "@delebash/llm-ui";
 import splashPlate from "../assets/images/splash-plate.jpg";
 import { langName } from "../services/langs";
@@ -27,17 +27,17 @@ const filter = ref("");
 const selected = ref([]);
 
 
-let retryTimer = null;
+// While the server is unreachable (boot race), keep trying — Home must recover by
+// itself, never stick on a wrong state. The kit's usePoll (auto-stops on unmount)
+// replaced the hand-rolled setInterval, 2026-08-04.
+const retry = usePoll(async () => {
+  if (project.serverDown) await project.fetchSummary();
+}, 3000);
 onMounted(async () => {
   await Promise.all([project.refresh(), project.fetchSummary(), jobs.refresh()]);
   if (jobs.job?.state === "running") jobs.watch();
-  // While the server is unreachable (boot race), keep trying — Home must recover
-  // by itself, never stick on a wrong state.
-  retryTimer = setInterval(async () => {
-    if (project.serverDown) await project.fetchSummary();
-  }, 3000);
+  retry.start();
 });
-onUnmounted(() => clearInterval(retryTimer));
 
 // A finished run changes every count on this page — refetch when one settles.
 watch(() => jobs.job?.state, async (state, prev) => {

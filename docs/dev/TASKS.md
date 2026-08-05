@@ -130,41 +130,28 @@
   per your ruling the appearance surface becomes SHARED for JV + this app; JW
   keeps its richer own.
 
-- **CONTRACT BUILD — remainder under the standing go.** What's DONE + gated is in
-  git (manifest, contract-fed strings, ConnectionError mount-instead, PaneHeader +
-  SettingsShell lifts, contract gates proven to bite, labels store with in-place
-  invariant + JW boot/locale feed). The remainder, each the approved decision:
-  1. **QuickSetup surgery** — the kit wizard gains a copy seam (`quickSetupCopy`,
-     the `catalogCopy` pattern) + the family **cache-offer step** (its server half
-     is already in the shared stack; only the step's UI is stranded in this app's
-     fork, port from `QuickSetupI18n.vue:86-139, 279-295`) + a capabilities gate on
-     the embeddings flow (also fixes the embeddings note at `AiModelsArea.vue:573`)
-     + an `onApplied` hook; then this app's 359-line `QuickSetupI18n.vue` fork IS
-     DELETED — its only app-specific behavior (pointing translate/confirm presets
-     at the chosen model) becomes a few-line hook via the config service. Canon
-     words apply: **"Apply setup"** · **"The engine"** (already in the manifest).
-     Then re-check the e2e wizard tests (smoke runs the REAL wizard — its routing
-     write + restore and the modal title copy). **MUST READ first:**
-     `docs/plans/2026-08-04-consistency-sweep.md` §"Resumption notes".
-  2. **The configured-state truth** (decided 2026-08-04, A1190 — this item was
-     LOST from the tracker and restored by the audit): when a default provider
-     already exists, the AI band stops pitching like a first run and reads
-     "**Local AI is set up — <model> is the default · Re-run setup**", and the
-     wizard opens on an "**already set up**" screen offering only *change model*
-     or *close*. The manual "Run Quick Setup" door stays — it just tells the truth
-     about the state. (Kit change; both apps get it.)
-  3. **The once-ever AI offer** (ruling R3): every app uses JW's one-time modal —
-     lift JW's `AiSetupDialog` into the kit with manifest copy; this app drops the
-     permanent Home "Set up local AI" button and persists the once-flag; the
-     standard stops permitting two shapes.
-  4. **TitleBar frame lift** — kit component lifted from JW's donor (never
-     authored fresh), this app swaps on.
-  5. **usePoll export** — kit exports it; this app's two hand-rolled
-     `setInterval` polls (`HomeView.vue:36-38`, `stores/jobs.js:126-129`) swap on.
-  6. **JW adopts SettingsShell + gains the "Server" section (ruling R1) and the
-     "Total" disk row (ruling R2)** — its own gated step with its suite + your QC.
-  7. **`app-structure.md` §11 points at the contract manifest** instead of
-     restating words; the raw hue-slider vs `UiColorPicker` check rides along.
+- **CONTRACT BUILD — remainder under the standing go.** SHIPPED 2026-08-04 late
+  (in git): the QuickSetup surgery (copy seam · family cache-offer in the kit ·
+  capability gate incl. AiModelsArea:573 · onApplied seam · the 359-line fork
+  DELETED · canon words by construction), the configured-state truth (band
+  "Local AI is set up — <model> is the default · Re-run setup"; wizard "Already
+  set up" → Change model/Close), and the once-ever `AiSetupOffer` (kit lift of
+  JW's donor; docgen's permanent Home button retired, flag persisted,
+  providers=online deep link fixed). 19/19 smoke against the rebuilt exe on the
+  real project. ALSO SHIPPED same night: the kit TitleBar FRAME (JW's mechanics
+  + docgen's post-nav settle; right side = the app's slot; docgen swapped on),
+  `usePoll` exported + docgen's Home retry poll swapped (the `stores/jobs.js`
+  fallback is NOT a usePoll site — a self-terminating setTimeout chain in a
+  Pinia store has no component lifecycle; recorded, not swapped), JW's "General"
+  section renamed **"Server"** (R1, en+es) + the **Total** disk row (R2), and
+  §11 now POINTS at the manifest for words. Still open from this item:
+  1. **JW swaps its local set-tabs strip for kit `SettingsShell`** — deferred
+     with reason: JW already renders the canonical top-tab shape (it IS the
+     donor the kit component was lifted from), so the swap is dedup, not a
+     divergence fix; it needs a careful 1300-line template wrap + its own
+     suite + your QC.
+  2. **The raw hue-slider vs `UiColorPicker` check** — rides the appearance
+     chunk's diagnosis (the shared JV+docgen surface rebuild).
 
 - **THE CONSISTENCY SWEEP — the enforcement list**: 48 divergences enumerated with
   file:line evidence in `docs/plans/2026-08-04-consistency-sweep.md`; 9 fixed
