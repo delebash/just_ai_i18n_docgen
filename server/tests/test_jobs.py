@@ -85,3 +85,37 @@ def test_a_dead_engine_is_a_recorded_outcome_not_a_hang(tmp_path):
     assert st["state"] == "failed" and "engine offline" in st["error"]
     assert run_history(store)[0]["finishedAt"] is not None, "the run closed its record"
     assert not jobs.busy, "a failed job frees the slot for the next start"
+
+
+def test_done_run_hands_its_identical_proposals_to_the_confirm_pass(tmp_path):
+    """The design's pre-tick (2026-08-04 — only the CLI ran it before): a DONE run
+    calls the injected confirm with EXACTLY the byte-identical proposals; a failure
+    inside confirm never fails the run whose translations already staged."""
+    store = open_project(tmp_path)
+    jobs = JobManager(store=store)
+    gate = threading.Event()
+    seen: list[dict] = []
+    jobs.start(lang="es", engine="e", send=None, scope="all",
+               subset={"same": "No", "moved": "Hello"},
+               cfg={}, cache_path=tmp_path / "c.json",
+               translate=controllable_translate(gate, [{"same": "No", "moved": "Hola"}]),
+               confirm=seen.append)
+    gate.set()
+    jobs.settled()
+    assert jobs.status()["state"] == "done"
+    assert seen == [{"same": "No"}], "only the byte-identical proposal is confirmed"
+
+    # A confirm that BLOWS UP is an annotation failure, not a run failure.
+    jobs2 = JobManager(store=store)
+    gate2 = threading.Event()
+
+    def boom(_identical):
+        raise RuntimeError("engine down")
+
+    jobs2.start(lang="es", engine="e", send=None, scope="all", subset={"same": "No"},
+                cfg={}, cache_path=tmp_path / "c2.json",
+                translate=controllable_translate(gate2, [{"same": "No"}]),
+                confirm=boom)
+    gate2.set()
+    jobs2.settled()
+    assert jobs2.status()["state"] == "done"

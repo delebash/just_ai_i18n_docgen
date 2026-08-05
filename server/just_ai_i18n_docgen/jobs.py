@@ -72,11 +72,15 @@ class JobManager:
             fn({"type": type_, **data})
 
     def start(self, *, lang: str, engine: str, send: Callable, scope: str, subset: dict,
-              cfg: dict, cache_path, translate: Callable = translate_language) -> dict:
+              cfg: dict, cache_path, translate: Callable = translate_language,
+              confirm: Callable | None = None) -> dict:
         """Starts a run over `subset` and stages every result as a proposal. Returns
         immediately — which is what makes the endpoint a 202 rather than a 50-minute
         hang. `translate` is injectable so tests drive the whole lifecycle — progress,
-        cancel, failure, rejoin — without an engine."""
+        cancel, failure, rejoin — without an engine. `confirm` (2026-08-04 — the design
+        says the confirmation pass PRE-TICKS rows, and only the CLI ran it before) is
+        called after a DONE run with the byte-identical proposals ({key: value});
+        annotation-only, so its failure never fails the run."""
         if self.busy:
             raise JobBusyError("a job is already running")
 
@@ -97,13 +101,15 @@ class JobManager:
         job["thread"] = threading.Thread(
             target=self._run, args=(job,),
             kwargs={"send": send, "subset": subset, "cfg": cfg,
-                    "cache_path": cache_path, "translate": translate},
+                    "cache_path": cache_path, "translate": translate,
+                    "confirm": confirm},
             daemon=True, name=f"jah-job-{lang}",
         )
         job["thread"].start()
         return self.status()
 
-    def _run(self, job: dict, *, send, subset, cfg, cache_path, translate) -> None:
+    def _run(self, job: dict, *, send, subset, cfg, cache_path, translate,
+             confirm=None) -> None:
         seen: set[str] = set()
 
         def stage(partial: dict) -> None:
@@ -134,6 +140,20 @@ class JobManager:
             job["requests"] = result["requests"]
             job["failed"] = result["failed"]
             job["state"] = "cancelled" if result.get("cancelled") else "done"
+            # The confirmation pass (the design: pre-tick the obvious — only the CLI
+            # ran it until 2026-08-04). Over the DONE run's byte-identical proposals
+            # only; annotations, never verdicts; a confirm failure never fails the
+            # run whose translations already staged.
+            if job["state"] == "done" and confirm is not None:
+                identical = {k: v for k, v in result["values"].items()
+                             if subset.get(k) == v}
+                if identical:
+                    self._emit("confirming", {"count": len(identical),
+                                              "lang": job["lang"]})
+                    try:
+                        confirm(identical)
+                    except Exception as err:  # noqa: BLE001 — annotation-only
+                        self._emit("confirm-error", {"message": str(err)})
         except Exception as err:  # noqa: BLE001 — a dead engine is a job outcome
             job["state"] = "failed"
             job["error"] = str(err)

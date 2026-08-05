@@ -45,9 +45,11 @@ Each queued key shows its source, an editable target, and one or more flags:
 - **Undo** — one click undoes the last action, even when that action was a bulk
   apply of two thousand keys.
 - **Accept N pre-ticked** — bulk-accepts rows whose only flag is `untranslated`
-  and which the confirmation pass verified as genuinely-the-same. *Today the
-  confirmation pass runs on CLI `translate` runs — a run started from the app
-  doesn't produce pre-ticks yet.*
+  and which the confirmation pass verified as genuinely-the-same. The pass runs
+  after CLI `translate` runs AND after app-started runs (since 2026-08-04): when
+  a run finishes, its byte-identical proposals get the second opinion, and the
+  rows arrive pre-ticked the moment you apply them. The engine still never signs
+  off — pre-ticks are annotations; the acceptance is always your click.
 
 ## Accepting — why acceptances expire
 

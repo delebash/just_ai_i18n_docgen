@@ -36,7 +36,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from . import appmeta
 from .accepted import acceptance_entry, acceptance_hash, load_accepted, save_accepted
 from .checks import build_context, check_one, run_checks
-from .confirm import build_confirm_prompt
+from .confirm import CONFIRM_CODE, build_confirm_prompt, confirm_identical, make_ask
 from .engine import EngineNotConfigured, make_send
 from .init import gitignore_lines, plan_init, write_init
 from .jobs import JobBusyError, JobManager
@@ -54,6 +54,7 @@ from .state import (
     proposal_count,
     proposal_keys,
     proposals,
+    put_confirmation,
     put_reference,
     record_action,
     review_progress,
@@ -805,10 +806,36 @@ def make_workspace_router(ws: Workspace) -> APIRouter:
                # notes MUST be here: the note a reviewer writes on a key is sent when
                # they press re-translate on that same key — the one place it matters.
                "notes": flatten(p.read_notes(lang))}
+        # The confirmation pass for APP runs (the design's pre-tick, 2026-08-04 —
+        # only CLI `translate` ran it before): called by the job worker with the
+        # DONE run's byte-identical proposals; the hash carries the STAGED value,
+        # so the rows arrive pre-annotated the moment they're applied. Annotations
+        # only — the engine never writes <lang>.accepted.json.
+        def confirm_pass(identical: dict) -> None:
+            ask = make_ask("confirm")
+            res = confirm_identical(
+                keys=sorted(identical), source_flat=p.src, target_flat=identical,
+                target_lang=lang, context=p.cfg.get("context", ""),
+                do_not_translate=(p.cfg.get("glossary") or {}).get("doNotTranslate", []),
+                ask=ask,
+            )
+            by = "engine (confirm preset)"
+            for c in res["cleared"]:
+                put_confirmation(p.state, lang=lang, key=c["key"],
+                                 hash=acceptance_hash(key=c["key"], code=CONFIRM_CODE,
+                                                      src=c["src"], dst=c["dst"] or ""),
+                                 verdict="same", engine=by)
+            for pr in res["proposed"]:
+                put_confirmation(p.state, lang=lang, key=pr["key"],
+                                 hash=acceptance_hash(key=pr["key"], code=CONFIRM_CODE,
+                                                      src=pr["src"], dst=pr["dst"] or ""),
+                                 verdict="translate", suggestion=pr["suggestion"],
+                                 engine=by)
+
         try:
             status = ws.jobs.start(lang=lang, engine=preset_id or "translate",
                                    send=send, scope=scope, subset=subset, cfg=cfg,
-                                   cache_path=p.paths.cache_path)
+                                   cache_path=p.paths.cache_path, confirm=confirm_pass)
         except JobBusyError as e:
             raise HTTPException(409, str(e)) from e
         return {"job": status}

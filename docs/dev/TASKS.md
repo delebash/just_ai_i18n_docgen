@@ -63,12 +63,12 @@
   designed honest UI (Continue button + auto-dismiss). If the plate-sit recurs,
   re-measure time-to-health once right after a machine reboot.
 
-- **App-run jobs must gain the confirmation pass — a GAP, not a question** (the
-  audit's correction 2026-08-04: root CLAUDE.md records "the confirmation pass
-  PRE-TICKS rows in workshop state" as THE design, unconditional). Today only CLI
-  `translate` runs the pass; a job started from the app leaves every row un-ticked.
-  Decision: app-run jobs run the same confirmation pass and pre-tick the same way.
-  Its build is its own go (it touches the job pipeline).
+- *(App-run confirmation pass: BUILT 2026-08-04 late — the job worker calls an
+  injected confirm with the DONE run's byte-identical proposals; the hash carries
+  the staged value so rows arrive pre-ticked on apply; a confirm failure never
+  fails the run (annotation-only, `confirm-error` on the job stream). 139 server
+  tests; review.md updated. Close-by-delete when your QC sees a pre-ticked row
+  from an app run.)*
 
 - **Product questions from the code-first audit (2026-08-04) — your rulings:**
   (b) The **probe** is CLI-only, so `unsure` scope finds nothing for app-only users
