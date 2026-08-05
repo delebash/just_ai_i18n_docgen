@@ -33,8 +33,11 @@
   production), the REAL generated prompt read-only with "Edit copies for this test"
   unlock → ephemeral never-saved copies, "Restore generated", the sample line naming
   its source + built-time, finished-project sampling (see the shipped-decisions note
-  at the bottom). The Lab's test-RUN loop (Run in a column → Use in production)
-  needs a loaded model — that part is yours to QC live.
+  at the bottom). **The test-RUN loop is PROVEN LIVE (2026-08-04 late):** ▶ Run in a
+  column produced a real Spanish translation through `gemma-4-26b-a4b-qat-xl`
+  (176→99 tok · 25 tok/s · 4.0s), registered in the AI-task strip, promotion PUT
+  round-tripped — after fixing the run route's promptless 404 (below). Your QC is
+  now eyes-on-the-surface, not functionality.
 
 ## Open — needs your go (each item = the approved decision, in full)
 
@@ -71,13 +74,18 @@
   hardcodes `0.1.0` beside pyproject's version. (h) `glossary` shape drifts (bare
   array vs `{doNotTranslate}`).
 
-- **Test-mode links to the prompt's real data — needs one design decision first**
-  (agreed in the Lab design, A917: "test mode links straight to those" — the
-  context sentence, glossary, per-key notes — "so 'I want the prompt to say X' has
-  a real home"; built today only as tooltip words). Open question before coding:
-  the kit can't know app routes, so the door is either a kit seam (the app passes
-  link targets into the Workbench) or an app-side hint line. Decide in chat, then
-  build.
+- **Test-mode links to the prompt's real data — RULED Option A (2026-08-04, in
+  build):** a small kit seam, per the user: "this is our standard kit mode — we
+  have props that change features slightly for specific app cases." The approved
+  shape: FeatureLab accepts an optional `dataLinks` prop — the app passes its own
+  targets, e.g. `[{label: "Context & glossary", href: "#/setup"}, {label:
+  "Per-key notes", href: "#/review"}]` — and the kit renders them beside the
+  generated prompt with a canon-worded lead ("Change what this prompt says:")
+  from the manifest. Any future promptless app gets the affordance by passing
+  links; nothing app-specific enters the kit; JW passes nothing and renders
+  nothing. Chain: AiModelsArea forwards → FeatureWorkbench → promptless
+  FeatureLab; JW's en/es catalogs mirror the new manifest key (the twin's
+  toEqual).
 
 - **Help is wired minimal (2026-08-04): drawer + "?" on Settings and AI only** —
   the other five views still hand-roll `.page-head` (the open PaneHeader contract
@@ -181,4 +189,9 @@ stamp on the sample line (absolute clock time on purpose — a relative "2 min a
 goes stale without a ticker) · the promptless Lab's strings moved onto the labels
 store with JW en+es keys (es hand-translated, flagged in JW's tracker for the
 translator pass) · smoke asserts the unlock affordance · §11/ai-setup/CLAUDE.md
-corrected to the decided preview contract.)*
+corrected to the decided preview contract · the Option-A `dataLinks` seam (Context
+& glossary → Setup, Per-key notes → Review) · **the shared run route's promptless
+404 fixed IN THE SHARED STACK** (`/v1/ai/run` + `/v1/ai/stream` now accept
+body-supplied system+userTemplate when no spec row exists — the kit's own header
+claimed "both apps mount" these; they 404'd here; found by the first live ▶ Run,
+fixed per the recorded A922 decision, 756-test runner suite green + 2 new tests).)*

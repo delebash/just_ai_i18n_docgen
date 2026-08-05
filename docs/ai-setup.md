@@ -45,6 +45,8 @@ To experiment with wording, **Edit copies for this test** unlocks editable copie
 inside the test columns — they run once and are never saved (every real run
 rebuilds its own prompt); **Restore generated** re-seeds the columns from the
 generated prompt, and the sample line always names what fed the preview and when
-it was built. On a language that's already fully translated there's nothing
+it was built. To change what the prompt *really* says, follow the links under it —
+**"Change what this prompt says:" → Context & glossary** (Setup) and **Per-key
+notes** (Review) — that data is what the builder assembles on every run. On a language that's already fully translated there's nothing
 pending to sample, so the preview samples already-translated keys and says so —
 the Lab still renders and tuning still works on a finished project.

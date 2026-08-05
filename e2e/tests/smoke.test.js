@@ -116,6 +116,8 @@ test("routing by feature shows the THREE routed features; the promptless pane AG
     assert.equal(/never|nothing here is saved/i.test(page), true, "the test-only banner must state the contract");
     assert.equal(/Save as preset/i.test(page), true, "the preset surface must render for a promptless feature");
     assert.equal(/Edit copies for this test/.test(page), true, "the unlock affordance must render (the read-only-with-unlock decision)");
+    assert.equal(/Change what this prompt says:/.test(page) && /Context & glossary/.test(page), true,
+      "the data links must render (Option-A seam, ruling 2026-08-04)");
   } else {
     // The pane shows the kit's raw error text, where FastAPI —-escapes the
     // em-dash — so assert the pre-em-dash head of the parsed reason.

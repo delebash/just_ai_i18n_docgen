@@ -41,7 +41,11 @@ onMounted(async () => {
     <div class="ai-area">
       <!-- No @quick-setup-closed handler: closing the wizard used to fling you to Home,
            which is disorienting when you opened the AI page on purpose. You stay here. -->
-      <AiModelsArea :wizard="QuickSetupI18n" :auto-open-quick-setup="openWizardOnce" />
+      <AiModelsArea :wizard="QuickSetupI18n" :auto-open-quick-setup="openWizardOnce"
+        :data-links="[
+          { label: 'Context & glossary', href: '#/setup' },
+          { label: 'Per-key notes', href: '#/review' },
+        ]" />
     </div>
   </div>
 </template>
