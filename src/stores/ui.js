@@ -6,6 +6,7 @@ import { applyAppearance, migrateAppearance } from "../services/appearance.js";
 
 const K_APPEARANCE = "jaid.appearance";
 const K_AI_OFFER = "jaid.aiOfferShown"; // the once-ever AI offer's flag (ruling R3)
+const K_KEEP_RUNNING = "jaid.keepServerRunning"; // the family headless ruling (2026-08-04)
 
 function readJson(key) {
   try {
@@ -19,11 +20,16 @@ export const useUiStore = defineStore("ui", {
   state: () => ({
     appearance: migrateAppearance(readJson(K_APPEARANCE)),
     aiOfferShown: localStorage.getItem(K_AI_OFFER) === "1",
+    keepServerRunning: localStorage.getItem(K_KEEP_RUNNING) === "1",
   }),
   actions: {
     markAiOfferShown() {
       this.aiOfferShown = true;
       localStorage.setItem(K_AI_OFFER, "1");
+    },
+    setKeepServerRunning(v) {
+      this.keepServerRunning = !!v;
+      localStorage.setItem(K_KEEP_RUNNING, v ? "1" : "0");
     },
     boot() {
       applyAppearance(this.appearance);

@@ -162,6 +162,16 @@ function dropToken(t) {
   saveAuth({ tokens: auth.value.tokens.filter((x) => x !== t) });
 }
 
+// The keep-running toggle writes the shell's flag immediately AND persists in the
+// ui store (App.vue re-applies it every boot — the Rust flag resets per launch).
+async function setKeepRunning(v) {
+  ui.setKeepServerRunning(!!v);
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    await invoke("set_keep_server_running", { keepRunning: !!v });
+  } catch { /* browser dev — no shell; the store still remembers */ }
+}
+
 onMounted(async () => {
   await Promise.all([project.refresh(), loadStorageRoot(), loadDiskUsage(), loadAuth()]);
 });
@@ -301,6 +311,21 @@ onMounted(async () => {
               <tr><th>URL</th><td class="mono">{{ headlessUrl }}</td></tr>
             </tbody>
           </table>
+          <!-- The family headless/tray ruling (2026-08-04, JV's donor): OFF ⇒
+               closing the window stops everything; ON ⇒ the window closes but the
+               tray + server stay. -->
+          <label class="row" style="gap: 10px; margin-top: 12px; align-items: center">
+            <UiToggle
+              :model-value="ui.keepServerRunning"
+              @update:model-value="setKeepRunning"
+            />
+            <span>Keep server running after the app closes</span>
+          </label>
+          <p class="hint" style="margin-top: 4px">
+            With this on, closing the window hides the app to the tray and the
+            server keeps serving — use the tray to show the window again or quit
+            for real.
+          </p>
         </section>
         <section class="card">
           <h2>Access tokens</h2>

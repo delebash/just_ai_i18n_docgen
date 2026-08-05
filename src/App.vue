@@ -56,6 +56,13 @@ const aiTasksNav = useAiTasksNav();
 // cannot drift from JW again. Nothing loading → no splash → the app just opens.
 
 onMounted(async () => {
+  // Re-apply the persisted keep-running flag to the shell every boot (the Rust
+  // side resets per launch; the family headless ruling 2026-08-04).
+  if (ui.keepServerRunning) {
+    import("@tauri-apps/api/core")
+      .then(({ invoke }) => invoke("set_keep_server_running", { keepRunning: true }))
+      .catch(() => {});
+  }
   await project.refresh();
   if (!ui.aiOfferShown && project.loaded) {
     try {
