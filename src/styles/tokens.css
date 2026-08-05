@@ -2,9 +2,14 @@
 /* just-ai-i18n-docgen tokens — the kit's token contract, retuned.
    Contract reference: @delebash/llm-ui common/tokens.contract.css. */
 :root {
-  --accent: #4f46e5;
-  --accent-soft: #eef0fe;
-  --accent-ink: #4338ca;
+  /* Accent — HUE-DRIVEN (the JV vocabulary, ported 2026-08-04: the kit engine
+     sets --accent-hue and stamps [data-theme]; static hexes here were why the
+     Appearance hue slider and mode picker did NOTHING — the user's QC). Default
+     hue 243 = this app's indigo (DEFAULT_APPEARANCE.accentHue). */
+  --accent-hue: 243;
+  --accent:      oklch(0.538 0.190 var(--accent-hue));
+  --accent-ink:  oklch(0.446 0.160 var(--accent-hue));
+  --accent-soft: oklch(0.948 0.020 var(--accent-hue));
   --on-accent: #fff;
   --ink: #1a1a1a;
   --ink-2: #4a4a4a;
@@ -34,27 +39,27 @@
   --shadow-2: 0 8px 24px rgba(0, 0, 0, .14);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --accent: #818cf8;
-    --accent-soft: #272a44;
-    --accent-ink: #a5b0fa;
-    --ink: #e6e6e6;
-    --ink-2: #b8b8b8;
-    --ink-3: #8a8a8a;
-    --muted: #7d7d7d;
-    --surface: #1d2126;
-    --surface-2: #22272d;
-    --surface-3: #2a3038;
-    --border: #343a42;
-    --border-strong: #4a515b;
-    --danger: #d06a53;
-    --danger-bg: #3a2622;
-    --success: #5aa886;
-    --success-bg: #223129;
-    --info: #6ba3d6;
-    --info-bg: #202c38;
-    --warn-bg: #38311f;
-    --shadow-2: 0 8px 24px rgba(0, 0, 0, .5);
-  }
+/* Dark keys on the ENGINE's stamp, never the OS media query — the engine
+   resolves mode "system" itself and writes [data-theme], so the picker works. */
+[data-theme="dark"] {
+  --accent:      oklch(0.673 0.150 var(--accent-hue));
+  --accent-soft: oklch(0.300 0.060 var(--accent-hue));
+  --accent-ink:  oklch(0.800 0.120 var(--accent-hue));
+  --ink: #e6e6e6;
+  --ink-2: #b8b8b8;
+  --ink-3: #8a8a8a;
+  --muted: #7d7d7d;
+  --surface: #1d2126;
+  --surface-2: #22272d;
+  --surface-3: #2a3038;
+  --border: #343a42;
+  --border-strong: #4a515b;
+  --danger: #d06a53;
+  --danger-bg: #3a2622;
+  --success: #5aa886;
+  --success-bg: #223129;
+  --info: #6ba3d6;
+  --info-bg: #202c38;
+  --warn-bg: #38311f;
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, .5);
 }

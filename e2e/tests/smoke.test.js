@@ -329,6 +329,21 @@ test("settings renders its sections and the logs panel", async () => {
   // The kit SettingsShell's top tabs (the old .settings__navbtn rail is DEAD —
   // the contract build replaced it; selector updated 2026-08-04).
   await d.waitUntil(`return document.querySelectorAll('.set-tab').length >= 5`);
+  // The appearance MODE must actually stamp the engine's [data-theme]
+  // (2026-08-04: tokens keyed on the OS media query, so the mode setting did
+  // NOTHING — the user's QC "appearance doesn't work"). The titlebar cycler is
+  // 3-state (system→light→dark), so three clicks = one full cycle: some click
+  // must stamp dark, and the third lands back on the user's own mode.
+  const stamp = () => d.exec(`return document.documentElement.getAttribute('data-theme');`);
+  const modeWas = await stamp();
+  let sawDark = false;
+  for (let i = 0; i < 3; i++) {
+    await d.exec(`[...document.querySelectorAll('.titlebar button')].find(b => (b.title || '').startsWith('Theme'))?.click();`);
+    await d.sleep(150);
+    if ((await stamp()) === "dark") sawDark = true;
+  }
+  assert.equal(sawDark, true, "cycling the mode must stamp [data-theme=dark] (the tokens vocabulary fix)");
+  assert.equal(await stamp(), modeWas, "three clicks = a full cycle back to the user's own mode");
   await d.navigate("#/settings/logs");
   await d.waitUntil(`return /server logs/i.test(document.body.textContent)`);
   // The storage panel is JW's, strings verbatim — assert the donor's wording so a

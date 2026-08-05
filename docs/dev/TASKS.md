@@ -126,9 +126,18 @@
   user docs in its `system-tray.md`/`run-modes.md`. Remaining work = lift the
   pattern to JW + this app + a section in `app-structure.md`.
 
-- **Appearance doesn't work in this app (your QC).** Decision: diagnose it, and
-  per your ruling the appearance surface becomes SHARED for JV + this app; JW
-  keeps its richer own.
+- **Appearance — DIAGNOSED + FIXED 2026-08-04 (your QC "doesn't work" was real,
+  three defects):** the tokens defined static hex `--accent*` (so the hue slider
+  changed nothing), keyed dark on the OS `prefers-color-scheme` media query while
+  the kit engine stamps `[data-theme]` (so the MODE picker changed nothing), and
+  only the font worked (the engine writes it inline). Fix: JV's hue-driven
+  vocabulary ported into `tokens.css` (accent = `oklch(L C var(--accent-hue))`,
+  dark keys on `[data-theme="dark"]`, default hue 243 = this app's indigo); the
+  smoke now cycles the titlebar mode and asserts the dark stamp + restores your
+  mode. Verdicts: the raw hue SLIDER stands (kit `UiColorPicker` models a full
+  color string; this system is hue-driven — a swap would round-trip lossily);
+  the shared JV+docgen appearance PANEL component (one kit surface both consume)
+  remains open — it needs JV's donor rows lifted + both apps' gates + your QC.
 
 - **CONTRACT BUILD — remainder under the standing go.** SHIPPED 2026-08-04 late
   (in git): the QuickSetup surgery (copy seam · family cache-offer in the kit ·
