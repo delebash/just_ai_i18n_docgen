@@ -105,11 +105,10 @@ structure, same features except app-specific ones":
   **Rec: give docgen its own `headless-access.md` mirroring JW's** (small —
   the server URL, the browser door, the tokens, the keep-running switch);
   JV's rides F1.
-- **F · Copy-URL wording.** JW's existing i18n key says "Headless URL copied";
-  the new tray toast says "Server URL copied" — one concept, two phrasings.
-  **Rec: settle on one phrase inside the recorded tray-i18n item** (the tray
-  menu is hardcoded English in all three apps — that localization gap is
-  tracked in JW's TASKS and covers these toasts too).
+- *(F · Copy-URL wording SETTLED by parity slice 9, 2026-08-06: "Server URL
+  copied" everywhere — JW's `settings.server.copied` en+es aligned to the
+  tray's phrase. The tray-menu localization gap itself stays tracked in JW's
+  TASKS.)*
 
 ## THE APPROVED FIX PLAN (user: "do it all your rec", 2026-08-05) — DONE
 
