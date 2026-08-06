@@ -7,15 +7,23 @@
 > item points to — **read that doc before coding the item**. Close = delete — git
 > keeps history. A tracker line is a claim, not evidence — verify against code.
 
-## THE FAMILY PARITY BATCH — approved 2026-08-05, THE next build
-- **The master plan (read WHOLE before coding any slice):**
-  `../justwrite-app/docs/plans/2026-08-05-family-parity-batch.md` — all
-  decisions verbatim (①-⑤, the no-escape-valve commitments, the governing
-  mechanism-vs-data principle), the 12-slice checklist, the Speaker-Lab
-  12-point acceptance inventory, the approved human copy for the 13 rows,
-  the after-batch order (UiTable → e2e harness → THE deep exhaustive audit →
-  product calls). This repo's slices: /v1/data mount + Backups/Updates
-  sections + PaneHeader on the five remaining views + kit-slice consumption.
+## THE FAMILY PARITY BATCH — SHIPPED 2026-08-06 (all twelve slices)
+- The master plan + its BUILD LOG (deviations, guard-caught bugs, end-gate
+  results): `../justwrite-app/docs/plans/2026-08-05-family-parity-batch.md`.
+  This repo's slices landed: /v1/data mount + Backups/Updates sections +
+  PaneHeader ×5 (slice 6, `42ff9ad`), the canon contract test + boot smoke +
+  test:unit (slice 11, `f1c0eb7` — the smoke caught the tray listeners NOT
+  being the claimed browser no-op). End gates green here: pytest 148 · vitest
+  3 · e2e contract 4 · build/biome/cargo(release exe) · real-server boot.
+  The real-webview screenshots gate: the no-server run captured the
+  ConnectionError screen on every surface (the boot gate rendering correctly
+  — not an acceptance pass); the with-server rerun hung at the
+  tauri-driver/session layer twice and the USER took the visual check
+  manually (2026-08-06). The driver-layer hang is an open harness nit: the
+  first run also sat ~15 min before completing. What remains is the
+  after-batch order
+  (JV UiTable → JV e2e harness → THE deep exhaustive audit → product calls)
+  and the user's QC walk.
 
 ## Awaiting your QC (built 2026-08-04, gates green, committed same day)
 
