@@ -92,10 +92,11 @@ DEFAULT_PRESET_ID: str = "p_translate"
 
 # The app's OWN model catalog — TRANSLATION-measured rows only, ranked by the measured
 # table (just-ai-help/docs/models.md; the 40-key stress corpus + the 1,965-key live
-# run). The runner's DEFAULT_CATALOG is writing-curated (StyleTune tunes, embeds,
-# writing ranks) and is SUPPRESSED for this app (`seed_default_model_catalog=False`) —
-# "the models are all JW" was a live user finding, 2026-08-03. No embedding rows: this
-# app has no embedding features. Field shapes mirror the audited family rows;
+# run). Since decision ④ (family parity batch 2026-08-05) EVERY app seeds its whole
+# catalog — the kit's shared DEFAULT_CATALOG is empty, the old suppress flag is gone
+# ("the models are all JW" was a live user finding, 2026-08-03; now structurally
+# impossible). No embedding rows: this app has no embedding features.
+# Field shapes mirror the audited family rows;
 # license/ctx values follow the family's audited pattern for the same repos — re-run
 # the seed-facts audit (network) whenever these rows change.
 MODEL_CATALOG: list[dict] = [
@@ -132,6 +133,48 @@ MODEL_CATALOG: list[dict] = [
      "notes": "Small and fast. Caveat, measured: the family can drop Spanish opening "
               "¿ — keep the checks on."},
 ]
+
+# The flagship's MEASURED class tunes (decision ④, 2026-08-05: class tunes are
+# per-app data and travel with the model). Registered under the id the family
+# MEASURED them on; the identity map below binds them onto this app's own
+# `-xl` row (same GGUF, different id — the 2026-08-03 finding that produced the
+# identity mechanism: without it this app launched the 26B on automatic fit,
+# ctx 16384 with no expert offload, against a measured ctx 32768 + n_cpu_moe 21).
+# Six rows, verbatim from the shared seed at the move; the full 13-row measured
+# library (with its decision trail) lives in JW's seed_presets.py.
+CLASS_TUNES: list[dict] = [
+    {"model_id": "gemma-4-26b-a4b-qat", "class_key": "dgpu-vram8|ram32", "switches": {
+        "n_gpu_layers": "99", "n_cpu_moe": "21", "ctx_len": "32768",
+        "batch_size": "512", "ubatch_size": "512", "threads": "8",
+        "reasoning_budget": "1024",
+    }},
+    {"model_id": "gemma-4-26b-a4b-qat", "class_key": "igpu-mem32", "switches": {
+        "n_gpu_layers": "99", "n_cpu_moe": "0", "ctx_len": "32768",
+        "batch_size": "512", "ubatch_size": "512", "flash_attn": "off",
+        "reasoning_budget": "1024",
+    }},
+    {"model_id": "gemma-4-26b-a4b-qat", "class_key": "dgpu-vram16|ram32", "switches": {
+        "ctx_len": "32768", "batch_size": "512", "ubatch_size": "512",
+        "reasoning_budget": "1024",
+    }},
+    {"model_id": "gemma-4-26b-a4b-qat", "class_key": "dgpu-vram16|ram64", "switches": {
+        "ctx_len": "32768", "batch_size": "512", "ubatch_size": "512",
+        "reasoning_budget": "1024",
+    }},
+    {"model_id": "gemma-4-26b-a4b-qat", "class_key": "dgpu-vram24|ram32", "switches": {
+        "n_gpu_layers": "99", "n_cpu_moe": "0", "ctx_len": "32768",
+        "batch_size": "512", "ubatch_size": "512", "reasoning_budget": "1024",
+    }},
+    {"model_id": "gemma-4-26b-a4b-qat", "class_key": "dgpu-vram24|ram64", "switches": {
+        "n_gpu_layers": "99", "n_cpu_moe": "0", "ctx_len": "32768",
+        "batch_size": "512", "ubatch_size": "512", "reasoning_budget": "1024",
+    }},
+]
+
+CLASS_TUNE_IDENTITY: dict[str, dict] = {
+    "gemma-4-26b-a4b-qat": {"hf_repo": "unsloth/gemma-4-26B-A4B-it-qat-GGUF",
+                            "quant": "UD-Q4_K_XL"},
+}
 
 
 def default_data_dir() -> Path:
@@ -174,7 +217,8 @@ def boot_llm_stack(data_dir: Path | None = None, app: FastAPI | None = None) -> 
             feature_presets=DEFAULT_FEATURE_PRESETS,
             default_preset_id=DEFAULT_PRESET_ID,
             model_catalog_extra=MODEL_CATALOG,
-            seed_default_model_catalog=False,  # translation-measured rows ONLY
+            class_tunes_seed=CLASS_TUNES,
+            class_tune_identity=CLASS_TUNE_IDENTITY,
             data_dir=data_dir,
             # Names this app in the family cache registry, so the NEXT app installed
             # can offer to share these engine + model files instead of re-downloading.
@@ -196,7 +240,8 @@ def boot_llm_stack(data_dir: Path | None = None, app: FastAPI | None = None) -> 
             feature_presets=DEFAULT_FEATURE_PRESETS,
             default_preset_id=DEFAULT_PRESET_ID,
             model_catalog_extra=MODEL_CATALOG,
-            seed_default_model_catalog=False,
+            class_tunes_seed=CLASS_TUNES,
+            class_tune_identity=CLASS_TUNE_IDENTITY,
             data_dir=data_dir,
             product=PRODUCT,
         )
