@@ -112,16 +112,28 @@ MODEL_CATALOG: list[dict] = [
      "description": "26B MoE (4B active) · 256k context · the MEASURED flagship: most "
                     "accurate AND fastest on the stress corpus and the 1,965-key live run",
      "notes": "The default pick when it fits (needs ~24 GB RAM for expert offload)."},
-    {"id": "gemma-3-12b-it", "name": "Gemma 3 12B",
-     "hf_repo": "unsloth/gemma-3-12b-it-GGUF", "quant": "Q4_K_M",
+    # The ONE recorded exception to the measured-only rule (user ruling
+    # 2026-08-06: "replace gemma 3 with gemma 4 even though it is untested"):
+    # Gemma 4 12B (QAT) takes the 12B slot on strong expectation — newer
+    # family + quantization-aware quant, and the 26B QAT flagship measured
+    # best-and-fastest — but it has NOT run the translation corpus yet. The
+    # description says so honestly; the measurement task is in TASKS, and
+    # Gemma 3 12B's measured row ("0 structural, 1 semantic flag") returns
+    # from git if the numbers disappoint. Row facts from JW's audited seed.
+    {"id": "gemma-4-12b-qat", "name": "Gemma 4 12B (QAT)",
+     "hf_repo": "unsloth/gemma-4-12B-it-qat-GGUF", "quant": "UD-Q4_K_XL",
      "total_params": "12B", "type": "dense",
-     "trained_ctx": 131072, "samplers": {"top_k": "64", "top_p": "0.95", "temperature": "1"},
+     "mtp": True, "est_vram_mb": 10721,
+     "mtp_draft_file": "MTP/mtp-gemma-4-12B-it-Q4_0.gguf", "mtp_draft_quant": "Q4_0",
+     "size_label": "12B", "size_bytes": 6716355328,
+     "trained_ctx": 262144, "samplers": {"top_k": "64", "top_p": "0.95", "temperature": "1"},
      "min_vram_mb": 8192, "min_ram_mb": 12288, "tier": "mid",
-     "license": "Gemma", "position": 1, "quality_rank": 2,
-     "architecture": "gemma3", "experts": 0,
-     "description": "12B dense · MEASURED: 0 structural, 1 semantic flag, zero real "
-                    "errors on the stress corpus",
-     "notes": "The clean 8 GB-card pick."},
+     "license": "Apache-2.0", "position": 1, "quality_rank": 2,
+     "architecture": "gemma4", "experts": 0,
+     "description": "12B dense (QAT) · 256k context · NOT yet measured on the "
+                    "translation corpus — expected to beat Gemma 3 12B (newer "
+                    "family, quantization-aware quant); measure to confirm",
+     "notes": "The 8-12 GB-card pick, pending its measurement run."},
     {"id": "hy-mt2-7b", "name": "Hunyuan-MT2 7B (translation-tuned)",
      "hf_repo": "tencent/Hy-MT2-7B-GGUF", "quant": "Q4_K_M",
      "total_params": "7B", "type": "dense",
@@ -187,6 +199,34 @@ def default_data_dir() -> Path:
     if env:
         return Path(env)
     return Path(user_data_dir("just-ai-i18n-docgen", appauthor=False))
+
+
+def _retire_gemma3_row() -> None:
+    """Once, marker-guarded: the 2026-08-06 user ruling replaced Gemma 3 12B
+    with Gemma 4 12B (QAT) in the catalog seed. Fresh installs never see the
+    old row; an existing DB drops exactly the seeded `gemma-3-12b-it` id (a
+    user-added row has a different id; a downloaded GGUF stays on disk). The
+    new row arrives via the seed's own insert-if-missing. Best-effort — never
+    boot-fatal."""
+    from llm_runner.llm import db as llm_db
+
+    try:
+        s = llm_db.session()
+        try:
+            if s.get(llm_db.RunnerSetting, "jaid_gemma3_12b_retired") is not None:
+                return
+            row = s.get(llm_db.ModelCatalog, "gemma-3-12b-it")
+            if row is not None:
+                s.delete(row)
+                for child_model in (llm_db.ModelSampler, llm_db.ModelEmbedTemplate):
+                    for child in s.query(child_model).filter_by(model_id="gemma-3-12b-it").all():
+                        s.delete(child)
+            s.add(llm_db.RunnerSetting(key="jaid_gemma3_12b_retired", value="1"))
+            s.commit()
+        finally:
+            s.close()
+    except Exception as e:  # noqa: BLE001 — a seed nicety, never boot-fatal
+        log.warning("gemma-3 catalog retirement failed (the row remains visible): %s", e)
 
 
 def boot_llm_stack(data_dir: Path | None = None, app: FastAPI | None = None) -> Path:
@@ -281,6 +321,7 @@ def boot_llm_stack(data_dir: Path | None = None, app: FastAPI | None = None) -> 
         )
 
     seed_llm()
+    _retire_gemma3_row()
     load_from_configs(stores.get_provider_store().list())
 
     # The app's OWN table (reviewer identity) on its OWN Base — one database, two

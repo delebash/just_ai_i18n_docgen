@@ -1,5 +1,14 @@
 # TASKS — the live open-work tracker (just_ai_i18n_docgen)
 
+- **Measure Gemma 4 12B (QAT) on the translation stress corpus** (follow-up to
+  the 2026-08-06 user ruling "replace gemma 3 with gemma 4 even though it is
+  untested" — the ONE recorded exception to the catalog's measured-only rule;
+  the row's description says "NOT yet measured" until this runs). Run the
+  40-key stress corpus (the original's pattern, just-ai-help/docs/models.md)
+  on `gemma-4-12b-qat`, write the measured description in; if it disappoints,
+  Gemma 3 12B's measured row returns from git (its numbers: 0 structural,
+  1 semantic flag). Long real-model run — deliberately skipped at the swap.
+
 > **THIS is the live tracker** — same charter as JW's `docs/dev/TASKS.md`. An item
 > carries the APPROVED DECISION TEXT: what was shown to the user and approved, pasted
 > at approval time, complete enough to code from without re-deriving what was decided
