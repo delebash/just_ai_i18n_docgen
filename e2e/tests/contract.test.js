@@ -47,12 +47,18 @@ test("boot is ONE splash: the static layer is the plate, never a spinner", () =>
 });
 
 test("the settings sections use the contract's words for shared concepts", () => {
+  // Slice 11 moved the section ORDER into settingsSections.js (the vitest canon
+  // test asserts the relative order against the kit manifest); the view maps
+  // every id through the contract's words. Assert both halves of that shape.
   const settings = read("src/views/SettingsView.vue");
+  assert.ok(
+    settings.includes("FAMILY_LABELS.settingsSections[") &&
+      settings.includes("SETTINGS_SECTION_IDS.map"),
+    "SettingsView must build its sections from settingsSections.js, labeled from the contract",
+  );
+  const ids = read("src/views/settingsSections.js");
   // backups + updates joined the canon in the family parity batch (2026-08-06).
   for (const key of ["appearance", "backups", "storage", "server", "logs", "updates", "about"]) {
-    assert.ok(
-      settings.includes(`FAMILY_LABELS.settingsSections.${key}`),
-      `Settings section "${key}" must take its label from the contract`,
-    );
+    assert.ok(ids.includes(`"${key}"`), `Settings section "${key}" must be rendered`);
   }
 });

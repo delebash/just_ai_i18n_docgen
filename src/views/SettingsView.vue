@@ -14,6 +14,7 @@ import {
   safeRequest, serverUrl,
 } from "@delebash/llm-ui";
 import { loadDoc } from "../services/helpDocs.js";
+import { SETTINGS_SECTION_IDS } from "./settingsSections.js";
 import { UI_FONTS, UI_SCALES } from "../services/appearance";
 import { useProjectStore } from "../stores/project";
 import { useUiStore } from "../stores/ui";
@@ -27,16 +28,12 @@ const project = useProjectStore();
 // canon's fixed relative order (… Appearance · Backups · Storage · Server ·
 // Logs · Updates · About — parity batch 2026-08-06); Reviewer is this app's
 // own (tool identity — no family equivalent) and interleaves before About.
-const SECTIONS = [
-  { id: "appearance", label: FAMILY_LABELS.settingsSections.appearance },
-  { id: "backups", label: FAMILY_LABELS.settingsSections.backups },
-  { id: "storage", label: FAMILY_LABELS.settingsSections.storage },
-  { id: "server", label: FAMILY_LABELS.settingsSections.server },
-  { id: "logs", label: FAMILY_LABELS.settingsSections.logs },
-  { id: "updates", label: FAMILY_LABELS.settingsSections.updates },
-  { id: "reviewer", label: "Reviewer" },
-  { id: "about", label: FAMILY_LABELS.settingsSections.about },
-];
+// The ORDER lives in settingsSections.js so the canon contract test asserts
+// exactly what renders (slice 11).
+const SECTIONS = SETTINGS_SECTION_IDS.map((id) => ({
+  id,
+  label: FAMILY_LABELS.settingsSections[id] || "Reviewer",
+}));
 const active = ref(props.section || "appearance");
 watch(() => props.section, (s) => { if (s) active.value = s; });
 

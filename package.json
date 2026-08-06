@@ -14,7 +14,8 @@
     "lint": "biome check src && cd ../just-llm-runner/ui && \"../../just_ai_i18n_docgen/node_modules/.bin/biome\" check src",
     "tauri": "tauri",
     "test": "npm test --prefix e2e",
-    "screenshots": "node e2e/capture-direct.js"
+    "screenshots": "node e2e/capture-direct.js",
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.6.0",
@@ -30,9 +31,11 @@
     "vue-sonner": "^2.0.9"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.0",
     "@tauri-apps/cli": "^2",
     "@vitejs/plugin-vue": "^5.2.1",
+    "jsdom": "^30.0.1",
     "vite": "^6.0.3",
-    "@biomejs/biome": "^2.4.0"
+    "vitest": "^4.1.10"
   }
 }
