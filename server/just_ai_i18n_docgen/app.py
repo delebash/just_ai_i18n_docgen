@@ -207,6 +207,40 @@ def boot_llm_stack(data_dir: Path | None = None, app: FastAPI | None = None) -> 
         # The standard (just-llm-runner README, "Consume it"): the host mounts the
         # runner's process API, install_llm mounts the rest — JW's exact order.
         app.include_router(llm_runner.router)
+        # The shared /v1/data backup/restore/reset (family parity batch 2026-08-06,
+        # this app's recorded parity item; JW's donor wiring). One DB, two Bases;
+        # no asset dirs — per-project text lives in the USER'S project, anchored to
+        # the config file, never under the data dir. Reset = drop both schemas +
+        # recreate + reseed (the family true-drop rule: schema drift resets too);
+        # restore/reset tear the runner down first (clean slate).
+        from llm_runner.llm import LlmBase
+        from llm_runner.platform import make_data_router
+
+        from .appmeta import AppBase
+
+        def _stop_runner_best_effort() -> None:
+            try:
+                from llm_runner.runner.lifecycle import get_service
+
+                get_service().stop()
+            except Exception:  # noqa: BLE001
+                pass
+
+        def _reset() -> None:
+            _stop_runner_best_effort()
+            AppBase.metadata.drop_all(bind=engine)
+            LlmBase.metadata.drop_all(bind=engine)
+            AppBase.metadata.create_all(bind=engine)
+            LlmBase.metadata.create_all(bind=engine)
+            seed_llm()
+
+        app.include_router(make_data_router(
+            get_db_path=lambda: data_dir / "app.db",
+            metadata=[AppBase.metadata, LlmBase.metadata],
+            run_reset=_reset,
+            asset_dirs=lambda: {},
+            on_replaced=_stop_runner_best_effort,
+        ))
         install_llm(
             app,
             engine=engine,

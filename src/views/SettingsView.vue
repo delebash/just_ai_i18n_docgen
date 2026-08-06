@@ -8,10 +8,12 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import {
-  FAMILY_LABELS, LogsPanel, PaneHeader, SettingsShell, UiButton, UiInput, UiSelect,
-  UiToggle, confirmDialog, fmtBytes, get, openExternal, post, pushToast, put,
-  refreshRunnerModels, safeRequest, serverUrl,
+  DataManagement, FAMILY_LABELS, LogsPanel, PaneHeader, SettingsShell, UiButton,
+  UiInput, UiSelect, UiToggle, UpdatesPanel, confirmDialog, fmtBytes, get,
+  openExternal, post, pushToast, put, refreshRunnerModels, renderHelpMarkdown,
+  safeRequest, serverUrl,
 } from "@delebash/llm-ui";
+import { loadDoc } from "../services/helpDocs.js";
 import { UI_FONTS, UI_SCALES } from "../services/appearance";
 import { useProjectStore } from "../stores/project";
 import { useUiStore } from "../stores/ui";
@@ -21,18 +23,32 @@ const router = useRouter();
 const ui = useUiStore();
 const project = useProjectStore();
 
-// Shared-concept sections take their words from the FAMILY CONTRACT; Reviewer is
-// this app's own (tool identity — no family equivalent).
+// Shared-concept sections take their words from the FAMILY CONTRACT, in the
+// canon's fixed relative order (… Appearance · Backups · Storage · Server ·
+// Logs · Updates · About — parity batch 2026-08-06); Reviewer is this app's
+// own (tool identity — no family equivalent) and interleaves before About.
 const SECTIONS = [
   { id: "appearance", label: FAMILY_LABELS.settingsSections.appearance },
+  { id: "backups", label: FAMILY_LABELS.settingsSections.backups },
   { id: "storage", label: FAMILY_LABELS.settingsSections.storage },
   { id: "server", label: FAMILY_LABELS.settingsSections.server },
   { id: "logs", label: FAMILY_LABELS.settingsSections.logs },
+  { id: "updates", label: FAMILY_LABELS.settingsSections.updates },
   { id: "reviewer", label: "Reviewer" },
   { id: "about", label: FAMILY_LABELS.settingsSections.about },
 ];
 const active = ref(props.section || "appearance");
 watch(() => props.section, (s) => { if (s) active.value = s; });
+
+// Updates — release notes for the kit UpdatesPanel (JW's pattern: source +
+// renderer app-side, presentation shared). Loaded lazily on first open.
+const APP_VERSION = "0.1.0";
+const changelogHtml = ref("");
+watch(active, async (a) => {
+  if (a === "updates" && !changelogHtml.value) {
+    changelogHtml.value = renderHelpMarkdown((await loadDoc("whats-new")) || "");
+  }
+});
 function go(id) {
   active.value = id;
   router.replace(`/settings/${id}`);
@@ -256,6 +272,23 @@ onMounted(async () => {
         </section>
       </template>
 
+      <!-- Backups — the family surface (kit DataManagement over the shared
+           /v1/data router, mounted server-side this batch). No app options:
+           this tool's per-project text lives in YOUR project next to its
+           config, never under the data dir — the backup is the app database. -->
+      <template v-else-if="active === 'backups'">
+        <section class="card">
+          <h2>{{ FAMILY_LABELS.settingsSections.backups }}</h2>
+          <p class="hint">
+            The backup covers this tool's own data — connections, presets, models
+            configuration, the reviewer name. Your locale files and accepted
+            translations live in your project folder and travel with it (git keeps
+            those safe).
+          </p>
+          <DataManagement app-name="just-ai-i18n-docgen" />
+        </section>
+      </template>
+
       <!-- Storage — JW's Data location + Disk usage, strings verbatim -->
       <template v-else-if="active === 'storage'">
         <section class="card">
@@ -384,6 +417,14 @@ onMounted(async () => {
       </template>
 
       <!-- Reviewer -->
+      <!-- Updates — the kit UpdatesPanel (release notes from docs/whats-new.md;
+           no auto-updater in this app yet, so the #actions slot stays empty). -->
+      <template v-else-if="active === 'updates'">
+        <section class="card">
+          <UpdatesPanel :app-version="APP_VERSION" :changelog-html="changelogHtml" />
+        </section>
+      </template>
+
       <template v-else-if="active === 'reviewer'">
         <section class="card">
           <h2>Reviewer</h2>

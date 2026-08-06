@@ -11,8 +11,8 @@
 // difference between a tool people use and one they abandon.
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import {
-  EmptyState, UiButton, UiCheckbox, UiInput, UiSelect, UiTag, UiTextarea,
-  confirmDialog, pushToast, serverUrl,
+  EmptyState, PaneHeader, UiButton, UiCheckbox, UiInput, UiSelect, UiTag,
+  UiTextarea, confirmDialog, pushToast, serverUrl,
 } from "@delebash/llm-ui";
 import { useRoute } from "vue-router";
 import { langName, langOptions } from "../services/langs";
@@ -273,6 +273,10 @@ async function discardAll() {
 </script>
 
 <template>
+  <!-- Column wrap so the family header (kit PaneHeader — parity batch
+       2026-08-06) sits above the full-height rail+detail layout. -->
+  <div class="review-pane">
+  <PaneHeader eyebrow="Translating" title="Review" help-key="review" />
   <div class="review">
     <!-- ── the queue rail: buckets · by check · search (the original's QueuePane) ── -->
     <nav class="review-rail">
@@ -508,5 +512,6 @@ async function discardAll() {
       <EmptyState icon="CheckSquare" title="Accepted verdicts"
                   message="Every entry names its check, pair of strings and reviewer. Un-accept puts a key back in the queue — a decision can always be revisited." />
     </div>
+  </div>
   </div>
 </template>

@@ -10,8 +10,8 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import {
-  AiTaskStrip, Icon, UiButton, UiCheckbox, UiInput, UiProgress, UiTable,
-  UiTag, pushToast, useAiTasksStore, usePoll,
+  AiTaskStrip, Icon, PaneHeader, UiButton, UiCheckbox, UiInput, UiProgress,
+  UiTable, UiTag, pushToast, useAiTasksStore, usePoll,
 } from "@delebash/llm-ui";
 import splashPlate from "../assets/images/splash-plate.jpg";
 import { langName } from "../services/langs";
@@ -147,22 +147,18 @@ function lastRunLabel(l) {
   </div>
 
   <div v-else-if="project.summary" class="dash">
-    <header class="page-head">
-      <div>
-        <h1>{{ project.appName }}</h1>
-        <p class="page-sub">
-          {{ project.summary.keyCount.toLocaleString() }} keys · source
-          <span class="mono">{{ project.summary.source }}</span> ·
-          {{ project.summary.langs.length }} language{{ project.summary.langs.length === 1 ? "" : "s" }}
-        </p>
-      </div>
-      <span class="spacer" />
-      <div class="page-head__stats">
-        <UiTag v-if="totals.findings" intent="danger" :value="`${totals.findings} findings`" />
-        <UiTag v-if="totals.staged" intent="info" :value="`${totals.staged} staged`" />
-        <UiTag v-if="totals.accepted" intent="success" :value="`${totals.accepted} accepted`" />
-      </div>
-    </header>
+    <!-- The family header shape (kit PaneHeader — parity batch 2026-08-06);
+         the key-count line + status tags ride the actions slot. -->
+    <PaneHeader eyebrow="Project" :title="project.appName" help-key="getting-started">
+      <p class="page-sub head-sub">
+        {{ project.summary.keyCount.toLocaleString() }} keys · source
+        <span class="mono">{{ project.summary.source }}</span> ·
+        {{ project.summary.langs.length }} language{{ project.summary.langs.length === 1 ? "" : "s" }}
+      </p>
+      <UiTag v-if="totals.findings" intent="danger" :value="`${totals.findings} findings`" />
+      <UiTag v-if="totals.staged" intent="info" :value="`${totals.staged} staged`" />
+      <UiTag v-if="totals.accepted" intent="success" :value="`${totals.accepted} accepted`" />
+    </PaneHeader>
 
     <AiTaskStrip v-if="translateTask" class="dash__strip" :task="translateTask" />
 

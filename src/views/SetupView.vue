@@ -6,7 +6,7 @@
 // A path box with server-side validation, never a file picker: a browser file input
 // hands JS a File and no path — that ruling from the Node repo still holds.
 import { computed, onMounted, ref } from "vue";
-import { UiButton, UiCheckbox, UiInput, UiMultiSelect, UiTag, pushToast } from "@delebash/llm-ui";
+import { PaneHeader, UiButton, UiCheckbox, UiInput, UiMultiSelect, UiTag, pushToast } from "@delebash/llm-ui";
 import { useRouter } from "vue-router";
 import { useProjectStore } from "../stores/project";
 import { useUiStore } from "../stores/ui";
@@ -81,14 +81,12 @@ async function save() {
 
 <template>
   <div class="setup">
-    <header class="page-head">
-      <div>
-        <h1>Setup</h1>
-        <p class="page-sub">Point the tool at your app's i18n source file. Nothing here runs an engine.</p>
-      </div>
-      <span class="spacer" />
+    <!-- The family header shape (kit PaneHeader — parity batch 2026-08-06);
+         the loaded config path rides the actions slot. -->
+    <PaneHeader eyebrow="Project" title="Setup" help-key="project-setup">
       <span v-if="project.loaded" class="mono muted">{{ project.configPath }}</span>
-    </header>
+    </PaneHeader>
+    <p class="page-sub pane-lede">Point the tool at your app's i18n source file. Nothing here runs an engine.</p>
 
     <div class="setup__grid">
       <section class="card">

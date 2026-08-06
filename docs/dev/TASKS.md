@@ -95,21 +95,11 @@ structure, same features except app-specific ones":
   `api_version` (snake_case, no camel alias) + status/version/current_engine/
   engines, lacks `product` — so JV's delta is smaller than the line above
   implies: add `product`, serve camel `apiVersion`, keep extras.)*
-- **C · Backup/restore/reset split three ways.** JW mounts the shared
-  `/v1/data/*` + kit `DataManagement`; docgen has the DECIDED-but-unbuilt item
-  (upstream the data router into `install_llm`, carrying JW's recorded lesson
-  that a reset must properly RE-SEED, then mount kit `DataManagement` under
-  Settings → Storage — the full decision text is in the Backups item below);
-  JV runs its own bespoke backup API. **Rec: execute docgen's decided item,
-  then migrate JV onto the shared router inside F1.**
-  *(CORRECTED 2026-08-05 s2: the UPSTREAM half is already DONE — the shared
-  router exists as `llm_runner.platform.make_data_router` (data_api.py:39,
-  default prefix `/v1/data`) and JW consumes THAT shared router
-  (data_admin.py:14,83 → app.py:159), not private routes. What remains of the
-  decided item: docgen MOUNTS it + kit `DataManagement` under Settings →
-  Storage; JV migrates inside F1.)*
-- **D · Kit `UpdatesPanel`.** JW mounts it, docgen doesn't, JV doesn't.
-  **Rec: rides C** (same adoption, same Settings page).
+- *(C · backup/restore/reset and D · UpdatesPanel CLOSED by parity slices 4-6,
+  2026-08-06: all three apps mount the shared `/v1/data` router + kit
+  `DataManagement` (under the canon **Backups** section, which superseded the
+  old "under Settings → Storage" wording) and all three render the kit
+  `UpdatesPanel` under **Updates**.)*
 - **E · Headless user doc.** JW has `docs/headless-access.md`; docgen covers
   headless in one Settings bullet; JV documents run-modes its own way.
   **Rec: give docgen its own `headless-access.md` mirroring JW's** (small —
@@ -275,30 +265,11 @@ lint/build. **The tray itself is eyes-on QC — webdriver can't see a tray.**
   FeatureLab; JW's en/es catalogs mirror the new manifest key (the twin's
   toEqual).
 
-- **Help is wired minimal (2026-08-04): drawer + "?" on Settings and AI only** —
-  the other five views still hand-roll `.page-head` (the open PaneHeader contract
-  item), so they carry no trigger yet. The page→doc mapping is already fixed for
-  the moment they adopt PaneHeader: Home → `translate.md`, Review → `review.md`,
-  Runs → `translate.md`, Docs → `docs-authoring.md`, Setup → `project-setup.md`.
-  No full-pane reader route. The drawer's real-webview render: asserted indirectly
-  (page mounts), not yet eyeballed — rides your QC.
-
-- **Backups / restore / reset + updates surface** (decided 2026-08-04, A1190; both
-  deferred by the chrome spec and never built here). The decision in full: the kit
-  surface already exists (`DataManagement`: backup zip · restore · reset) and JW
-  mounts it, but the `/v1/data/*` routes live in JW's server only — so **upstream
-  the data router into the shared stack** (`install_llm`), carrying JW's recorded
-  lesson (a reset must properly RE-SEED — one once silently lost the app's extra
-  catalog rows and tunes), then this app mounts kit `DataManagement` under
-  Settings → Storage. *(CORRECTED 2026-08-05 s2 — the premise is stale: the
-  upstream half is DONE. `llm_runner.platform.make_data_router` exists
-  (data_api.py:39) and JW already consumes the SHARED router (data_admin.py:83,
-  app.py:159); the re-seed lesson is recorded at the runner's seed.py:64. Only
-  this app's half remains: mount the shared router + kit `DataManagement`.)* Backup scope here is honest-small: the DB holds machine
-  state only (providers, keys, presets, tunes, usage); the project's real truth
-  (`config.json`, accepted, notes) is committed per-project in YOUR repo. Kit
-  `UpdatesPanel` is part of the same adoption. "Apps are consistent but only use
-  what they need" holds because the need itself is shared.
+- **Help drawer real-webview render not yet eyeballed** — asserted indirectly
+  (page mounts); rides your QC. (The PaneHeader half of the old item SHIPPED in
+  parity slice 6, 2026-08-06: all seven views carry the kit header + "?" — the
+  five converts use Home → `getting-started`, Review → `review`, Runs →
+  `translate`, Docs → `docs-authoring`, Setup → `project-setup`.)
 
 - **Family headless/tray spec (your ruling 2026-08-04, all three apps).** The
   decision in full: every app's exe opens the GUI and owns a TRAY icon; Settings

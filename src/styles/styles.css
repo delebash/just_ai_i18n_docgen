@@ -65,10 +65,13 @@ body {
   cursor: pointer; padding: 0; text-align: left; }
 
 /* ── page scaffolding ───────────────────────────────────────────────────── */
-.page-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
-.page-head h1 { margin: 0; font-size: 19px; letter-spacing: -.2px; }
+/* Page headers are the kit PaneHeader since the parity batch (2026-08-06);
+   .page-sub survives as the meta line some panes keep under/beside it. */
 .page-sub { margin: 3px 0 0; color: var(--muted); font-size: 12.5px; }
-.page-head__stats { display: flex; gap: 6px; align-items: center; padding-top: 4px; }
+/* A .page-sub riding PaneHeader's actions row sits inline with the tags. */
+.head-sub { margin: 0; }
+/* A .page-sub directly under a PaneHeader (the lede line some panes keep). */
+.pane-lede { margin: 10px 0 16px; }
 
 .card {
   background: var(--surface); border: 1px solid var(--border);
@@ -117,7 +120,10 @@ body {
 
 /* ── review: THREE panes (the original's shape, Batch 3 2026-08-05) — the
    bucket rail, the windowed terse list, the detail. One scroller each. ──── */
-.review { display: flex; gap: 14px; height: 100%; min-height: 0; }
+/* The Review pane: PaneHeader on top (parity batch 2026-08-06), then the
+   full-height rail+detail row filling the rest — one scroller per column. */
+.review-pane { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.review { display: flex; gap: 14px; flex: 1; min-height: 0; }
 .review-rail { width: 190px; flex-shrink: 0; overflow-y: auto; padding-right: 2px; }
 .review-rail h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
   color: var(--muted); margin: 12px 6px 4px; }

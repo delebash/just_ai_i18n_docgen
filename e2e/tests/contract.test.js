@@ -48,7 +48,8 @@ test("boot is ONE splash: the static layer is the plate, never a spinner", () =>
 
 test("the settings sections use the contract's words for shared concepts", () => {
   const settings = read("src/views/SettingsView.vue");
-  for (const key of ["appearance", "storage", "server", "logs", "about"]) {
+  // backups + updates joined the canon in the family parity batch (2026-08-06).
+  for (const key of ["appearance", "backups", "storage", "server", "logs", "updates", "about"]) {
     assert.ok(
       settings.includes(`FAMILY_LABELS.settingsSections.${key}`),
       `Settings section "${key}" must take its label from the contract`,
