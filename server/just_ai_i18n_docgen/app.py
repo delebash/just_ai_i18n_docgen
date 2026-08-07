@@ -2,7 +2,8 @@
 """FastAPI application factory — the standard, three lines of wiring.
 
 The Python rewrite of just-ai-help, embedding the shared LLM stack the way every family
-app does (JW, JV): mount `llm_runner.router`, call `install_llm`, seed. The engine half
+app does (JW, JV): mount `llm_runner.router`, call `install_llm` (data SEEDING moved to
+`seed_llm_stack()`, called by serve.py and the CLI door — target-tree P6). The engine half
 of the old Node tool — settings.js, engine.js, engines.json, all hardware/model
 selection — does not exist here, because llm-runner owns all of it.
 
@@ -229,7 +230,8 @@ def _retire_gemma3_row() -> None:
 
 
 def boot_llm_stack(data_dir: Path | None = None, app: FastAPI | None = None) -> Path:
-    """The stack WITHOUT the routes — storage, seed, registry, the app's own table.
+    """The stack WITHOUT the routes — storage wiring + the app's own table.
+    (Data seeding lives in seed_llm_stack(), serve-time, since target-tree P6.)
 
     Split from create_app because the CLI needs it too: `make_send` resolves presets
     through the shared stores, which do not exist until storage is configured. The CLI
