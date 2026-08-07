@@ -2,20 +2,20 @@
 // SPDX-License-Identifier: MIT
 // Settings — JW's section pattern (/settings/:section?). Every panel names its
 // donor (the 2026-08-03 rule): Storage = JW's Data location + Disk usage panels,
-// strings verbatim (app name swapped); Appearance = JV's setting-rows over the kit
-// catalogs; Server = JW's headless/auth section over this app's /v1/server-auth;
+// strings verbatim (app name swapped); Appearance = the kit AppearancePanel
+// (JV's donor rows, ONE shared surface — the 2026-08-04 shared-panel ruling);
+// Server = JW's headless/auth section over this app's /v1/server-auth;
 // Logs = kit LogsPanel; Reviewer = this app's own (tool-level, moved from Setup).
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import {
-  DataManagement, FAMILY_LABELS, LogsPanel, PaneHeader, SettingsShell, UiButton,
-  UiInput, UiSelect, UiToggle, UpdatesPanel, confirmDialog, fmtBytes, get,
+  AppearancePanel, DataManagement, FAMILY_LABELS, LogsPanel, PaneHeader, SettingsShell,
+  UiButton, UiInput, UiToggle, UpdatesPanel, confirmDialog, fmtBytes, get,
   openExternal, post, pushToast, put, refreshRunnerModels, renderHelpMarkdown,
   safeRequest, serverUrl,
 } from "@delebash/llm-ui";
 import { loadDoc } from "../services/helpDocs.js";
 import { SETTINGS_SECTION_IDS } from "./settingsSections.js";
-import { UI_FONTS, UI_SCALES } from "../services/appearance";
 import { useProjectStore } from "../stores/project";
 import { useUiStore } from "../stores/ui";
 
@@ -50,14 +50,6 @@ function go(id) {
   active.value = id;
   router.replace(`/settings/${id}`);
 }
-
-// ── appearance (JV's rows) ────────────────────────────────────────────────
-const MODES = [
-  { label: "Follow system", value: "system" },
-  { label: "Light", value: "light" },
-  { label: "Dark", value: "dark" },
-];
-const fontOptions = UI_FONTS.map((f) => f.label);
 
 // ── storage (JW's panels) ─────────────────────────────────────────────────
 const storageRoot = ref(null); // { root, default, portable } from the shell
@@ -210,62 +202,17 @@ onMounted(async () => {
          this page invented died in the 2026-08-04 consistency pass). -->
     <PaneHeader eyebrow="App" title="Settings" help-key="settings" />
     <SettingsShell :sections="SECTIONS" :model-value="active" @update:model-value="go">
-      <!-- Appearance — JV's setting-rows -->
+      <!-- Appearance — the kit AppearancePanel (JV's donor rows, one shared surface) -->
       <template v-if="active === 'appearance'">
         <section class="card">
           <h2>Appearance</h2>
           <p class="hint">Visual preferences, applied immediately and saved on this machine.</p>
-          <div class="setting-row">
-            <div class="setting-row__head">
-              <div>
-                <div class="setting-row__title">Theme</div>
-                <div class="setting-row__desc">Light, Dark, or Follow system.</div>
-              </div>
-              <UiSelect
-                :model-value="ui.appearance.mode" width="name" :options="MODES"
-                @update:model-value="(v) => ui.setAppearance({ mode: v })"
-              />
-            </div>
-          </div>
-          <div class="setting-row">
-            <div class="setting-row__head">
-              <div>
-                <div class="setting-row__title">Interface size</div>
-                <div class="setting-row__desc">Scales the whole interface — labels, controls, and panels — together.</div>
-              </div>
-              <UiSelect
-                :model-value="ui.appearance.uiScale" width="name"
-                :options="UI_SCALES.map((s) => ({ label: s.label, value: s.value }))"
-                @update:model-value="(v) => ui.setAppearance({ uiScale: Number(v) })"
-              />
-            </div>
-          </div>
-          <div class="setting-row">
-            <div class="setting-row__head">
-              <div>
-                <div class="setting-row__title">UI font</div>
-                <div class="setting-row__desc">The interface typeface.</div>
-              </div>
-              <UiSelect
-                :model-value="ui.appearance.uiFont" width="name" :options="fontOptions"
-                @update:model-value="(v) => ui.setAppearance({ uiFont: v })"
-              />
-            </div>
-          </div>
-          <div class="setting-row">
-            <div class="setting-row__head">
-              <div>
-                <div class="setting-row__title">Accent hue · {{ ui.appearance.accentHue }}°</div>
-                <div class="setting-row__desc">Drag to pick the one colour the app leans on.</div>
-              </div>
-              <span class="accent-preview" :style="{ background: `oklch(0.538 0.12 ${ui.appearance.accentHue})` }" />
-            </div>
-            <input
-              type="range" :value="ui.appearance.accentHue" min="0" max="360" step="1"
-              class="setting-row__slider"
-              @input="(e) => ui.setAppearance({ accentHue: Number(e.target.value) })"
-            />
-          </div>
+          <AppearancePanel
+            :appearance="ui.appearance"
+            :accent-chroma="0.12"
+            accent-note="Default 277° = indigo."
+            @patch="(p) => ui.setAppearance(p)"
+          />
         </section>
       </template>
 

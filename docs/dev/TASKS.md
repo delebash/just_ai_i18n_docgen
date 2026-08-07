@@ -322,7 +322,19 @@ lint/build. **The tray itself is eyes-on QC — webdriver can't see a tray.**
   mode. Verdicts: the raw hue SLIDER stands (kit `UiColorPicker` models a full
   color string; this system is hue-driven — a swap would round-trip lossily);
   the shared JV+docgen appearance PANEL component (one kit surface both consume)
-  remains open — it needs JV's donor rows lifted + both apps' gates + your QC.
+  is **BUILT 2026-08-06** (user's word: "no hand rolling … make it the same reuse
+  controls"): JV's donor rows lifted to kit `components/AppearancePanel.vue`,
+  exported from the kit barrel, and mounted by BOTH Settings views — the twin
+  hand-rolled row blocks are deleted. Per-app truth stays props, not forks:
+  `accentChroma` (JV 0.08 · here 0.12), `accentNote`, and `locales` (JV's ten
+  languages; empty here, so no dead Language picker). Gates green: biome on the
+  kit + both apps, JV vitest 13/13, docgen vitest 3/3, both `build:vite`, JV
+  headless smoke 13 views / 0 JS errors, docgen real-webview e2e.
+  **Two copy deltas here, deliberate (JV's rows are the donor) — flag at QC if
+  either is wrong:** Theme's description gained "Applied immediately via CSS
+  custom properties", and the accent row reads "Drag to pick a new accent color
+  across the whole app. Default 277° = indigo." (was "the one colour the app
+  leans on"). **AWAITING YOUR QC.**
 
 - **CONTRACT BUILD — remainder under the standing go.** SHIPPED 2026-08-04 late
   (in git): the QuickSetup surgery (copy seam · family cache-offer in the kit ·
