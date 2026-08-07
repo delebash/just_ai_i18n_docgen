@@ -45,10 +45,9 @@ from platformdirs import user_data_dir
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-log = logging.getLogger(__name__)
+from .version import PRODUCT, VERSION
 
-PRODUCT = "Just AI i18n & DocGen"  # one casing everywhere (docs sweep 2026-08-05)
-PORT = 8742  # JW 17495, JV 17494
+log = logging.getLogger(__name__)
 
 FEATURE_CATALOG: list[FeatureCatalogEntry] = [
     FeatureCatalogEntry(key="translate", label="Translate",
@@ -263,7 +262,7 @@ def boot_llm_stack(data_dir: Path | None = None, app: FastAPI | None = None) -> 
                 from llm_runner.runner.lifecycle import get_service
 
                 get_service().stop()
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001, S110 — best-effort by design, never boot-fatal
                 pass
 
         def _reset() -> None:
@@ -278,7 +277,7 @@ def boot_llm_stack(data_dir: Path | None = None, app: FastAPI | None = None) -> 
             get_db_path=lambda: data_dir / "app.db",
             metadata=[AppBase.metadata, LlmBase.metadata],
             run_reset=_reset,
-            asset_dirs=lambda: {},
+            asset_dirs=dict,
             on_replaced=_stop_runner_best_effort,
         ))
         install_llm(
@@ -342,7 +341,7 @@ def create_app(data_dir: Path | None = None,
     install_log_ring()
     install_file_log(data_dir / "logs" / "just-ai-i18n-docgen.log")
 
-    app = FastAPI(title=PRODUCT, version="0.1.0")
+    app = FastAPI(title=PRODUCT, version=VERSION)
 
     # Catch-all error envelope — registered BEFORE CORSMiddleware so an unhandled
     # exception becomes a JSON 500 that flows OUT through CORS and reaches the
@@ -405,22 +404,21 @@ def create_app(data_dir: Path | None = None,
     app.include_router(make_logs_router(PRODUCT))
     app.include_router(make_disk_router(data_dir))
 
-    # The boot-gate contract: the kit's checkServer() pings /v1/health eight times
-    # before main.js mounts the app; without this route every ping 404'd and the
-    # RELEASE webview showed ConnectionError forever — found 2026-08-04 by the
-    # real-webview smoke against the real project (TestClient and dev never boot
-    # through main.js, so no other gate could see it).
-    @app.get("/v1/health")
-    def health() -> dict:
-        return {"ok": True, "product": PRODUCT}
-
     # The review workspace: starts with NO project (the setup screen creates one);
-    # `config_path` pre-loads one for the CLI / a configured desktop launch.
-    from .workspace import Workspace, make_workspace_router
+    # `config_path` pre-loads one for the CLI / a configured desktop launch. The
+    # handle lives in app_state (the family set_state/get_state seam) — api
+    # modules and tests reach it through get_state(). Routes live one file per
+    # area under api/ (target-tree P4); health_api carries the boot-gate contract.
+    from .api import health_api, server_auth_api, setup_api, workspace_api
+    from .app_state import AppState, set_state
+    from .workspace import Workspace
 
     workspace = Workspace(config_path)
-    app.include_router(make_workspace_router(workspace))
-    app.state.workspace = workspace  # the test/CLI handle, follows a later setup-load
+    set_state(AppState(data_dir=data_dir, workspace=workspace))
+    app.include_router(health_api.router)
+    app.include_router(server_auth_api.router)
+    app.include_router(setup_api.router)
+    app.include_router(workspace_api.router)
 
     # Headless UI — serve the Vite build so `just-ai-i18n-docgen-server` + a browser
     # gives the full app WITHOUT the Tauri shell (the kit's origin-aware serverApi

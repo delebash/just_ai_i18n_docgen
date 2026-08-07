@@ -15,6 +15,7 @@ from llm_runner.llm import seed
 from llm_runner.runner import lifecycle
 
 from just_ai_i18n_docgen.app import create_app
+from just_ai_i18n_docgen.app_state import get_state
 
 EN = {"greet": "Hello {name}", "sidebar": {"books": "Books"}, "common": {"no": "No"}}
 
@@ -138,16 +139,16 @@ def test_a_job_stages_proposals_and_never_touches_the_locale_file(client, monkey
             {"id": it["id"], "translation": f"NUEVO {it['text']}"} for it in items
         ]})
 
-    from just_ai_i18n_docgen import workspace as ws_mod
+    from just_ai_i18n_docgen.api import workspace_api
 
-    monkeypatch.setattr(ws_mod, "make_send", lambda *a, **k: fake_send)
+    monkeypatch.setattr(workspace_api, "make_send", lambda *a, **k: fake_send)
 
     es_path = client.config_path.parent.parent / "src" / "locales" / "es.json"
     before = es_path.read_text(encoding="utf-8")
 
     r = client.post("/v1/jobs", json={"lang": "es", "scope": "all"})
     assert r.status_code == 202
-    ws = client.app.state.workspace
+    ws = get_state().workspace
     ws.jobs.settled()
     assert ws.jobs.status()["state"] == "done"
 
@@ -183,14 +184,14 @@ def test_applying_many_proposals_is_ONE_undo(client, monkeypatch):
             {"id": it["id"], "translation": f"NUEVO {it['text']}"} for it in items
         ]})
 
-    from just_ai_i18n_docgen import workspace as ws_mod
+    from just_ai_i18n_docgen.api import workspace_api
 
-    monkeypatch.setattr(ws_mod, "make_send", lambda *a, **k: fake_send)
+    monkeypatch.setattr(workspace_api, "make_send", lambda *a, **k: fake_send)
     es_path = client.config_path.parent.parent / "src" / "locales" / "es.json"
     before = json.loads(es_path.read_text(encoding="utf-8"))
 
     client.post("/v1/jobs", json={"lang": "es", "scope": "all"})
-    client.app.state.workspace.jobs.settled()
+    get_state().workspace.jobs.settled()
 
     keys = [p["key"] for p in
             client.get("/v1/proposals", params={"lang": "es"}).json()["proposals"]]
@@ -242,9 +243,9 @@ def test_pending_scope_selects_missing_plus_flagged_keys(client, monkeypatch):
             {"id": it["id"], "translation": f"NUEVO {it['text']}"} for it in items
         ]})
 
-    from just_ai_i18n_docgen import workspace as ws_mod
+    from just_ai_i18n_docgen.api import workspace_api
 
-    monkeypatch.setattr(ws_mod, "make_send", lambda *a, **k: fake_send)
+    monkeypatch.setattr(workspace_api, "make_send", lambda *a, **k: fake_send)
 
     es_path = client.config_path.parent.parent / "src" / "locales" / "es.json"
     es = json.loads(es_path.read_text(encoding="utf-8"))
@@ -253,7 +254,7 @@ def test_pending_scope_selects_missing_plus_flagged_keys(client, monkeypatch):
 
     r = client.post("/v1/jobs", json={"lang": "es", "scope": "pending"})
     assert r.status_code == 202
-    ws = client.app.state.workspace
+    ws = get_state().workspace
     ws.jobs.settled()
     assert ws.jobs.status()["state"] == "done"
 
@@ -305,7 +306,7 @@ def test_discarding_proposals_is_undoable_and_counts_honestly(client):
     from just_ai_i18n_docgen.state import proposals as list_proposals
     from just_ai_i18n_docgen.state import put_proposal
 
-    p = client.app.state.workspace.project
+    p = get_state().workspace.project
     put_proposal(p.state, lang="es", key="common.no", engine="e", value="Nada")
     put_proposal(p.state, lang="es", key="greet", engine="e", value="Buenas {name}")
 
@@ -373,7 +374,7 @@ def test_prompt_preview_carries_conventions_and_notes_like_the_real_run(client):
 def test_an_edit_retires_the_stale_machine_opinions(client):
     """The writeKey contract: probe entry, cached reference, staged proposal and
     confirmation verdict were all ABOUT the old text."""
-    p = client.app.state.workspace.project
+    p = get_state().workspace.project
     # Stage a probe entry + a proposal + a reference for the key.
     (p.paths.probe_file("es")).write_text(json.dumps({"common": {"no": "Nop"}}),
                                           encoding="utf-8")

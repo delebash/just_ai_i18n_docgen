@@ -74,8 +74,12 @@ server/.venv/Scripts/just-ai-i18n-docgen translate|check|escalate|accept|extract
 ## Layout
 
 Per the standard: untouched create-tauri-app root (`index.html`, `src/`, `src-tauri/`),
-Python in `server/just_ai_i18n_docgen/` (flat — the user's explicit ruling), tests in
-`server/tests/`, kit consumed via the Vite alias to `../just-llm-runner/ui/src`.
+Python in `server/just_ai_i18n_docgen/` — domain modules flat at the package root, HTTP
+routes one file per area under `api/` (`health_api.py`, `server_auth_api.py`,
+`setup_api.py`, `workspace_api.py`), with `serve.py`/`app.py`/`app_state.py`/`version.py`
+the family server skeleton (`../just-llm-runner/docs/target-tree.md`, P4 2026-08-08 —
+supersedes the earlier flat-package ruling). Tests in `server/tests/`, kit consumed via
+the Vite alias to `../just-llm-runner/ui/src`.
 Port **8742** (JW 17495 · JV 17494). Data-dir env: `JUST_AI_I18N_DOCGEN_DATA_DIR`.
 
 ## Where to look
@@ -87,6 +91,6 @@ Port **8742** (JW 17495 · JV 17494). Data-dir env: `JUST_AI_I18N_DOCGEN_DATA_DI
 | The family structure standard (layout/scripts/shell/ports) | `../just-llm-runner/docs/app-structure.md` |
 | Adopting the shared LLM stack | `../just-llm-runner/README.md` "Consume it" |
 | The measured evidence behind every check and rule | the retired Node original: https://github.com/delebash/just-ai-help (docs/HANDOFF.md; archived) |
-| The review workspace API surface | `server/just_ai_i18n_docgen/workspace.py` |
+| The review workspace API surface | `server/just_ai_i18n_docgen/api/workspace_api.py` (routes) + `workspace.py` (the Workspace class + write rules) |
 
 Read branch and working-tree state from git, never from a doc.

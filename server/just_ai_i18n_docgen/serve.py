@@ -7,7 +7,8 @@ import argparse
 
 import uvicorn
 
-from .app import PORT, create_app, default_data_dir
+from .app import create_app, default_data_dir
+from .version import DEFAULT_PORT
 
 
 def main() -> None:
@@ -16,7 +17,7 @@ def main() -> None:
     # and npm scripts use it); the bare form still works.
     ap.add_argument("command", nargs="?", choices=["serve"], default="serve")
     ap.add_argument("--host", default="127.0.0.1")
-    ap.add_argument("--port", type=int, default=PORT)
+    ap.add_argument("--port", type=int, default=DEFAULT_PORT)
     ap.add_argument("--data-dir", default=None, help=f"default: {default_data_dir()}")
     ap.add_argument("--config", default=None,
                     help="pre-load a project config (else use the setup screen)")

@@ -16,8 +16,9 @@ Read in this order:
    server this app embeds).
 6. **The measured evidence behind the checks** — the retired Node original's
    HANDOFF (archived: https://github.com/delebash/just-ai-help).
-7. **The review workspace API** — `../../server/just_ai_i18n_docgen/workspace.py`
-   (the one resolver, two doors: workspace + CLI).
+7. **The review workspace API** — `../../server/just_ai_i18n_docgen/api/workspace_api.py`
+   (routes; the Workspace class + write rules stay in `../workspace.py` — the one
+   resolver, two doors: workspace + CLI).
 
 User-facing docs live at `../*.md`, indexed by `../toc.json` and served in-app via
 the kit Help drawer (written 2026-08-04 from the code-first audit). Update them in
