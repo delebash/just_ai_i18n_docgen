@@ -319,9 +319,10 @@ def boot_llm_stack(data_dir: Path | None = None, app: FastAPI | None = None) -> 
             product=PRODUCT,
         )
 
-    seed_llm()
-    _retire_gemma3_row()
-    load_from_configs(stores.get_provider_store().list())
+    # Data SEEDING (seed_llm + the gemma-3 retirement + the provider-registry
+    # boot) moved to seed_llm_stack() — serve.py and the CLI door call it after
+    # boot (the family call-site, target-tree P6): create_app(tmp_path) starts
+    # from an empty DB, and tests that need presets/providers call it explicitly.
 
     # The app's OWN table (reviewer identity) on its OWN Base — one database, two
     # Bases, the documented family pattern.
@@ -329,6 +330,19 @@ def boot_llm_stack(data_dir: Path | None = None, app: FastAPI | None = None) -> 
 
     configure_app_storage(session_factory, engine)
     return data_dir
+
+
+def seed_llm_stack() -> None:
+    """Serve-time data seeding — the half boot_llm_stack no longer does.
+
+    The shared seed (insert-if-missing), the one-time gemma-3 catalog-row
+    retirement, and the provider-registry boot FROM the DB. Called by serve.py
+    and the CLI door after boot_llm_stack; the pytest suite's
+    create_app(tmp_path) apps stay unseeded (JW's pytest-isolation rationale,
+    the family's named winner — target-tree P6)."""
+    seed_llm()
+    _retire_gemma3_row()
+    load_from_configs(stores.get_provider_store().list())
 
 
 def create_app(data_dir: Path | None = None,

@@ -13,14 +13,18 @@ from fastapi.testclient import TestClient
 from llm_runner.llm import seed
 from llm_runner.runner import lifecycle
 
-from just_ai_i18n_docgen.app import FEATURE_CATALOG, create_app
+from just_ai_i18n_docgen.app import FEATURE_CATALOG, create_app, seed_llm_stack
 
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     monkeypatch.setattr(lifecycle, "_service", None)
     monkeypatch.setattr(seed, "_APP", dict(seed._APP))
-    return TestClient(create_app(tmp_path))
+    app = create_app(tmp_path)
+    # The serve-time boot this file proves: create_app + the explicit seed
+    # (serve.py's exact sequence — the family call-site, target-tree P6).
+    seed_llm_stack()
+    return TestClient(app)
 
 
 def test_the_stack_boots_seeded_and_wired(client):
@@ -80,7 +84,10 @@ def test_health_answers_the_boot_gate(client):
     main.js, so this test is the only cheap tripwire)."""
     r = client.get("/v1/health")
     assert r.status_code == 200
-    assert r.json()["ok"] is True
+    body = r.json()
+    # The family base shape (camelCase wire — target-tree P6).
+    assert body["status"] == "ok"
+    assert body["product"] and body["version"] and body["apiVersion"]
 
 
 def test_bearer_auth_gates_v1_only_when_tokens_exist(client):

@@ -22,8 +22,15 @@ def main() -> None:
     ap.add_argument("--config", default=None,
                     help="pre-load a project config (else use the setup screen)")
     args = ap.parse_args()
-    uvicorn.run(create_app(args.data_dir, config_path=args.config),
-                host=args.host, port=args.port)
+    app = create_app(args.data_dir, config_path=args.config)
+
+    # Data seeding lives HERE, not in create_app(): the pytest suite's
+    # create_app(tmp_path) apps start unseeded (the family call-site,
+    # target-tree P6).
+    from .app import seed_llm_stack
+
+    seed_llm_stack()
+    uvicorn.run(app, host=args.host, port=args.port)
 
 
 if __name__ == "__main__":

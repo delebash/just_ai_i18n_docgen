@@ -15,7 +15,7 @@ from fastapi.testclient import TestClient
 from llm_runner.llm import LLMResponse, get_llm_registry, seed, stores
 from llm_runner.runner import lifecycle
 
-from just_ai_i18n_docgen.app import create_app
+from just_ai_i18n_docgen.app import create_app, seed_llm_stack
 from just_ai_i18n_docgen.engine import (
     EngineNotConfigured,
     make_send,
@@ -48,7 +48,8 @@ def wired(tmp_path, monkeypatch):
     """The real app (seeded presets, real stores) + a fake adapter in the real registry."""
     monkeypatch.setattr(lifecycle, "_service", None)
     monkeypatch.setattr(seed, "_APP", dict(seed._APP))
-    TestClient(create_app(tmp_path))  # boots + seeds; the client itself is not needed
+    TestClient(create_app(tmp_path))  # boots; the client itself is not needed
+    seed_llm_stack()  # the serve-time seed, explicit (family call-site — target-tree P6)
     reg = get_llm_registry()
     fake = FakeAdapter()
     saved = reg.get(fake.provider_id)

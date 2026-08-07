@@ -59,9 +59,10 @@ def main(argv: list[str] | None = None) -> int:
 
     # The CLI door boots the SAME stack the server does — make_send resolves presets
     # through the shared stores, which do not exist until storage is configured.
-    from .app import boot_llm_stack
+    from .app import boot_llm_stack, seed_llm_stack
 
     boot_llm_stack(args.data_dir)
+    seed_llm_stack()
 
     from .service import Project, accept_keys, run_check, run_escalate, run_translate
 

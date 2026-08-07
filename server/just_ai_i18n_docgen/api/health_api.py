@@ -13,11 +13,15 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from ..version import PRODUCT
+from ..version import API_VERSION, PRODUCT, VERSION
 
 router = APIRouter(tags=["system"])
 
 
 @router.get("/v1/health")
 def health() -> dict:
-    return {"ok": True, "product": PRODUCT}
+    # The family base shape (camelCase wire — target-tree P6): docgen carries
+    # no extras (JW adds dataDir/dbReady, JV its engine block). The kit's
+    # checkServer() reads only the HTTP status, so the gate is shape-agnostic.
+    return {"status": "ok", "product": PRODUCT,
+            "version": VERSION, "apiVersion": API_VERSION}
