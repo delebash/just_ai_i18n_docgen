@@ -112,8 +112,9 @@ def test_lockout_escape_health_and_auth_door_stay_open_from_loopback(client, mon
     can never lock themselves out. From the machine itself both stay open (the
     tokens already sit plaintext in the app DB any local process can read, so
     this exposes nothing new); everything else stays gated."""
-    from just_ai_i18n_docgen import auth as auth_mod
-    monkeypatch.setattr(auth_mod, "_is_loopback", lambda host: True)
+    # The loopback check lives in the FAMILY middleware now (P2, 2026-08-08).
+    from llm_runner.platform import auth as platform_auth
+    monkeypatch.setattr(platform_auth, "_is_loopback", lambda host: True)
     client.put("/v1/server-auth", json={"tokens": ["s3cret"],
                                         "requireForLoopback": True})
     try:

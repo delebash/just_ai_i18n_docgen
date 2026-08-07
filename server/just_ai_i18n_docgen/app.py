@@ -364,9 +364,15 @@ def create_app(data_dir: Path | None = None,
     # /v1/* only. Added BEFORE CORS so CORS ends up OUTERMOST (Starlette runs
     # last-added first): CORS answers preflights before auth sees them, and
     # wraps auth's 401/403 with CORS headers. JW's exact ordering.
-    from .auth import BearerAuthMiddleware
+    from llm_runner.platform import BearerAuthMiddleware
 
-    app.add_middleware(BearerAuthMiddleware)
+    from .auth import read_auth
+
+    app.add_middleware(
+        BearerAuthMiddleware,
+        read_auth=read_auth,
+        type_base="https://just-ai-i18n-docgen.dev/errors/",
+    )
 
     # CORS — allow-all, JW's local + dev + headless fallback: the kit's
     # origin-aware resolver hits :8742 DIRECTLY from Vite dev (:1420), so without
@@ -384,9 +390,13 @@ def create_app(data_dir: Path | None = None,
     # lock anyone out). JW's csrf.py is the donor; with allow-all CORS above,
     # this is what stops a foreign web page from WRITING to :8742 while the
     # app runs. Added last → runs outermost, before CORS (JW's exact ordering).
-    from .csrf import CsrfOriginMiddleware
+    from llm_runner.platform import CsrfOriginMiddleware
 
-    app.add_middleware(CsrfOriginMiddleware)
+    app.add_middleware(
+        CsrfOriginMiddleware,
+        app_origins=("http://localhost:1420", "http://127.0.0.1:1420"),
+        type_base="https://just-ai-i18n-docgen.dev/errors/",
+    )
 
     boot_llm_stack(data_dir, app=app)
 

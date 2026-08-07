@@ -1,41 +1,21 @@
 # SPDX-License-Identifier: MIT
-"""Bearer-token authentication middleware — JW's auth.py, storage seam adapted.
+"""This app's auth SEAM — the settings read behind the family bearer-auth
+middleware (`llm_runner.platform.BearerAuthMiddleware`, wired in app.py).
 
-Headless serving is a first-class way to run this server (the design point, user-
-confirmed 2026-08-03) — and running exposed needs a lock. OFF by default: an empty
-token list means no auth (the normal local-loopback case). Policy, uniform with
-JW/JV:
-  - no tokens                                    → no auth required
-  - tokens + loopback + not require_for_loopback → loopback bypasses auth
-  - otherwise                                    → every /v1/* request needs
-                                                   `Authorization: Bearer <token>`
-
-Config lives in the app's own settings table (appmeta, key "auth":
-`{"tokens": [...], "requireForLoopback": bool}`) — read per /v1 request so a
-change applies live; asset/UI requests skip the gate entirely so the headless
-browser can always load the app and log in.
+The POLICY (token check, loopback bypass, the 2026-08-05 lockout escape) lives
+once in the kit — P2 of the target tree (2026-08-08) ended the era of three
+hand-synced copies. What stays here is the only genuinely per-app part: where
+this app keeps its auth config — appmeta's `auth` row
+(`{"tokens": [...], "requireForLoopback": bool}`), read per /v1 request so a
+change applies live.
 """
 
 from __future__ import annotations
 
-import ipaddress
 import json
 import logging
 
-from fastapi import Request
-from fastapi.responses import JSONResponse
-from starlette.middleware.base import BaseHTTPMiddleware
-
 log = logging.getLogger(__name__)
-
-
-def _is_loopback(host: str) -> bool:
-    if host in ("127.0.0.1", "::1", "localhost"):
-        return True
-    try:
-        return ipaddress.ip_address(host).is_loopback
-    except ValueError:
-        return False
 
 
 def read_auth() -> tuple[list[str], bool]:
@@ -53,53 +33,3 @@ def read_auth() -> tuple[list[str], bool]:
     except Exception as e:  # noqa: BLE001 — never let an auth-config read 500
         log.warning("auth config read failed (treating as no-auth): %s", e)
         return [], False
-
-
-def _problem(status: int, slug: str, title: str, detail: str, path: str) -> JSONResponse:
-    return JSONResponse(
-        status_code=status,
-        content={
-            "type": f"https://just-ai-i18n-docgen.dev/errors/{slug}",
-            "title": title,
-            "status": status,
-            "detail": detail,
-            "instance": path,
-        },
-        media_type="application/problem+json",
-    )
-
-
-class BearerAuthMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        path = request.url.path
-        # Only gate the API. UI assets, docs, openapi, and the static mount
-        # always pass (so the headless browser can load the app + log in).
-        if not path.startswith("/v1"):
-            return await call_next(request)
-
-        tokens, require_for_loopback = read_auth()
-        if not tokens:
-            return await call_next(request)
-
-        client_host = request.client.host if request.client else ""
-        is_loop = _is_loopback(client_host)
-        # The lockout escape (audit 2026-08-05: requireForLoopback + a lost token
-        # gated even the boot probe and this very settings door — the desktop app
-        # died on its ConnectionError gate FOREVER with no way back in). From the
-        # machine itself, /v1/health and /v1/server-auth always answer: physical
-        # access could edit the DB anyway, and read_auth already commits to
-        # never-lock-out on read errors. Remote clients still need the token.
-        if is_loop and (path == "/v1/health" or path.startswith("/v1/server-auth")):
-            return await call_next(request)
-        if is_loop and not require_for_loopback:
-            return await call_next(request)
-
-        header = request.headers.get("authorization", "")
-        if not header.startswith("Bearer "):
-            return _problem(401, "unauthorized", "Unauthorized",
-                            "Authorization header missing or malformed", path)
-        token = header[len("Bearer "):].strip()
-        if token not in tokens:
-            return _problem(403, "forbidden", "Forbidden",
-                            "Bearer token not accepted", path)
-        return await call_next(request)
