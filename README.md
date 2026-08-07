@@ -40,7 +40,7 @@ law: never drive :8742 while your own dev window is open on it.
 - `docs/dev/TASKS.md` — the live open-work tracker; `docs/dev/IDEAS.md` — the backlog.
 - `../just-llm-runner/docs/app-structure.md` — the family structure standard this
   app is the reference implementation of.
-- `server/just_ai_i18n_docgen/workspace.py` — the review workspace API surface.
+- `server/just_ai_i18n_docgen/api/workspace_api.py` — the review workspace API routes (the Workspace class + write rules: `server/just_ai_i18n_docgen/workspace.py`).
 
 There is also a CLI door over the same service functions:
 `server/.venv/Scripts/just-ai-i18n-docgen translate|check|escalate|accept|extract <config>`.
