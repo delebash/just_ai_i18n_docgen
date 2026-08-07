@@ -380,6 +380,14 @@ def create_app(data_dir: Path | None = None,
         allow_headers=["*"],
     )
 
+    # CSRF: reject cross-site browser mutations to /v1 (no token — can never
+    # lock anyone out). JW's csrf.py is the donor; with allow-all CORS above,
+    # this is what stops a foreign web page from WRITING to :8742 while the
+    # app runs. Added last → runs outermost, before CORS (JW's exact ordering).
+    from .csrf import CsrfOriginMiddleware
+
+    app.add_middleware(CsrfOriginMiddleware)
+
     boot_llm_stack(data_dir, app=app)
 
     # Shared platform surfaces (JW's exact wiring): the log ring's API and the
