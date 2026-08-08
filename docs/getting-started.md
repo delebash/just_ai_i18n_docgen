@@ -36,7 +36,7 @@ environment variable overrides it for headless setups.
    running — in dev, start it with `npm run server` and press Retry.
 3. On a fresh install the Home page is a welcome screen: **1 Point · 2 Translate ·
    3 Review.** Do those in order:
-   - [Set up the AI engine](ai-setup.md) — pick or download a model.
+   - [Set up the AI engine](ai-providers.md) — pick or download a model.
    - [Point it at your app](project-setup.md) — tell the tool where your locale
      files live.
    - Then Home becomes your language dashboard and you can

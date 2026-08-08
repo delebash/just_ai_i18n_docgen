@@ -3,7 +3,8 @@
     "group": "Start here",
     "items": [
       { "slug": "getting-started", "title": "Getting started" },
-      { "slug": "ai-setup",        "title": "Set up the AI engine" },
+      { "slug": "ai-providers",    "title": "Set up the AI engine" },
+      { "slug": "ai-features",     "title": "The AI features" },
       { "slug": "project-setup",   "title": "Point it at your app" }
     ]
   },
