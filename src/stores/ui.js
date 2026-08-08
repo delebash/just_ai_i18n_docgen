@@ -1,33 +1,25 @@
 // SPDX-License-Identifier: MIT
-// UI chrome state: appearance, persisted locally and applied through the kit
-// engine. (The design-variant switch died 2026-08-03 when Design 1 was ruled.)
+// UI chrome state: appearance + the ui flags, server-backed via the family
+// /v1/prefs door (target-tree P9 — left localStorage so they survive
+// reinstall/machine moves and ride app.db's backup/restore/reset). readPref
+// serves from the cache bootPrefs() filled — main.js awaits bootPrefs BEFORE
+// this store first initializes, pre-mount. (The design-variant switch died
+// 2026-08-03 when Design 1 was ruled.)
 import { defineStore } from "pinia";
-import { useModelApply } from "@delebash/llm-ui";
+import { readPref, useModelApply, writePref } from "@delebash/llm-ui";
 import { applyAppearance, migrateAppearance } from "../services/appearance.js";
-
-const K_APPEARANCE = "jaid.appearance";
-const K_AI_OFFER = "jaid.aiOfferShown"; // the once-ever AI offer's flag (ruling R3)
-const K_KEEP_RUNNING = "jaid.keepServerRunning"; // the family headless ruling (2026-08-04)
-
-function readJson(key) {
-  try {
-    return JSON.parse(localStorage.getItem(key) || "{}");
-  } catch {
-    return {};
-  }
-}
 
 export const useUiStore = defineStore("ui", {
   state: () => ({
-    appearance: migrateAppearance(readJson(K_APPEARANCE)),
-    aiOfferShown: localStorage.getItem(K_AI_OFFER) === "1",
+    appearance: migrateAppearance(readPref("appearance", {})),
+    aiOfferShown: readPref("aiOfferShown", false) === true, // the once-ever AI offer's flag (ruling R3)
     aiOfferOpen: false,
-    keepServerRunning: localStorage.getItem(K_KEEP_RUNNING) === "1",
+    keepServerRunning: readPref("keepServerRunning", false) === true, // the family headless ruling (2026-08-04)
   }),
   actions: {
     markAiOfferShown() {
       this.aiOfferShown = true;
-      localStorage.setItem(K_AI_OFFER, "1");
+      writePref("aiOfferShown", true);
     },
     // The once-ever AI offer, fired at Setup-save (the user's ruling 2026-08-04:
     // JW's donor fires right after the FIRST project is created/opened — this
@@ -47,7 +39,7 @@ export const useUiStore = defineStore("ui", {
     },
     setKeepServerRunning(v) {
       this.keepServerRunning = !!v;
-      localStorage.setItem(K_KEEP_RUNNING, v ? "1" : "0");
+      writePref("keepServerRunning", !!v);
     },
     boot() {
       applyAppearance(this.appearance);
@@ -57,7 +49,7 @@ export const useUiStore = defineStore("ui", {
       // The WRAPPER doc {appearance: {...}} — the kit's migrateAppearance reads
       // `persisted.appearance`; the flat object silently lost mode/font/scale on
       // every restart (found by the 2026-08-05 audit, proven by execution).
-      localStorage.setItem(K_APPEARANCE, JSON.stringify({ appearance: this.appearance }));
+      writePref("appearance", { appearance: this.appearance });
       applyAppearance(this.appearance);
     },
     cycleMode() {

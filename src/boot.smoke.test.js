@@ -12,7 +12,7 @@ registerBootSmoke({
   boot: () => import("./main.js"),
   routes: {
     "/v1/health": { status: "ok", product: "just-ai-i18n-docgen" },
-    "/v1/prefs": { prefs: {} },
+    "/v1/prefs": {}, // the prefs DOCUMENT is the top-level object (empty = defaults)
   },
   // boot() surfaces failures on window.__bootErr — rethrow so the waitFor loop
   // fails fast with the real error instead of timing out.

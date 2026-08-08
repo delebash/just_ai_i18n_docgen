@@ -383,11 +383,13 @@ test("settings renders its sections and the logs panel", async () => {
   }
   assert.equal(sawDark, true, "cycling the mode must stamp [data-theme=dark] (the tokens vocabulary fix)");
   assert.equal(await stamp(), modeWas, "three clicks = a full cycle back to the user's own mode");
-  // Persistence SHAPE: the kit migrator reads {appearance:{...}} — the flat doc
-  // silently lost mode/font/scale every restart (2026-08-05 audit).
-  const persisted = await d.exec(`return localStorage.getItem('jaid.appearance');`);
-  assert.equal(!!persisted && typeof JSON.parse(persisted).appearance === "object", true,
-    "appearance persists as the {appearance:{...}} wrapper the migrator reads");
+  // Persistence SHAPE: server-backed via the family /v1/prefs door (P9 — the
+  // localStorage key died); the kit migrator reads {appearance:{...}} — the
+  // flat doc silently lost mode/font/scale every restart (2026-08-05 audit).
+  await d.sleep(400); // let the store's debounced PATCH land
+  const prefsDoc = await (await fetch("http://127.0.0.1:8742/v1/prefs")).json();
+  assert.equal(typeof prefsDoc.appearance?.appearance === "object", true,
+    "appearance persists on the server as the {appearance:{...}} wrapper the migrator reads");
   await d.navigate("#/settings/logs");
   await d.waitUntil(`return /server logs/i.test(document.body.textContent)`);
   // The storage panel is JW's, strings verbatim — assert the donor's wording so a

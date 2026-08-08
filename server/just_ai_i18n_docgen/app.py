@@ -282,6 +282,20 @@ def boot_llm_stack(data_dir: Path | None = None, app: FastAPI | None = None) -> 
             asset_dirs=dict,
             on_replaced=_stop_runner_best_effort,
         ))
+        # The family /v1/prefs door (target-tree P9): the renderer's prefs left
+        # localStorage for `pref.*` rows in app_settings — same DB, so the
+        # backup/restore/reset above covers them. Hooks resolve appmeta's
+        # session factory lazily per request; configure_app_storage below runs
+        # long before the first request.
+        from llm_runner.platform import make_prefs_router
+
+        from .appmeta import prefs_clear, prefs_read_all, prefs_write_many
+
+        app.include_router(make_prefs_router(
+            read_all=prefs_read_all,
+            write_many=prefs_write_many,
+            clear=prefs_clear,
+        ))
         install_llm(
             app,
             engine=engine,
@@ -326,8 +340,8 @@ def boot_llm_stack(data_dir: Path | None = None, app: FastAPI | None = None) -> 
     # boot (the family call-site, target-tree P6): create_app(tmp_path) starts
     # from an empty DB, and tests that need presets/providers call it explicitly.
 
-    # The app's OWN table (reviewer identity) on its OWN Base — one database, two
-    # Bases, the documented family pattern.
+    # The app's OWN table (reviewer identity + `pref.*` renderer prefs) on its
+    # OWN Base — one database, two Bases, the documented family pattern.
     from .appmeta import configure_app_storage
 
     configure_app_storage(session_factory, engine)

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 import { createApp } from "vue";
 import { createPinia } from "pinia";
-import { ConnectionError, checkServer, configureHelp, installLlmUi, serverUrl, startWarmOnBoot } from "@delebash/llm-ui";
+import { ConnectionError, bootPrefs, checkServer, configureHelp, installLlmUi, serverUrl, startWarmOnBoot } from "@delebash/llm-ui";
 import App from "./App.vue";
 import { router } from "./router";
 import { useUiStore } from "./stores/ui";
@@ -55,8 +55,6 @@ installLlmUi(app, {
 // full-pane reader route yet, so the open-full/open-web buttons stay hidden.
 configureHelp({ loadDoc, hasDoc, titleForSlug });
 
-useUiStore(pinia).boot(); // theme before first paint — no flash of the wrong mode
-
 // Warm the default local model BEFORE mount (JW's mechanic, via the kit's
 // startWarmOnBoot now): the splash overlay is up on the very first Vue paint — a
 // seamless hand-off from index.html's static plate, never a shell flash between
@@ -76,6 +74,11 @@ useUiStore(pinia).boot(); // theme before first paint — no flash of the wrong 
       }).mount("#app");
       return;
     }
+    // Prefs before the ui store's FIRST init (its state reads them), theme
+    // before mount — the static plate covers this await, so still no flash of
+    // the wrong mode (target-tree P9: prefs are server-backed now).
+    await bootPrefs();
+    useUiStore(pinia).boot();
     await startWarmOnBoot();
     app.mount("#app");
   } catch (e) {
