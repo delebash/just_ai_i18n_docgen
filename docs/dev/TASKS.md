@@ -397,6 +397,17 @@ lint/build. **The tray itself is eyes-on QC — webdriver can't see a tray.**
     app-structure §11 rewrites to ONE feature kind. `dataLinks` is KEPT
     (generic links-beside-the-prompt affordance). Kit-side half recorded in
     the runner's TASKS.
+    **CARVE-OUT (user-approved 2026-08-08, with JV's dictation-cleanup
+    redesign):** the prompt-preview DOOR survives solely as the composed-call
+    door — a card whose texts compose into ONE call (today: JV's dictation
+    cleanup, nothing else). The kit keeps loadPreview/builtPrompt + the loud
+    preview-error line ONLY for composed-call parents. Everything else above
+    still dies exactly as written — this app's route + builders + tests (its
+    converted features are standard rows + data variables and need no
+    preview), the zero-actions drop, the promptless feature panes, and the
+    error-branch PICKER (the no-fallback ruling: the error line stays, the
+    working dropdown inside a bug state goes). Decision text: the runner's
+    TASKS, "Dictation cleanup redesign".
   - The healthy-project sampling ruling's SPIRIT transfers: live sample
     composers via `configureTestData` (JW-style) — busiest language's
     pending keys; finished project samples done keys and says so. Plus
