@@ -19,7 +19,7 @@ const app = createApp(App).use(pinia).use(router);
 // falls back to window.location.origin (= tauri.localhost there). It also wires the
 // Tauri opener for external links and registers <LlmUiHosts />.
 installLlmUi(app, {
-  devPorts: ["1420"],
+  devPorts: ["1450"],
   fallbackBase: "http://127.0.0.1:8742",
   // The opener stays the APP's: `@tauri-apps/plugin-opener` is a Tauri dependency, and
   // importing it inside the kit breaks every non-Tauri consumer's build. Tauri's

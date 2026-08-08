@@ -15,7 +15,7 @@ engine never signs off (`<lang>.accepted.json` is the human record).
 ```bash
 npm install
 npm run dev            # THE APP — desktop window; spawns the Python server itself
-npm run dev:vite       # browser-only dev at :1420 (start the server yourself: npm run server)
+npm run dev:vite       # browser-only dev at :1450 (start the server yourself: npm run server)
 npm run server         # the Python server on :8742 (venv-resolved via scripts/py.js)
 ```
 

@@ -36,7 +36,7 @@ def test_no_origin_and_app_origin_allowed(client):
     assert client.post("/v1/undo", json={}).status_code != 403
     # The app's own dev origin (Vite :1420) → not blocked.
     assert client.post("/v1/undo", json={},
-                       headers={"origin": "http://localhost:1420"}).status_code != 403
+                       headers={"origin": "http://localhost:1450"}).status_code != 403
 
 
 def test_same_origin_mutation_allowed(client):

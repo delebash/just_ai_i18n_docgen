@@ -5,7 +5,7 @@
   "identifier": "com.just-ai-i18n-docgen.app",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://localhost:1420",
+    "devUrl": "http://localhost:1450",
     "beforeDevCommand": "npm run dev:vite",
     "beforeBuildCommand": "npm run build:vite"
   },

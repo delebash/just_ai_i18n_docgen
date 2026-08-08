@@ -217,8 +217,12 @@ def check_double_words(src: str, dst: str, ctx: dict) -> list[Finding]:
 
 def check_whitespace(src: str, dst: str, ctx: dict) -> list[Finding]:
     """Leading and trailing whitespace parity — a UI string is often concatenated."""
-    lead = lambda s: s[: len(s) - len(s.lstrip())]
-    trail = lambda s: s[len(s.rstrip()):]
+
+    def lead(s: str) -> str:
+        return s[: len(s) - len(s.lstrip())]
+
+    def trail(s: str) -> str:
+        return s[len(s.rstrip()):]
     if lead(src) != lead(dst):
         return [{"code": "whitespace", "detail": "leading whitespace differs from the source"}]
     if trail(src) != trail(dst):

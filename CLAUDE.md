@@ -13,7 +13,7 @@ reference implementation.**
 
 ```bash
 npm run dev            # THE APP — desktop window; spawns the Python server itself
-npm run dev:vite       # browser-only dev at :1420 (start the server yourself: npm run server)
+npm run dev:vite       # browser-only dev at :1450 (start the server yourself: npm run server)
 npm run server         # the Python server on :8742 (venv-resolved via scripts/py.js)
 npm run test:server    # pytest — 148 tests
 npm test               # e2e smoke: the REAL app via tauri-driver (build release first)

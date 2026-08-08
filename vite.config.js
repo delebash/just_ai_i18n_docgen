@@ -12,6 +12,9 @@ export default defineConfig(async () => ({
   plugins: [vue()],
   resolve: {
     alias: {
+      // The family renderer alias (target-tree P10): relative imports within a
+      // directory, `@renderer/...` across the tree — JW's documented convention.
+      "@renderer": resolve(__dirname, "src"),
       // The shared Vue kit — consumed as SOURCE via the sibling clone, the
       // family pattern (peer deps live in this package.json).
       "@delebash/llm-ui": resolve(__dirname, "../just-llm-runner/ui/src"),
@@ -27,9 +30,14 @@ export default defineConfig(async () => ({
   //
   // 1. prevent Vite from obscuring rust errors
   clearScreen: false,
-  // 2. tauri expects a fixed port, fail if that port is not available
+  // 2. tauri expects a fixed port, fail if that port is not available.
+  // 1450/1451 (target-tree P10): each family app owns its dev-port pair —
+  // JW 1420 · JV 1430/1431 · this app 1450/1451. It shipped on JW's 1420,
+  // and with strictPort a collision silently leaves the Tauri window
+  // pointed at the OTHER app's dev server (JV's config records the same
+  // trap). tauri.conf.json's devUrl follows in lock-step.
   server: {
-    port: 1420,
+    port: 1450,
     strictPort: true,
     host: host || false,
     fs: {
@@ -45,7 +53,7 @@ export default defineConfig(async () => ({
       ? {
           protocol: "ws",
           host,
-          port: 1421,
+          port: 1451,
         }
       : undefined,
     watch: {
@@ -56,5 +64,16 @@ export default defineConfig(async () => ({
       // comment). Found by the 2026-08-05 s2 three-app audit.
       ignored: ["**/src-tauri/**", "**/.venv/**", "**/e2e/**", "**/dist/**"],
     },
+  },
+  build: {
+    // JW's build shape (target-tree P10). Tauri's bundled webview is a current
+    // Chromium / WKWebView on each OS; the per-platform targets keep esbuild
+    // from down-leveling. The macOS floor (safari17) matches the WKWebView
+    // version Tauri 2 ships against.
+    outDir: resolve(__dirname, "dist"),
+    emptyOutDir: true,
+    target: process.env.TAURI_ENV_PLATFORM === "windows" ? "chrome105" : "safari17",
+    minify: !process.env.TAURI_ENV_DEBUG,
+    sourcemap: !!process.env.TAURI_ENV_DEBUG,
   },
 }));

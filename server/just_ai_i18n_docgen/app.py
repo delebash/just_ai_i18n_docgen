@@ -404,7 +404,7 @@ def create_app(data_dir: Path | None = None,
     )
 
     # CORS — allow-all, JW's local + dev + headless fallback: the kit's
-    # origin-aware resolver hits :8742 DIRECTLY from Vite dev (:1420), so without
+    # origin-aware resolver hits :8742 DIRECTLY from Vite dev (:1450), so without
     # this every dev request dies as a silent CORS block (found live 2026-08-02 —
     # no test can see it: TestClient is same-origin). A loopback server for one
     # user; JW's settings-driven origin lockdown can come with a settings surface.
@@ -423,7 +423,7 @@ def create_app(data_dir: Path | None = None,
 
     app.add_middleware(
         CsrfOriginMiddleware,
-        app_origins=("http://localhost:1420", "http://127.0.0.1:1420"),
+        app_origins=("http://localhost:1450", "http://127.0.0.1:1450"),
         type_base="https://just-ai-i18n-docgen.dev/errors/",
     )
 

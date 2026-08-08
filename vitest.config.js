@@ -21,6 +21,7 @@ export default defineConfig({
   plugins: [vue({ template: { transformAssetUrls: false } })],
   resolve: {
     alias: {
+      "@renderer": resolve(__dirname, "src"),
       "@delebash/llm-ui": resolve(__dirname, "../just-llm-runner/ui/src"),
     },
     // Same dedupe list as vite.config.js, same reason — keep the two in lock-step.

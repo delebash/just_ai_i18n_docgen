@@ -138,6 +138,6 @@ def test_a_browser_origin_gets_cors_headers(client):
     without CORSMiddleware every browser dev request dies as a silent block.
     Found live 2026-08-02 — TestClient is same-origin, which is why only an
     explicit Origin header can make a test see it."""
-    r = client.get("/v1/setup/state", headers={"Origin": "http://localhost:1420"})
+    r = client.get("/v1/setup/state", headers={"Origin": "http://localhost:1450"})
     assert r.status_code == 200
     assert r.headers.get("access-control-allow-origin") == "*"
