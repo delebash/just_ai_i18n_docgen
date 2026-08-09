@@ -2,14 +2,15 @@
 // Runs — start (202), watch (SSE with polling fallback), cancel, history. A job stages
 // PROPOSALS only; the review store's applyProposal is the human action that writes.
 //
-// Every job REGISTERS in the kit's shared AI-task queue (useAiTasksStore) — the
-// batch-owner pattern its own QC-31 comment documents: one task per language,
-// setProgress renders "n/m" in the strip and the AI-tasks panel, and the panel's
-// Cancel aborts through the shared controller into POST /v1/jobs/cancel. This is
-// what makes translate runs visible (and cancellable) from the same window as
-// model downloads — one task surface, no bespoke strip (JobStrip died 2026-08-03).
+// Every job REGISTERS in the kit's shared AI-task queue via the withAiTask
+// runner (AI-call convention 2026-08-08) — the batch-owner pattern: one task per
+// language, setProgress renders "n/m" in the strip and the AI-tasks panel, and
+// the panel's Cancel aborts through the shared controller into POST
+// /v1/jobs/cancel. This is what makes translate runs visible (and cancellable)
+// from the same window as model downloads — one task surface, no bespoke strip
+// (JobStrip died 2026-08-03).
 import { defineStore } from "pinia";
-import { get, post, pushToast, safeRequest, serverUrl, useAiTasksStore } from "@delebash/llm-ui";
+import { get, post, pushToast, safeRequest, serverUrl, withAiTask } from "@delebash/llm-ui";
 
 const langNames = new Intl.DisplayNames(undefined, { type: "language" });
 function nameOf(code) {
@@ -25,7 +26,8 @@ export const useJobsStore = defineStore("jobs", {
     queue: [],          // languages still waiting when a multi-select run goes sequential
     queueScope: null,
     _source: null,
-    _task: null,        // the aiTasks handle for the RUNNING job (one per language)
+    _task: null,        // the runner's handle for the RUNNING job (one per language)
+    _taskLife: null,    // settles the withAiTask callback when the SSE outcome lands
   }),
   actions: {
     async refresh() {
@@ -44,29 +46,45 @@ export const useJobsStore = defineStore("jobs", {
     },
     _openTask(lang) {
       this._closeTask("superseded");
-      const tasks = useAiTasksStore();
       const remaining = this.queue.length;
-      const handle = tasks.start({
+      // The kit runner owns the lifecycle (AI-call convention 2026-08-08).
+      // A translate job's life is EVENT-shaped — it ends when the SSE stream
+      // reports an outcome, not when a call returns — so the callback holds
+      // the task open on a deferred that _closeTask settles.
+      let settle = null;
+      const life = new Promise((resolve, reject) => { settle = { resolve, reject }; });
+      this._taskLife = settle;
+      withAiTask({
         feature: "translate",
         label: `Translating ${nameOf(lang)}${remaining ? ` · then ${this.queue.map(nameOf).join(", ")}` : ""}`,
         meta: { lang },
+      }, (handle) => {
+        handle.markStreaming();
+        // The panel's Cancel aborts the shared controller — route it to the server.
+        handle.signal.addEventListener("abort", () => {
+          post("/v1/jobs/cancel", {}).catch(() => {});
+          this.queue = [];
+        });
+        this._task = handle;
+        return life;
+      }).catch(() => {
+        // A failed run's row already carries the error (failed lingers until
+        // dismissed); the store's own `error` state is set by the SSE path.
       });
-      handle.markStreaming();
-      // The panel's Cancel aborts the shared controller — route it to the server.
-      handle.signal.addEventListener("abort", () => {
-        post("/v1/jobs/cancel", {}).catch(() => {});
-        this.queue = [];
-      });
-      this._task = handle;
     },
     _closeTask(outcome) {
       const t = this._task;
+      const settle = this._taskLife;
       this._task = null;
-      if (!t) return;
-      if (outcome === "done") t.finish({});
-      else if (outcome === "failed") t.fail(new Error(this.job?.error || "run failed"));
-      else if (outcome === "cancelled") t.finish({ cancelled: true });
-      else t.finish({});
+      this._taskLife = null;
+      if (!t || !settle) return;
+      if (outcome === "failed") settle.reject(new Error(this.job?.error || "run failed"));
+      else if (outcome === "cancelled" || outcome === "superseded") {
+        // cancel() records the outcome; the runner's finish then no-ops
+        // (first-outcome-wins). The old code finished these as DONE rows.
+        t.cancel();
+        settle.resolve({});
+      } else settle.resolve({});
     },
     async start({ lang, scope, keys = null, presetId = null }) {
       this.error = "";
