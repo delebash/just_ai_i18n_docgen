@@ -22,9 +22,15 @@ acceptance is a human's click, stamped with a reviewer name and committed to git
 
 The server can also run **headless**: start it yourself (`npm run server`, port
 **8742**) and open the app in a browser — the built UI is served from the same
-port. App data (the AI engine, downloaded models, logs) lives in a data folder you
-can relocate from Settings → Storage; the `JUST_AI_I18N_DOCGEN_DATA_DIR`
-environment variable overrides it for headless setups.
+port. App data (the AI engine, downloaded models, logs) lives in a **`data` folder
+inside the install directory** — the app is self-contained, so moving the
+folder moves everything with it. You decide where it goes: relocate it from
+Settings → Storage, or set `JUST_AI_I18N_DOCGEN_DATA_DIR` (or `--data-dir`) for
+headless setups. Nothing is written to a hidden per-user location you didn't
+pick; the only exception is an install directory that can't be written to
+(Program Files, read-only media), where it falls back to the standard per-user
+app-data folder so the app still starts. JustWrite and JustVoice follow the
+identical rule.
 
 ## First launch
 

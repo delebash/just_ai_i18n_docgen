@@ -42,7 +42,6 @@ from llm_runner.platform import (
     make_disk_router,
     make_logs_router,
 )
-from platformdirs import user_data_dir
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -189,16 +188,29 @@ CLASS_TUNE_IDENTITY: dict[str, dict] = {
 }
 
 
-def default_data_dir() -> Path:
-    """JW parity: the desktop shell resolves the (portable) data root and hands it to
-    the server via the env var — same contract as JUSTWRITE_DATA_DIR. A CLI flag still
-    wins; the OS app-data dir is the no-shell fallback."""
-    import os
+# The checkout root in a source install: server/<pkg>/app.py → repo.
+# (Frozen builds ignore it — the kit uses the executable's own folder.)
+_SOURCE_ROOT = Path(__file__).resolve().parents[2]
 
-    env = os.environ.get("JUST_AI_I18N_DOCGEN_DATA_DIR")
-    if env:
-        return Path(env)
-    return Path(user_data_dir("just-ai-i18n-docgen", appauthor=False))
+
+def default_data_dir() -> Path:
+    """The app's data root, per the ONE family policy (user ruling 2026-08-14 —
+    *"absolutely no data ... stored anywhere but where the user has set the
+    storage directory, which by default will be the install directory for the
+    app"*). Thin call into the kit; the ladder may never be re-implemented here.
+
+    The desktop shell resolves the identical ladder in Rust (it runs before this
+    process exists) and hands the result down via the env var. This function is
+    what governs HEADLESS runs — which is exactly where the old
+    `user_data_dir(...)` default quietly created an OS app-data folder the user
+    never chose."""
+    from llm_runner.platform import resolve_data_dir
+
+    return resolve_data_dir(
+        app_name="just-ai-i18n-docgen",
+        env_var="JUST_AI_I18N_DOCGEN_DATA_DIR",
+        source_root=_SOURCE_ROOT,
+    )
 
 
 def _retire_gemma3_row() -> None:
