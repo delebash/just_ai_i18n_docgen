@@ -2,6 +2,7 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import { ConnectionError, bootPrefs, checkServer, configureHelp, installLlmUi, serverUrl, startWarmOnBoot } from "@delebash/llm-ui";
+import { openPath, openUrl } from "@tauri-apps/plugin-opener";
 import App from "./App.vue";
 import { router } from "./router";
 import { useUiStore } from "./stores/ui";
@@ -21,14 +22,12 @@ const app = createApp(App).use(pinia).use(router);
 installLlmUi(app, {
   devPorts: ["1450"],
   fallbackBase: "http://127.0.0.1:8742",
-  // The opener stays the APP's: `@tauri-apps/plugin-opener` is a Tauri dependency, and
-  // importing it inside the kit breaks every non-Tauri consumer's build. Tauri's
-  // webview swallows target=_blank, so without this every About/help link is dead —
-  // the kit warns loudly in a webview when no opener is passed.
-  external: async (url) => {
-    const { openUrl } = await import("@tauri-apps/plugin-opener");
-    await openUrl(url);
-  },
+  // The openers, straight from the plugin — the SAME line in all three apps
+  // (2026-08-14). The plugin stays the APP's dependency: importing it inside the
+  // kit breaks every non-Tauri consumer's build. The kit decides when they can be
+  // used (browser vs webview); no app repeats that reasoning. `openPath` is what
+  // the model catalog's "Open folder" rides.
+  external: { open: openUrl, openPath },
   // No embedding features here, and the catalog seeds translation-measured rows only.
   capabilities: { embeddings: false },
   // This app's voice on the shared model-catalog surface (the defaults are JW's words).

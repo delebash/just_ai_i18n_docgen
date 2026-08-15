@@ -12,6 +12,7 @@ import { useRouter } from "vue-router";
 import { AiSetupOffer, BootModelLoad, FAMILY_LABELS, HelpDrawer, Icon, LlmUiHosts, pushToast, useAiTasksNav, warmModelId } from "@delebash/llm-ui";
 import TitleBar from "./components/TitleBar.vue";
 import splashPlate from "./assets/images/splash-plate.jpg";
+import { setKeepRunning } from "./services/native.js";
 import { useProjectStore } from "./stores/project";
 import { useUiStore } from "./stores/ui";
 
@@ -53,11 +54,9 @@ const aiTasksNav = useAiTasksNav();
 onMounted(async () => {
   // Re-apply the persisted keep-running flag to the shell every boot (the Rust
   // side resets per launch; the family headless ruling 2026-08-04).
-  if (ui.keepServerRunning) {
-    import("@tauri-apps/api/core")
-      .then(({ invoke }) => invoke("set_keep_server_running", { keepRunning: true }))
-      .catch(() => {});
-  }
+  // Through services/native.js — the one place a command name is written
+  // (family shape, 2026-08-15).
+  if (ui.keepServerRunning) setKeepRunning(true);
   await project.refresh();
   // The tray's renderer half (the full-donor ruling 2026-08-04): settings/about
   // navigate, Copy URL writes the clipboard + says so — the donor's versions

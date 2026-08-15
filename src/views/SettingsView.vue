@@ -15,6 +15,7 @@ import {
   safeRequest, serverUrl,
 } from "@delebash/llm-ui";
 import { loadDoc } from "../services/helpDocs.js";
+import { pickDirectory, storageGetRoot, storageRelocate, setKeepRunning as nativeSetKeepRunning } from "../services/native.js";
 import { SETTINGS_SECTION_IDS } from "./settingsSections.js";
 import { useProjectStore } from "../stores/project";
 import { useUiStore } from "../stores/ui";
@@ -61,13 +62,9 @@ const diskBusy = ref("");
 const diskErr = ref("");
 
 async function loadStorageRoot() {
-  try {
-    const { invoke } = await import("@tauri-apps/api/core");
-    storageRoot.value = await invoke("storage_get_root");
-    isDesktop.value = true;
-  } catch {
-    isDesktop.value = false;
-  }
+  // services/native.js — the one place a command name is written.
+  storageRoot.value = await storageGetRoot();
+  isDesktop.value = !!storageRoot.value;
 }
 async function loadDiskUsage() {
   diskUsage.value = await safeRequest("/v1/disk/usage", null);
@@ -80,8 +77,7 @@ function diskSize(n) {
 }
 async function changeFolder() {
   storageErr.value = "";
-  const { invoke } = await import("@tauri-apps/api/core");
-  const picked = await invoke("pick_directory", {
+  const picked = await pickDirectory({
     title: "Choose a data folder", defaultPath: storageRoot.value?.root || "",
   });
   if (!picked) return;
@@ -93,7 +89,7 @@ async function changeFolder() {
   if (!yes) return;
   relocating.value = true;
   try {
-    await invoke("storage_relocate", { newRoot: picked });
+    await storageRelocate(picked);
     window.location.reload();
   } catch (e) {
     storageErr.value = String(e || "Move failed.");
@@ -185,10 +181,8 @@ function dropToken(t) {
 // ui store (App.vue re-applies it every boot — the Rust flag resets per launch).
 async function setKeepRunning(v) {
   ui.setKeepServerRunning(!!v);
-  try {
-    const { invoke } = await import("@tauri-apps/api/core");
-    await invoke("set_keep_server_running", { keepRunning: !!v });
-  } catch { /* browser dev — no shell; the store still remembers */ }
+  // services/native.js — no-op in browser dev; the store still remembers.
+  await nativeSetKeepRunning(v);
 }
 
 onMounted(async () => {
