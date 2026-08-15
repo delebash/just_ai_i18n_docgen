@@ -26,7 +26,9 @@ in a run resolves against that file, never against where you ran the command.
 - **`extract <config> [--check]`** — docs front-matter → locale keys
   ([details](docs-authoring.md)). Makes no engine call.
 
-Global: `--data-dir` points the tool at a different app-data folder.
+Global: `--data-dir` points the tool at a different data folder. By default
+that folder sits inside the install directory (`data`), not in a per-user
+app-data location — see [Getting started](getting-started.md).
 
 The server itself: `just-ai-i18n-docgen-server serve --host --port --data-dir
 --config` — the headless door; open the served UI in a browser.
