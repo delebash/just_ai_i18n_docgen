@@ -10,6 +10,15 @@ choice: **detect → confirm → apply → done**. It downloads two things the f
 time: the llama.cpp engine (the program that runs models) and the model weights.
 Both show live progress bars with working Cancel/Retry.
 
+**Updating the engine.** An **Update** button appears beside the built-in provider when
+llama.cpp publishes a newer stable release. Before the new engine replaces the one you
+have, the app checks that it starts *and* that it accepts the settings the app launches
+models with; if it fails either, your current engine is kept and the message says what it
+refused. If the newer release has no download for your kind of graphics card, the app says
+so and changes nothing. The old build is removed only once the new one is working. A newer
+engine is not automatically faster — a release can improve one kind of model and set
+another back — so Update is always your click.
+
 **The cache-sharing offer.** If another app in this family (JustWrite, JustVoice)
 already downloaded AI files on this machine, the wizard offers to share them
 instead of downloading again. Saying yes re-points this app at the sibling's cache
