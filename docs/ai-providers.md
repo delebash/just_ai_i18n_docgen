@@ -11,7 +11,9 @@ time: the llama.cpp engine (the program that runs models) and the model weights.
 Both show live progress bars with working Cancel/Retry.
 
 **Updating the engine.** An **Update** button appears beside the built-in provider when
-llama.cpp publishes a newer stable release. Before the new engine replaces the one you
+there is a newer engine than yours. It offers one of two builds, whichever is newer: the
+build this version of the app is tested with, or the build named by llama.cpp's newest
+official release. Hover the button to see which. Before the new engine replaces the one you
 have, the app checks that it starts *and* that it accepts the settings the app launches
 models with; if it fails either, your current engine is kept and the message says what it
 refused. If the newer release has no download for your kind of graphics card, the app says
