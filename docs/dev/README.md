@@ -5,7 +5,9 @@ Read in this order:
 1. **`../../CLAUDE.md`** — the working rules, the "what bites" list (proposals-only
    writes, the engine never signs off, shielding is a substitution, one resolver,
    config-anchored paths), and every pointer.
-2. **`TASKS.md`** — the live tracker. **`IDEAS.md`** — the backlog.
+2. **`TASKS.md`** — the live tracker. **`IDEAS.md`** — the backlog. **`RESEARCH.md`** —
+   what is already known, by subject, with the proof; read its section before
+   researching anything (the family rule, 2026-10-04).
 3. **`../plans/2026-08-04-consistency-sweep.md`** — the live family-consistency
    enforcement list + the QuickSetup surgery resumption notes (the next build
    chunk). Closed history: `../plans/archive/`.

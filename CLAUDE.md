@@ -84,6 +84,8 @@ Port **8742** (JW 17495 · JV 17494). Data-dir env: `JUST_AI_I18N_DOCGEN_DATA_DI
 
 ## Where to look
 
+**Before researching anything — reading code to answer a question, measuring, briefing an agent — read the subject's section of `docs/dev/RESEARCH.md`** (what is already known, with the proof; the shared stack's facts are in `../just-llm-runner/docs/dev/RESEARCH.md`; the family rule, 2026-10-04). Research isn't done until its facts land there.
+
 | For | Read |
 |---|---|
 | **THE REAL PROJECT — what this tool translates** | JustWrite: source `E:\Dev\Web\justwrite-app\src\i18n\locales\en.json`, config `justwrite-app/just-ai-i18n-docgen/config.json` (the app creates it via Setup; the server loads it via `--config` or a live Setup save — nothing persists across restarts) |
