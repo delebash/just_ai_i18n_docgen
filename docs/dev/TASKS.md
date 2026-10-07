@@ -16,6 +16,16 @@
 > item points to — **read that doc before coding the item**. Close = delete — git
 > keeps history. A tracker line is a claim, not evidence — verify against code.
 
+## The family moves to Electron and a Node server — the plan is written, waiting for approval [2026-10-07]
+STATE:  DECIDED 2026-10-05 and 2026-10-07 — every ruling, as shown and approved, is in
+        JustVoice's TASKS, "The family moves to Electron and a Node server; Tauri and Python go"
+        (the decision lives with the plan). This item is a pointer only.
+WHY:    docgen is the first app to move (step 3) — the smallest server proves the shell, the
+        Node server and the installer before the bigger apps.
+BUILT:  the plan, with the step-0 spikes: `../JustVioce/docs/plans/2026-10-07-electron-node-plan.md` — §5 is docgen's step.
+OPEN:   the plan's approval (plan §10).
+GO:     needed: the plan's approval.
+
 ## THE FAMILY PARITY BATCH — SHIPPED 2026-08-06 (all twelve slices)
 - The master plan + its BUILD LOG (deviations, guard-caught bugs, end-gate
   results): `../justwrite-app/docs/plans/2026-08-05-family-parity-batch.md`.
