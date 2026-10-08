@@ -1,32 +1,27 @@
 // SPDX-License-Identifier: MIT
-// native.js — this app's calls into its own Tauri shell.
+// native.js — this app's calls into its own desktop shell.
 //
-// The family shape (2026-08-15), same file, same job in all three apps: ordinary
-// module exports, one per `#[tauri::command]`, so a command's NAME as a string
-// exists in exactly ONE place. Before this, `invoke` was imported ad hoc at five
-// call sites across App.vue and SettingsView, and a renamed command would have
-// had to be found by grepping for a string literal.
-//
-// The commands live in `src-tauri/src/lib.rs`. Every native dialog is a Rust
-// command rather than the JS dialog plugin — the family shape, so a dialog can't
-// appear at two different layers across the three apps.
-//
-// NOT here: `@tauri-apps/api/event` listeners. Events are a different channel
-// (the shell pushing to the renderer), and the other two apps subscribe to them
-// directly in App.vue too — same shape, deliberately.
+// The family shape (2026-08-15), same file, same job in all three apps: ordinary module
+// exports, one per shell command, so a command's NAME as a string exists in exactly ONE
+// place. Since the Electron move (2026-10-08) the shell is the kit's shared Electron main
+// module (`@delebash/llm-runner/shell`); this file is the ONLY reader of its one preload
+// object, `window.appShell` (`invoke(command, args)`, `on(event, fn)`) — the family rule that
+// replaced "no window.<app> global". Outside the desktop app (Vite dev in a browser, the
+// headless `serve` UI) every call answers the browser's way: null / a no-op.
 
-import { invoke } from "@tauri-apps/api/core";
-import { isTauriShell } from "@delebash/llm-ui";
+import { isDesktopShell } from "@delebash/llm-ui";
 
 /** Is a desktop shell there to answer? The kit owns the one test. */
-export const hasShell = () => isTauriShell();
+export const hasShell = () => isDesktopShell() && !!window.appShell;
 
-// ─── Native dialogs (Rust commands — see lib.rs) ─────────────────────
+const call = (command, args) => window.appShell.invoke(command, args);
+
+// ─── Native dialogs ──────────────────────────────────────────────────
 
 /** Folder picker. Resolves the chosen path, or null if the user cancelled. */
 export function pickDirectory({ title, defaultPath } = {}) {
   if (!hasShell()) return Promise.resolve(null);
-  return invoke("pick_directory", { title, defaultPath }).catch(() => null);
+  return call("pickDirectory", { title, defaultPath }).catch(() => null);
 }
 
 // ─── The portable data root ──────────────────────────────────────────
@@ -34,14 +29,14 @@ export function pickDirectory({ title, defaultPath } = {}) {
 /** `{ root, default, portable }`, or null outside the shell. */
 export function storageGetRoot() {
   if (!hasShell()) return Promise.resolve(null);
-  return invoke("storage_get_root").catch(() => null);
+  return call("storageGetRoot").catch(() => null);
 }
 
-/** MOVE all app data to `newRoot` and respawn the server. Throws on failure; the
- *  caller reloads the webview once it resolves. Pick the folder with
- *  `pickDirectory` first. */
+/** MOVE all app data to `newRoot`. Throws on failure. On success the app restarts itself
+ *  (Chromium's own files live under the data root and can only move with a restart), so
+ *  nothing after this call runs. Pick the folder with `pickDirectory` first. */
 export function storageRelocate(newRoot) {
-  return invoke("storage_relocate", { newRoot });
+  return call("storageRelocate", { newRoot });
 }
 
 // ─── The shell's own switches ────────────────────────────────────────
@@ -49,5 +44,26 @@ export function storageRelocate(newRoot) {
 /** The family headless ruling (2026-08-04): keep the server up on window close. */
 export function setKeepRunning(keepRunning) {
   if (!hasShell()) return Promise.resolve();
-  return invoke("set_keep_server_running", { keepRunning: !!keepRunning }).catch(() => {});
+  return call("setKeepRunning", { keepRunning: !!keepRunning }).catch(() => {});
+}
+
+// ─── Openers (handed to the kit's installLlmUi as `external`) ────────
+
+/** Open a web link in the user's browser. */
+export function openUrl(url) {
+  return call("openExternal", { url });
+}
+
+/** Show a local folder (or file) in the OS file manager. */
+export function openPath(path) {
+  return call("openPath", { path });
+}
+
+// ─── The shell's pushes (the tray) ───────────────────────────────────
+
+/** Subscribe to a shell event (`tray:open-settings`, `tray:about`, `tray:copy-url`).
+ *  Returns the unsubscribe function; outside the shell, a no-op. */
+export function onShellEvent(event, fn) {
+  if (!hasShell()) return () => {};
+  return window.appShell.on(event, fn);
 }

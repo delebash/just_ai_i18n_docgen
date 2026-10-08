@@ -12,9 +12,8 @@ acceptance is a human's click, stamped with a reviewer name and committed to git
 
 ## Two doors, two run modes
 
-- **The desktop app** — the window this doc lives in. `npm run dev` starts it; the
-  Python server is spawned for you. (First time from source: create the server
-  venv — the two commands are in the repo README.)
+- **The desktop app** — the window this doc lives in. The app starts its own server;
+  from a source checkout, `npm install` then `npm run dev` starts both.
 - **The command line** — the same brain with no window: `translate`, `check`,
   `escalate`, `accept`, `extract`. Both doors share one implementation of every
   decision, so a CLI run and an app run behave identically. See
@@ -38,8 +37,9 @@ identical rule.
    local AI model into memory so the first translation doesn't pay the load cost.
    **Continue** always skips straight into the app; the load finishes in the
    background.
-2. If the window shows *"Can't reach the server"*, the Python server isn't
-   running — in dev, start it with `npm run server` and press Retry.
+2. If the window shows *"Can't reach the server"*, the server didn't start or
+   stopped — the window keeps asking every few seconds and opens the app the moment it
+   answers. If it doesn't, see [Troubleshooting](troubleshooting.md).
 3. On a fresh install the Home page is a welcome screen: **1 Point · 2 Translate ·
    3 Review.** Do those in order:
    - [Set up the AI engine](ai-providers.md) — pick or download a model.

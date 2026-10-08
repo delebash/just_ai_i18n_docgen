@@ -36,6 +36,9 @@ e2e/node_modules/
 e2e/.tmp-setup-fixture/
 
 # App data (the family portable default: a data/ folder beside the app —
-# llm_runner.platform.data_paths). Never committed.
+# the kit's platform/data_paths.js). Never committed.
 data/
 server/data/
+
+# electron-builder output (the installer and the unpacked app)
+release/

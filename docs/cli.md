@@ -1,9 +1,11 @@
 # The command line
 
-The same brain as the app, no window. Installed in the server venv:
+The same brain as the app, no window. The installed app carries it beside its exe; from
+a source checkout, run it through npm:
 
 ```bash
-server/.venv/Scripts/just-ai-i18n-docgen <command> <config> [options]
+just-ai-i18n-docgen <command> <config> [options]          # an installed app
+npm run cli -- <command> <config> [options]                # a source checkout
 ```
 
 `<config>` is the path to your project's `just-ai-i18n-docgen/config.json` — every path
@@ -30,8 +32,9 @@ Global: `--data-dir` points the tool at a different data folder. By default
 that folder sits inside the install directory (`data`), not in a per-user
 app-data location — see [Getting started](getting-started.md).
 
-The server itself: `just-ai-i18n-docgen-server serve --host --port --data-dir
---config` — the headless door; open the served UI in a browser.
+The server itself: `just-ai-i18n-docgen-server serve --host --port --data-dir --config`
+(`npm run server` from a source checkout) — the headless door; open the served UI in a
+browser.
 
 ## One implementation, two doors
 

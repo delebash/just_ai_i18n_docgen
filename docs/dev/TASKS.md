@@ -16,16 +16,24 @@
 > item points to — **read that doc before coding the item**. Close = delete — git
 > keeps history. A tracker line is a claim, not evidence — verify against code.
 
-## The family moves to Electron and a Node server — the plan is approved, step 1 underway [2026-10-07]
-STATE:  DECIDED 2026-10-05 and 2026-10-07 — every ruling, as shown and approved, is in
+## The family moves to Electron and a Node server — docgen's step is BUILT, waiting on your use [2026-10-08]
+STATE:  DECIDED 2026-10-05, 2026-10-07 and 2026-10-08 — every ruling, as shown and approved, is in
         JustVoice's TASKS, "The family moves to Electron and a Node server; Tauri and Python go"
-        (the decision lives with the plan). This item is a pointer only.
-WHY:    docgen is the first app to move (step 3) — the smallest server proves the shell, the
-        Node server and the installer before the bigger apps.
-BUILT:  the plan, with the step-0 spikes: `../JustVioce/docs/plans/2026-10-07-electron-node-plan.md` — §5 is docgen's step.
-OPEN:   the plan was approved 2026-10-07 ("your rec on all go"). Step 1 — the audio math into
-        audio.cpp — is underway; this repo's step needs its own go (plan §10 Q1).
-GO:     this repo's step: needed.
+        (the decision lives with the plan, §5 is this repo's step). This item is a pointer only.
+BUILT:  2026-10-08, under the user's go "do it all … finsih the conversion your rec on all go!":
+        the server in JavaScript (`server/src/`, one file per former Python module, mounting the
+        kit's `@delebash/llm-runner`), the shell (`electron/main.js` on the kit's
+        `runDesktopApp`), `native.js` on the `window.appShell` bridge, the e2e on Playwright's
+        Electron driver, the electron-builder installer (`npm run build`, output `release/`),
+        the dev data root at `<repo>/data`, the docs. Python (`server/just_ai_i18n_docgen/`) and
+        Tauri (`src-tauri/`) are deleted.
+CHECKED: server tests 161/161 · lint · the family guard · e2e 20/20 · the whole-server route
+        diff against the Python server (83 reads: 70 identical, 13 volatile; 37/37 writes; the
+        databases cell by cell, 0 different) · the installer installs, starts and serves; an
+        update and an uninstall keep `data\`.
+OPEN:   your use of the moved app — `npm run dev`, or the installer from `npm run build` (the
+        plan: each step ends with the user's real app on the new build, on its real data root).
+GO:     none needed to use it; anything you find gets its own item.
 
 ## THE FAMILY PARITY BATCH — SHIPPED 2026-08-06 (all twelve slices)
 - The master plan + its BUILD LOG (deviations, guard-caught bugs, end-gate
@@ -275,7 +283,7 @@ lint/build. **The tray itself is eyes-on QC — webdriver can't see a tray.**
   the review detail's second-opinion panel + the `g` key — and
   `/ai/prompt-preview` is kit-consumed; `/accepted` is consumed by the Accepted
   bucket; `/history`, `/terms`, `/reference` remain caller-less). (g) About
-  hardcodes `0.1.0` beside pyproject's version. *((h) glossary shape drift:
+  hardcodes `0.1.0` beside `package.json`'s version (pyproject's until 2026-10-08). *((h) glossary shape drift:
   CLOSED 2026-08-05, Batch 1 — both shapes are legal everywhere; `_glossary_list`
   in workspace.py + infer.py's normalize; tests pin it.)*
 

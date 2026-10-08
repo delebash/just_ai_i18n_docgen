@@ -1,8 +1,11 @@
 # Troubleshooting
 
-**"Can't reach the server" screen.** The Python server isn't running (dev:
-`npm run server`) or the port is taken. The app deliberately refuses to render
-without it — there is no offline mode to silently lose work in.
+**"Can't reach the server" screen.** The app's server isn't running or its port (8742)
+is taken by another program. The desktop app starts the server itself; the tray menu's
+**Restart server** starts it again, and **Open log file** shows why it stopped. Headless,
+start it with `just-ai-i18n-docgen-server serve` (`npm run server` from a source checkout).
+The app deliberately refuses to render without it — there is no offline mode to silently
+lose work in.
 
 **Home shows the welcome screen although I set up before.** The welcome only
 appears on a confirmed "no project loaded" answer from the server. If your

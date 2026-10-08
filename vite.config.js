@@ -5,8 +5,6 @@ import vue from "@vitejs/plugin-vue";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
-const host = process.env.TAURI_DEV_HOST;
-
 // https://vite.dev/config/
 export default defineConfig(async () => ({
   plugins: [vue()],
@@ -26,20 +24,14 @@ export default defineConfig(async () => ({
              "marked", "vue-sonner", "@vueuse/core", "@tanstack/vue-table"],
   },
 
-  // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
-  //
-  // 1. prevent Vite from obscuring rust errors
   clearScreen: false,
-  // 2. tauri expects a fixed port, fail if that port is not available.
+  // A fixed port: `npm run dev` points the desktop window at it (scripts/dev.mjs).
   // 1450/1451 (target-tree P10): each family app owns its dev-port pair —
-  // JW 1420 · JV 1430/1431 · this app 1450/1451. It shipped on JW's 1420,
-  // and with strictPort a collision silently leaves the Tauri window
-  // pointed at the OTHER app's dev server (JV's config records the same
-  // trap). tauri.conf.json's devUrl follows in lock-step.
+  // JW 1420 · JV 1430/1431 · this app 1450/1451. With strictPort a collision fails loudly
+  // instead of leaving the window pointed at the OTHER app's dev server.
   server: {
     port: 1450,
     strictPort: true,
-    host: host || false,
     fs: {
       // the kit lives outside this repo root
       allow: [resolve(__dirname), resolve(__dirname, "../just-llm-runner/ui")],
@@ -49,31 +41,20 @@ export default defineConfig(async () => ({
     // CORS is the load-bearing mechanism, §6). A proxy here sat dead since the
     // rewrite and made the config claim a wire that never existed (audit
     // 2026-08-05 s2; the standard's §3 snippet carried the same stale line).
-    hmr: host
-      ? {
-          protocol: "ws",
-          host,
-          port: 1451,
-        }
-      : undefined,
     watch: {
-      // src-tauri (Rust target) + the trees JW/JV also guard: the server venv,
-      // e2e (drivers + fixtures), dist. The vite root is the repo, so anything
-      // unlisted lands in chokidar's watch path — JV measured the cost of an
-      // unguarded server tree at 500 ms → 6.2 s to first HTML (its config's
+      // The trees JW/JV also guard: the server, the data folder, e2e, dist. The vite root
+      // is the repo, so anything unlisted lands in chokidar's watch path — JV measured the
+      // cost of an unguarded server tree at 500 ms → 6.2 s to first HTML (its config's
       // comment). Found by the 2026-08-05 s2 three-app audit.
-      ignored: ["**/src-tauri/**", "**/.venv/**", "**/e2e/**", "**/dist/**"],
+      ignored: ["**/server/**", "**/data/**", "**/.venv/**", "**/e2e/**", "**/dist/**"],
     },
   },
   build: {
-    // JW's build shape (target-tree P10). Tauri's bundled webview is a current
-    // Chromium / WKWebView on each OS; the per-platform targets keep esbuild
-    // from down-leveling. The macOS floor (safari17) matches the WKWebView
-    // version Tauri 2 ships against.
+    // JW's build shape (target-tree P10). The desktop window is Electron's own Chromium
+    // (152 in Electron 44) on every OS, so one modern target keeps esbuild from
+    // down-leveling; the headless UI is opened in a current browser.
     outDir: resolve(__dirname, "dist"),
     emptyOutDir: true,
-    target: process.env.TAURI_ENV_PLATFORM === "windows" ? "chrome105" : "safari17",
-    minify: !process.env.TAURI_ENV_DEBUG,
-    sourcemap: !!process.env.TAURI_ENV_DEBUG,
+    target: "chrome140",
   },
 }));

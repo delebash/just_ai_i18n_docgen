@@ -1,6 +1,5 @@
-// Direct WebDriver HTTP capture — talks to tauri-driver (port 4444)
-// exactly like JustWrite's capture-direct.js. Drives the RELEASE build
-// through every surface and saves PNGs of the real WebView2 rendering.
+// Screenshot capture — drives the REAL desktop app (Electron, the built UI from app://)
+// through every surface via the e2e Driver and saves PNGs of its real rendering.
 //
 // Run with: npm run screenshots   (from the app root)
 //
@@ -9,7 +8,6 @@
 // shots with data. Unset CAPTURE_NO_SIDECAR=0 to exercise the real
 // sidecar spawn instead.
 
-import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,7 +36,7 @@ async function main() {
   if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
 
   const d = new Driver();
-  console.log("→ launching app via tauri-driver");
+  console.log("→ launching the desktop app");
   await d.launch();
   await d.maximize();
   await d.sleep(2000);

@@ -1,0 +1,993 @@
+{
+ "loads": [
+  {
+   "in": "{\"a\": 1, \"b\": [1, 2.0, -3e2, 1E400, 12345678901234567890], \"c\": null}",
+   "ok": {
+    "t": "dict",
+    "items": [
+     [
+      "a",
+      {
+       "t": "int",
+       "s": "1"
+      }
+     ],
+     [
+      "b",
+      {
+       "t": "list",
+       "items": [
+        {
+         "t": "int",
+         "s": "1"
+        },
+        {
+         "t": "float",
+         "repr": "2.0"
+        },
+        {
+         "t": "float",
+         "repr": "-300.0"
+        },
+        {
+         "t": "float",
+         "repr": "inf"
+        },
+        {
+         "t": "int",
+         "s": "12345678901234567890"
+        }
+       ]
+      }
+     ],
+     [
+      "c",
+      {
+       "t": "none"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "in": "{\"title\": \"x\", \"10\": \"y\", \"2\": \"z\", \"a\": {\"b\": \"c\"}}",
+   "ok": {
+    "t": "dict",
+    "items": [
+     [
+      "title",
+      {
+       "t": "str",
+       "v": "x"
+      }
+     ],
+     [
+      "10",
+      {
+       "t": "str",
+       "v": "y"
+      }
+     ],
+     [
+      "2",
+      {
+       "t": "str",
+       "v": "z"
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "dict",
+       "items": [
+        [
+         "b",
+         {
+          "t": "str",
+          "v": "c"
+         }
+        ]
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "in": "[NaN, Infinity, -Infinity, -0, 0.5, true, false]",
+   "ok": {
+    "t": "list",
+    "items": [
+     {
+      "t": "float",
+      "repr": "nan"
+     },
+     {
+      "t": "float",
+      "repr": "inf"
+     },
+     {
+      "t": "float",
+      "repr": "-inf"
+     },
+     {
+      "t": "int",
+      "s": "0"
+     },
+     {
+      "t": "float",
+      "repr": "0.5"
+     },
+     {
+      "t": "bool",
+      "v": true
+     },
+     {
+      "t": "bool",
+      "v": false
+     }
+    ]
+   }
+  },
+  {
+   "in": "{\"a\": 1, \"a\": 2, \"b\": 3}",
+   "ok": {
+    "t": "dict",
+    "items": [
+     [
+      "a",
+      {
+       "t": "int",
+       "s": "2"
+      }
+     ],
+     [
+      "b",
+      {
+       "t": "int",
+       "s": "3"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "in": "\"\\u00e9\\ud83d\\ude00\\n\\t\\/\"",
+   "ok": {
+    "t": "str",
+    "v": "é😀\n\t/"
+   }
+  },
+  {
+   "in": "  {\"k\" : \"v\"}  \n",
+   "ok": {
+    "t": "dict",
+    "items": [
+     [
+      "k",
+      {
+       "t": "str",
+       "v": "v"
+      }
+     ]
+    ]
+   }
+  },
+  {
+   "in": "",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "in": "   ",
+   "error": "Expecting value: line 1 column 4 (char 3)"
+  },
+  {
+   "in": "{",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+  },
+  {
+   "in": "[",
+   "error": "Expecting value: line 1 column 2 (char 1)"
+  },
+  {
+   "in": "{\"a\"",
+   "error": "Expecting ':' delimiter: line 1 column 5 (char 4)"
+  },
+  {
+   "in": "{\"a\":",
+   "error": "Expecting value: line 1 column 6 (char 5)"
+  },
+  {
+   "in": "{\"a\": 1,}",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 9 (char 8)"
+  },
+  {
+   "in": "[1, 2,]",
+   "error": "Expecting value: line 1 column 7 (char 6)"
+  },
+  {
+   "in": "[1 2]",
+   "error": "Expecting ',' delimiter: line 1 column 4 (char 3)"
+  },
+  {
+   "in": "{\"a\" 1}",
+   "error": "Expecting ':' delimiter: line 1 column 6 (char 5)"
+  },
+  {
+   "in": "{a: 1}",
+   "error": "Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+  },
+  {
+   "in": "\"abc",
+   "error": "Unterminated string starting at: line 1 column 1 (char 0)"
+  },
+  {
+   "in": "\"a\\qb\"",
+   "error": "Invalid \\escape: line 1 column 3 (char 2)"
+  },
+  {
+   "in": "\"a\\u12\"",
+   "error": "Invalid \\uXXXX escape: line 1 column 4 (char 3)"
+  },
+  {
+   "in": "\"a\\u12zz\"",
+   "error": "Invalid \\uXXXX escape: line 1 column 4 (char 3)"
+  },
+  {
+   "in": "\"a\nb\"",
+   "error": "Invalid control character at: line 1 column 3 (char 2)"
+  },
+  {
+   "in": "{} x",
+   "error": "Extra data: line 1 column 4 (char 3)"
+  },
+  {
+   "in": "01",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "in": "1.",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "in": "1e",
+   "error": "Extra data: line 1 column 2 (char 1)"
+  },
+  {
+   "in": "-",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "in": "nul",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "in": "﻿{}",
+   "error": "Unexpected UTF-8 BOM (decode using utf-8-sig): line 1 column 1 (char 0)"
+  },
+  {
+   "in": "{\"😀\": 1, \"x\" 2}",
+   "error": "Expecting ':' delimiter: line 1 column 14 (char 13)"
+  },
+  {
+   "in": "[1, {\"a\": [}]",
+   "error": "Expecting value: line 1 column 12 (char 11)"
+  },
+  {
+   "in": "tru",
+   "error": "Expecting value: line 1 column 1 (char 0)"
+  },
+  {
+   "in": "\"\\",
+   "error": "Unterminated string starting at: line 1 column 1 (char 0)"
+  },
+  {
+   "in": "{\"a\":1}\n\n  ]",
+   "error": "Extra data: line 3 column 3 (char 11)"
+  }
+ ],
+ "str": [
+  {
+   "in": {
+    "t": "list",
+    "items": [
+     {
+      "t": "str",
+      "v": "a"
+     },
+     {
+      "t": "int",
+      "s": "1"
+     },
+     {
+      "t": "none"
+     },
+     {
+      "t": "bool",
+      "v": true
+     },
+     {
+      "t": "float",
+      "repr": "2.5"
+     },
+     {
+      "t": "dict",
+      "items": [
+       [
+        "k",
+        {
+         "t": "str",
+         "v": "v"
+        }
+       ]
+      ]
+     },
+     {
+      "t": "str",
+      "v": "it's"
+     },
+     {
+      "t": "str",
+      "v": "say \"hi\""
+     },
+     {
+      "t": "str",
+      "v": "both ' and \""
+     }
+    ]
+   },
+   "str": "['a', 1, None, True, 2.5, {'k': 'v'}, \"it's\", 'say \"hi\"', 'both \\' and \"']"
+  },
+  {
+   "in": {
+    "t": "dict",
+    "items": [
+     [
+      "a",
+      {
+       "t": "list",
+       "items": [
+        {
+         "t": "int",
+         "s": "1"
+        },
+        {
+         "t": "int",
+         "s": "2"
+        }
+       ]
+      }
+     ],
+     [
+      "b",
+      {
+       "t": "none"
+      }
+     ]
+    ]
+   },
+   "str": "{'a': [1, 2], 'b': None}"
+  },
+  {
+   "in": {
+    "t": "list",
+    "items": []
+   },
+   "str": "[]"
+  },
+  {
+   "in": {
+    "t": "dict",
+    "items": []
+   },
+   "str": "{}"
+  },
+  {
+   "in": {
+    "t": "float",
+    "repr": "1.0"
+   },
+   "str": "1.0"
+  },
+  {
+   "in": {
+    "t": "float",
+    "repr": "1e+16"
+   },
+   "str": "1e+16"
+  },
+  {
+   "in": {
+    "t": "float",
+    "repr": "1e-05"
+   },
+   "str": "1e-05"
+  },
+  {
+   "in": {
+    "t": "float",
+    "repr": "123456789.125"
+   },
+   "str": "123456789.125"
+  },
+  {
+   "in": {
+    "t": "bool",
+    "v": true
+   },
+   "str": "True"
+  },
+  {
+   "in": {
+    "t": "none"
+   },
+   "str": "None"
+  },
+  {
+   "in": {
+    "t": "str",
+    "v": "tab\there"
+   },
+   "str": "tab\there"
+  },
+  {
+   "in": {
+    "t": "list",
+    "items": [
+     {
+      "t": "str",
+      "v": "\n"
+     },
+     {
+      "t": "str",
+      "v": "\u0000"
+     },
+     {
+      "t": "str",
+      "v": "é"
+     },
+     {
+      "t": "str",
+      "v": " "
+     }
+    ]
+   },
+   "str": "['\\n', '\\x00', 'é', '\\u2028']"
+  }
+ ],
+ "dumps": [
+  {
+   "in": {
+    "t": "dict",
+    "items": [
+     [
+      "b",
+      {
+       "t": "int",
+       "s": "1"
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "list",
+       "items": [
+        {
+         "t": "float",
+         "repr": "1.0"
+        },
+        {
+         "t": "int",
+         "s": "2"
+        }
+       ]
+      }
+     ],
+     [
+      "é",
+      {
+       "t": "str",
+       "v": "ü"
+      }
+     ]
+    ]
+   },
+   "kw": {},
+   "out": "{\"b\": 1, \"a\": [1.0, 2], \"\\u00e9\": \"\\u00fc\\u007f\"}"
+  },
+  {
+   "in": {
+    "t": "dict",
+    "items": [
+     [
+      "b",
+      {
+       "t": "int",
+       "s": "1"
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "list",
+       "items": [
+        {
+         "t": "float",
+         "repr": "1.0"
+        },
+        {
+         "t": "int",
+         "s": "2"
+        }
+       ]
+      }
+     ],
+     [
+      "é",
+      {
+       "t": "str",
+       "v": "ü"
+      }
+     ]
+    ]
+   },
+   "kw": {
+    "ensure_ascii": false
+   },
+   "out": "{\"b\": 1, \"a\": [1.0, 2], \"é\": \"ü\"}"
+  },
+  {
+   "in": {
+    "t": "dict",
+    "items": [
+     [
+      "b",
+      {
+       "t": "int",
+       "s": "1"
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "list",
+       "items": [
+        {
+         "t": "float",
+         "repr": "1.0"
+        },
+        {
+         "t": "int",
+         "s": "2"
+        }
+       ]
+      }
+     ],
+     [
+      "é",
+      {
+       "t": "str",
+       "v": "ü"
+      }
+     ]
+    ]
+   },
+   "kw": {
+    "indent": 2,
+    "ensure_ascii": false
+   },
+   "out": "{\n  \"b\": 1,\n  \"a\": [\n    1.0,\n    2\n  ],\n  \"é\": \"ü\"\n}"
+  },
+  {
+   "in": {
+    "t": "dict",
+    "items": [
+     [
+      "b",
+      {
+       "t": "int",
+       "s": "1"
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "dict",
+       "items": []
+      }
+     ],
+     [
+      "c",
+      {
+       "t": "list",
+       "items": []
+      }
+     ]
+    ]
+   },
+   "kw": {
+    "indent": 2
+   },
+   "out": "{\n  \"b\": 1,\n  \"a\": {},\n  \"c\": []\n}"
+  },
+  {
+   "in": {
+    "t": "dict",
+    "items": [
+     [
+      "z",
+      {
+       "t": "int",
+       "s": "1"
+      }
+     ],
+     [
+      "a",
+      {
+       "t": "int",
+       "s": "2"
+      }
+     ],
+     [
+      "😀",
+      {
+       "t": "int",
+       "s": "3"
+      }
+     ],
+     [
+      "￿",
+      {
+       "t": "int",
+       "s": "4"
+      }
+     ]
+    ]
+   },
+   "kw": {
+    "sort_keys": true
+   },
+   "out": "{\"a\": 2, \"z\": 1, \"\\uffff\": 4, \"\\ud83d\\ude00\": 3}"
+  },
+  {
+   "in": {
+    "t": "list",
+    "items": [
+     {
+      "t": "float",
+      "repr": "nan"
+     },
+     {
+      "t": "float",
+      "repr": "inf"
+     },
+     {
+      "t": "float",
+      "repr": "-0.0"
+     },
+     {
+      "t": "float",
+      "repr": "1e+22"
+     },
+     {
+      "t": "float",
+      "repr": "5e-324"
+     }
+    ]
+   },
+   "kw": {},
+   "out": "[NaN, Infinity, -0.0, 1e+22, 5e-324]"
+  }
+ ],
+ "strip": [
+  {
+   "in": "﻿a﻿",
+   "strip": "﻿a﻿",
+   "lstrip": "﻿a﻿",
+   "rstrip": "﻿a﻿",
+   "split": [
+    "﻿a﻿"
+   ],
+   "isspace": [
+    false,
+    false,
+    false
+   ]
+  },
+  {
+   "in": "\u001ca\u001f",
+   "strip": "a",
+   "lstrip": "a\u001f",
+   "rstrip": "\u001ca",
+   "split": [
+    "a"
+   ],
+   "isspace": [
+    true,
+    false,
+    true
+   ]
+  },
+  {
+   "in": "a",
+   "strip": "a",
+   "lstrip": "a",
+   "rstrip": "a",
+   "split": [
+    "a"
+   ],
+   "isspace": [
+    true,
+    false,
+    true
+   ]
+  },
+  {
+   "in": " a　",
+   "strip": "a",
+   "lstrip": "a　",
+   "rstrip": " a",
+   "split": [
+    "a"
+   ],
+   "isspace": [
+    true,
+    false,
+    true
+   ]
+  },
+  {
+   "in": " \t\n\r\u000b\fa",
+   "strip": "a",
+   "lstrip": "a",
+   "rstrip": " \t\n\r\u000b\fa",
+   "split": [
+    "a"
+   ],
+   "isspace": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    false
+   ]
+  },
+  {
+   "in": "​a​",
+   "strip": "​a​",
+   "lstrip": "​a​",
+   "rstrip": "​a​",
+   "split": [
+    "​a​"
+   ],
+   "isspace": [
+    false,
+    false,
+    false
+   ]
+  }
+ ],
+ "fmt2": [
+  {
+   "x": "0.125",
+   "f": "0.12",
+   "round": 12
+  },
+  {
+   "x": "0.375",
+   "f": "0.38",
+   "round": 38
+  },
+  {
+   "x": "0.135",
+   "f": "0.14",
+   "round": 14
+  },
+  {
+   "x": "0.5",
+   "f": "0.50",
+   "round": 50
+  },
+  {
+   "x": "0.625",
+   "f": "0.62",
+   "round": 62
+  },
+  {
+   "x": "1.0",
+   "f": "1.00",
+   "round": 100
+  },
+  {
+   "x": "0.0",
+   "f": "0.00",
+   "round": 0
+  },
+  {
+   "x": "0.875",
+   "f": "0.88",
+   "round": 88
+  },
+  {
+   "x": "0.005",
+   "f": "0.01",
+   "round": 0
+  },
+  {
+   "x": "0.015",
+   "f": "0.01",
+   "round": 2
+  },
+  {
+   "x": "0.3333333333333333",
+   "f": "0.33",
+   "round": 33
+  },
+  {
+   "x": "0.6666666666666667",
+   "f": "0.67",
+   "round": 67
+  }
+ ],
+ "classes": {
+  "probe": "\u001c\u001d\u001e\u001f   ﻿​٠٣۵¼Ⅷ①_̀-Aé一〇𝟘",
+  "s": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "d": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   true,
+   true,
+   true,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   true
+  ],
+  "w": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   false,
+   false,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "letter": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   true,
+   true,
+   true,
+   false,
+   false,
+   false,
+   true,
+   true,
+   true,
+   true,
+   false
+  ],
+  "int": [
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   0,
+   3,
+   5,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   0
+  ],
+  "upper": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   true,
+   false,
+   false,
+   false,
+   false,
+   true,
+   false,
+   false,
+   false,
+   false
+  ]
+ }
+}

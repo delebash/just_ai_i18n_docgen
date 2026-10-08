@@ -1,4 +1,4 @@
-// Smoke suite — boot the real Tauri app (real WebView2) and verify each
+// Smoke suite — boot the real desktop app (Electron) and verify each
 // surface's BEHAVIOUR (clicks and resulting states, not presence). Run
 // with `npm test` from the app root (JW's run model: one launch shared
 // across tests).
@@ -365,9 +365,9 @@ test("the AI area mounts — the kit's providers/models/usage surface", async ()
 
 test("settings renders its sections and the logs panel", async () => {
   await d.navigate("#/settings");
-  // The kit SettingsShell's top tabs (the old .settings__navbtn rail is DEAD —
-  // the contract build replaced it; selector updated 2026-08-04).
-  await d.waitUntil(`return document.querySelectorAll('.set-tab').length >= 5`);
+  // The kit SettingsShell's top tabs — the kit's UiTabStrip since 2026-08-21 (kit 178dd32;
+  // `.set-tab` died with that move, which left this test failing until 2026-10-08).
+  await d.waitUntil(`return document.querySelectorAll('.ui-tabstrip__tab').length >= 5`);
   // The appearance MODE must actually stamp the engine's [data-theme]
   // (2026-08-04: tokens keyed on the OS media query, so the mode setting did
   // NOTHING — the user's QC "appearance doesn't work"). The titlebar cycler is
@@ -438,7 +438,7 @@ test("setup CREATE-FLOW: a fixture project round-trips the real form, then the r
   assert.equal(st0.loaded, true, "precondition: the real project is loaded");
 
   // The config-dir derivation walks UP to the nearest package.json
-  // (init.py find_project_root — "what every JS tool does"). Without its own
+  // (init.js findProjectRoot — "what every JS tool does"). Without its own
   // marker the fixture's walk escapes to e2e/package.json and the tool folder
   // lands OUTSIDE the fixture root, dodging cleanup (it did — the stray
   // e2e/just-ai-i18n-docgen/ got committed once, 2026-08-04). So the fixture

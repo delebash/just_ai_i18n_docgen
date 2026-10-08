@@ -178,7 +178,7 @@ function dropToken(t) {
 }
 
 // The keep-running toggle writes the shell's flag immediately AND persists in the
-// ui store (App.vue re-applies it every boot — the Rust flag resets per launch).
+// ui store (App.vue re-applies it every boot — the shell's flag resets per launch).
 async function setKeepRunning(v) {
   ui.setKeepServerRunning(!!v);
   // services/native.js — no-op in browser dev; the store still remembers.

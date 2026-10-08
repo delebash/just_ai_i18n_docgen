@@ -2,8 +2,8 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import { ConnectionError, bootPrefs, checkServer, configureHelp, installLlmUi, serverUrl, startWarmOnBoot } from "@delebash/llm-ui";
-import { openPath, openUrl } from "@tauri-apps/plugin-opener";
 import App from "./App.vue";
+import { openPath, openUrl } from "./services/native.js";
 import { router } from "./router";
 import { useUiStore } from "./stores/ui";
 import { hasDoc, loadDoc, titleForSlug } from "./services/helpDocs.js";
@@ -17,16 +17,14 @@ const app = createApp(App).use(pinia).use(router);
 // install_llm). It resolves ONE origin-aware base for both the app transport and the
 // kit's LLM views — they used to be two calls, and the day they disagreed every kit
 // view rendered EMPTY in the production webview only, because a bare configureLlmUi
-// falls back to window.location.origin (= tauri.localhost there). It also wires the
-// Tauri opener for external links and registers <LlmUiHosts />.
+// falls back to window.location.origin. It also wires the desktop shell's openers for
+// external links and registers <LlmUiHosts />.
 installLlmUi(app, {
   devPorts: ["1450"],
   fallbackBase: "http://127.0.0.1:8742",
-  // The openers, straight from the plugin — the SAME line in all three apps
-  // (2026-08-14). The plugin stays the APP's dependency: importing it inside the
-  // kit breaks every non-Tauri consumer's build. The kit decides when they can be
-  // used (browser vs webview); no app repeats that reasoning. `openPath` is what
-  // the model catalog's "Open folder" rides.
+  // The openers, through services/native.js (the shell's one bridge) — the SAME line in
+  // all three apps. The kit decides when they can be used (browser vs desktop shell); no
+  // app repeats that reasoning. `openPath` is what the model catalog's "Open folder" rides.
   external: { open: openUrl, openPath },
   // No embedding features here, and the catalog seeds translation-measured rows only.
   capabilities: { embeddings: false },

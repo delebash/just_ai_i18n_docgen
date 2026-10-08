@@ -206,7 +206,7 @@ export const useReviewStore = defineStore("review", {
       return this.staged;
     },
     // Apply EVERY staged proposal for the language in one call — the server writes them
-    // as one action, so this stays one undo (api/workspace_api.py proposals_apply).
+    // as one action, so this stays one undo (server/src/api/workspace_api.js, POST /v1/proposals/apply).
     async applyAllStaged(lang = this.lang) {
       const keys = (await this.loadStaged(lang)).map((p) => p.key);
       if (!keys.length) return { applied: [] };

@@ -12,7 +12,7 @@ import { useRouter } from "vue-router";
 import { AiSetupOffer, BootModelLoad, FAMILY_LABELS, HelpDrawer, Icon, LlmUiHosts, pushToast, useAiTasksNav, warmModelId } from "@delebash/llm-ui";
 import TitleBar from "./components/TitleBar.vue";
 import splashPlate from "./assets/images/splash-plate.jpg";
-import { setKeepRunning } from "./services/native.js";
+import { onShellEvent, setKeepRunning } from "./services/native.js";
 import { useProjectStore } from "./stores/project";
 import { useUiStore } from "./stores/ui";
 
@@ -52,33 +52,25 @@ const aiTasksNav = useAiTasksNav();
 // cannot drift from JW again. Nothing loading → no splash → the app just opens.
 
 onMounted(async () => {
-  // Re-apply the persisted keep-running flag to the shell every boot (the Rust
-  // side resets per launch; the family headless ruling 2026-08-04).
+  // Re-apply the persisted keep-running flag to the shell every boot (the shell
+  // resets per launch; the family headless ruling 2026-08-04).
   // Through services/native.js — the one place a command name is written
   // (family shape, 2026-08-15).
   if (ui.keepServerRunning) setKeepRunning(true);
   await project.refresh();
   // The tray's renderer half (the full-donor ruling 2026-08-04): settings/about
-  // navigate, Copy URL writes the clipboard + says so — the donor's versions
-  // were dead emits with no listeners (audit 2026-08-05). Gated on the Tauri
-  // bridge: the dynamic import alone is NOT a browser no-op — the package
-  // bundles fine and each listen() then REJECTS on the missing internals,
-  // three unhandled rejections per browser boot (the slice-11 boot smoke
-  // caught it).
-  if (window.__TAURI_INTERNALS__) {
-    import("@tauri-apps/api/event").then(({ listen }) => {
-      listen("tray:open-settings", () => router.push("/settings"));
-      listen("tray:about", () => router.push("/settings/about"));
-      listen("tray:copy-url", async (e) => {
-        try {
-          await navigator.clipboard.writeText(String(e.payload));
-          pushToast({ kind: "success", title: "Server URL copied", description: String(e.payload) });
-        } catch (err) {
-          pushToast({ kind: "error", title: "Copy failed", description: String(err?.message || err) });
-        }
-      });
-    }).catch(() => {});
-  }
+  // navigate, Copy URL writes the clipboard + says so. Through services/native.js —
+  // a no-op outside the desktop shell.
+  onShellEvent("tray:open-settings", () => router.push("/settings"));
+  onShellEvent("tray:about", () => router.push("/settings/about"));
+  onShellEvent("tray:copy-url", async (url) => {
+    try {
+      await navigator.clipboard.writeText(String(url));
+      pushToast({ kind: "success", title: "Server URL copied", description: String(url) });
+    } catch (err) {
+      pushToast({ kind: "error", title: "Copy failed", description: String(err?.message || err) });
+    }
+  });
 });
 </script>
 
