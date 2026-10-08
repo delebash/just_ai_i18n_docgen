@@ -20,8 +20,9 @@
 
 import { mkdirSync, renameSync, rmSync } from "node:fs";
 import path from "node:path";
-import { FileNotFoundError, pySorted, ValueError } from "@delebash/llm-runner/platform/py";
-import { dumps, OSError, pyTruthy, readJson, toPlain, writeText } from "./jsonio.js";
+import { FileNotFoundError, pySorted, setdefault, truthy, ValueError } from "@delebash/llm-runner/platform/py";
+import { pyJson } from "@delebash/llm-runner/platform/pyjson";
+import { OSError, readJson, toPlain, writeText } from "./jsonio.js";
 import { exists } from "./paths.js";
 
 export const STATE_FILE = ".just-ai-i18n-docgen-state.json";
@@ -62,7 +63,7 @@ function empty() {
 export function writeJsonAtomic(p, value) {
   mkdirSync(path.dirname(String(p)), { recursive: true });
   const tmp = `${p}.tmp`;
-  writeText(tmp, `${dumps(value, { indent: 2, ensureAscii: false })}\n`);
+  writeText(tmp, `${pyJson(value, { indent: 2, ensureAscii: false })}\n`);
   try {
     renameSync(tmp, String(p));
   } catch (e) {
@@ -108,17 +109,12 @@ export class JsonStore {
 }
 
 // `read_json_safe(...) or empty()` — an empty dict/list or a falsy value starts fresh.
-const orEmpty = (v, emptyFn) => (pyTruthy(v) ? v : emptyFn());
+const orEmpty = (v, emptyFn) => (truthy(v) ? v : emptyFn());
 
 /** The state file for one project. `projectRoot` is the config's own folder. */
 export function openProject(projectRoot) {
   return new JsonStore(path.join(String(projectRoot), STATE_FILE));
 }
-
-const setdefault = (obj, k, v) => {
-  if (!Object.hasOwn(obj, k)) obj[k] = v;
-  return obj[k];
-};
 
 // ── Review progress ──────────────────────────────────────────────────────────
 
@@ -171,14 +167,14 @@ export function lastAction(s, lang = null) {
   for (let i = acts.length - 1; i >= 0; i--) {
     const a = acts[i];
     if (a.undone) continue;
-    if (pyTruthy(lang) && a.lang !== lang) continue;
+    if (truthy(lang) && a.lang !== lang) continue;
     return a;
   }
   return null;
 }
 
 export function actionHistory(s, { lang = null, limit = 50 } = {}) {
-  const acts = s.read().actions.filter((a) => !pyTruthy(lang) || a.lang === lang);
+  const acts = s.read().actions.filter((a) => !truthy(lang) || a.lang === lang);
   return acts.slice(-limit).reverse(); // acts[-limit:] — a limit of 0 is everything, as Python
 }
 
@@ -194,7 +190,7 @@ export function popAction(s, { lang = null } = {}) {
     for (let i = d.actions.length - 1; i >= 0; i--) {
       const a = d.actions[i];
       if (a.undone) continue;
-      if (pyTruthy(lang) && a.lang !== lang) continue;
+      if (truthy(lang) && a.lang !== lang) continue;
       a.undone = true;
       return a;
     }
@@ -218,7 +214,7 @@ export function putProposal(s, { lang, key, engine, value }) {
 export function proposals(s, { lang, key = null }) {
   const forLang = s.read().proposals[lang] ?? {};
   const keys =
-    pyTruthy(key) && Object.hasOwn(forLang, key) ? [key] : key === null || key === undefined ? pySorted(Object.keys(forLang)) : [];
+    truthy(key) && Object.hasOwn(forLang, key) ? [key] : key === null || key === undefined ? pySorted(Object.keys(forLang)) : [];
   const out = [];
   for (const k of keys) {
     for (const [engine, v] of Object.entries(forLang[k])) out.push({ lang, key: k, engine, value: v.value, at: v.at });
@@ -237,13 +233,13 @@ export function proposalCount(s, lang) {
 export function dropProposal(s, { lang, key, engine = null }) {
   s.mutate((d) => {
     const forKey = d.proposals[lang]?.[key];
-    if (!pyTruthy(forKey)) return;
-    if (pyTruthy(engine)) delete forKey[engine];
+    if (!truthy(forKey)) return;
+    if (truthy(engine)) delete forKey[engine];
     else {
       delete d.proposals[lang][key];
       return;
     }
-    if (!pyTruthy(forKey)) delete d.proposals[lang][key];
+    if (!truthy(forKey)) delete d.proposals[lang][key];
   });
 }
 
@@ -331,6 +327,6 @@ export function finishRun(s, runId, { keys = 0, requests = 0, elapsedMs = 0, fai
 }
 
 export function runHistory(s, { lang = null, limit = 20 } = {}) {
-  const runs = s.read().runs.filter((r) => !pyTruthy(lang) || r.lang === lang);
+  const runs = s.read().runs.filter((r) => !truthy(lang) || r.lang === lang);
   return runs.slice(-limit).reverse();
 }

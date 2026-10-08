@@ -22,23 +22,8 @@
 // Python's text semantics throughout: `\d`/`\s`/`\w` are Unicode, strip() is Python's
 // whitespace, `s[-1:]` is the last CODE POINT (jsonio.js).
 
-import { pySorted } from "@delebash/llm-runner/platform/py";
-import {
-  ALNUM,
-  asMap,
-  cpSlice,
-  D,
-  dget,
-  findAll,
-  LETTER,
-  placeholderRe,
-  pyCount,
-  pyLstrip,
-  pyRstrip,
-  pyStrip,
-  pyTruthy,
-  S,
-} from "./jsonio.js";
+import { cpSlice, D, lstrip, pyGet, pySorted, rstrip, S, strip, truthy } from "@delebash/llm-runner/platform/py";
+import { ALNUM, asMap, findAll, LETTER, placeholderRe, pyCount } from "./jsonio.js";
 import { termPresent } from "./shieldlib.js";
 
 const multiset = (items) => pySorted(items).join("\x00");
@@ -69,13 +54,13 @@ export function checkPlaceholders(src, dst, ctx) {
  */
 export function checkPlural(src, dst, ctx) {
   const sep = ctx.plural_separator;
-  if (!pyTruthy(sep) || !src.includes(sep)) return [];
+  if (!truthy(sep) || !src.includes(sep)) return [];
   const s = src.split(sep);
   const d = dst.split(sep);
   if (s.length !== d.length) {
     return [{ code: "plural-halves-lost", detail: `source has ${s.length} forms, target has ${d.length}` }];
   }
-  const halves = d.map((h) => pyStrip(h));
+  const halves = d.map((h) => strip(h));
   if (new Set(halves).size !== halves.length) {
     return [{ code: "plural-halves-identical", detail: `both forms are "${halves[0]}"` }];
   }
@@ -159,8 +144,8 @@ const TERMINAL = ".?!:;…";
 
 /** Terminal punctuation matches the source's. A dropped full stop is a real defect. */
 export function checkEndPunc(src, dst, _ctx) {
-  const s = pyRstrip(src) ? cpSlice(pyRstrip(src), -1) : "";
-  const d = pyRstrip(dst) ? cpSlice(pyRstrip(dst), -1) : "";
+  const s = rstrip(src) ? cpSlice(rstrip(src), -1) : "";
+  const d = rstrip(dst) ? cpSlice(rstrip(dst), -1) : "";
   // `"" in TERMINAL` is True in Python — and String.includes("") is true too.
   if (!TERMINAL.includes(s) && !TERMINAL.includes(d)) return [];
   if (s === d) return [];
@@ -205,7 +190,7 @@ export function checkBrackets(src, dst, _ctx) {
 
 /** Blank: the source says something, the target is whitespace. */
 export function checkBlank(src, dst, _ctx) {
-  if (pyStrip(src) && !pyStrip(dst)) return [{ code: "blank", detail: "target is empty or whitespace" }];
+  if (strip(src) && !strip(dst)) return [{ code: "blank", detail: "target is empty or whitespace" }];
   return [];
 }
 
@@ -222,8 +207,8 @@ export function checkDoubleWords(_src, dst, _ctx) {
 
 /** Leading and trailing whitespace parity — a UI string is often concatenated. */
 export function checkWhitespace(src, dst, _ctx) {
-  const lead = (s) => s.slice(0, s.length - pyLstrip(s).length);
-  const trail = (s) => s.slice(pyRstrip(s).length);
+  const lead = (s) => s.slice(0, s.length - lstrip(s).length);
+  const trail = (s) => s.slice(rstrip(s).length);
   if (lead(src) !== lead(dst)) return [{ code: "whitespace", detail: "leading whitespace differs from the source" }];
   if (trail(src) !== trail(dst)) return [{ code: "whitespace", detail: "trailing whitespace differs from the source" }];
   return [];
@@ -252,13 +237,13 @@ export const STRING_CHECKS = [
  * functions' contract.)
  */
 export function buildContext(cfg, conventions, lang) {
-  const glossary = dget(cfg, "glossary");
-  const conv = dget(conventions, lang);
+  const glossary = pyGet(cfg, "glossary");
+  const conv = pyGet(conventions, lang);
   return {
     placeholder_re: placeholderRe(cfg.placeholder),
-    plural_separator: dget(cfg, "pluralSeparator"),
-    do_not_translate: dget(pyTruthy(glossary) ? glossary : {}, "doNotTranslate", []),
-    paired_punct: dget(pyTruthy(conv) ? conv : {}, "pairedPunct", []),
+    plural_separator: pyGet(cfg, "pluralSeparator"),
+    do_not_translate: pyGet(truthy(glossary) ? glossary : {}, "doNotTranslate", []),
+    paired_punct: pyGet(truthy(conv) ? conv : {}, "pairedPunct", []),
   };
 }
 

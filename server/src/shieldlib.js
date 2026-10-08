@@ -16,9 +16,9 @@
 // string and no natural language, so a false positive is not possible.
 
 import { createHash } from "node:crypto";
-import { pySorted, ValueError } from "@delebash/llm-runner/platform/py";
-import { PyFloat } from "@delebash/llm-runner/platform/pyjson";
-import { ALNUM, cpLen, cpSlice, D, dget, dumps, JSONDecodeError, loads, pyIntDigits, pyStr, pyTruthy, reEscape, S } from "./jsonio.js";
+import { cpLen, cpSlice, D, digitsToInt, pyGet, pySorted, reEscape, S, truthy, ValueError } from "@delebash/llm-runner/platform/py";
+import { JSONDecodeError, jsonLoadsExact, PyFloat, pyJson } from "@delebash/llm-runner/platform/pyjson";
+import { ALNUM, pyStr } from "./jsonio.js";
 
 // Tolerant of a model inserting spaces inside the brackets. Python's `\s` and `\d` are
 // Unicode: a model that writes the index in Arabic-Indic digits ("⟦٣⟧") still restores.
@@ -65,7 +65,7 @@ export function restore(text, tokens) {
   const seen = new Set();
   let bad = false;
   const restored = text.replace(SHIELD_RE, (_m, digits) => {
-    const i = pyIntDigits(digits);
+    const i = digitsToInt(digits);
     if (i >= tokens.length || seen.has(i)) {
       bad = true;
       return "";
@@ -97,17 +97,17 @@ export function buildSystemPrompt({
   conventionsLine = "",
   pluralSeparator = null,
 }) {
-  const pluralRule = pyTruthy(pluralSeparator)
+  const pluralRule = truthy(pluralSeparator)
     ? `a string containing "${pluralSeparator}" holds plural forms — translate each half and keep the separator`
     : "";
   const rules = [
     "tokens like ⟦0⟧ are untouchable placeholders — reproduce each exactly once",
-    pyTruthy(doNotTranslate) ? `never translate these terms: ${doNotTranslate.join(", ")}` : "",
+    truthy(doNotTranslate) ? `never translate these terms: ${doNotTranslate.join(", ")}` : "",
     conventionsLine,
     pluralRule,
     'an item may carry a "note" — it describes how that string is used; follow it',
     "output ONLY JSON matching the schema",
-  ].filter((r) => pyTruthy(r));
+  ].filter((r) => truthy(r));
   return `You are a professional software-UI translator, ${source}→${targetLang}. Rules: ${rules.join("; ")}.`;
 }
 
@@ -122,18 +122,18 @@ export function buildSystemPrompt({
  * field, so batches do not grow for the 99% that need nothing.
  */
 export function buildUserMessage(shieldedItems, cfg) {
-  const notesRaw = dget(cfg, "notes");
-  const notes = pyTruthy(notesRaw) ? notesRaw : new Map();
+  const notesRaw = pyGet(cfg, "notes");
+  const notes = truthy(notesRaw) ? notesRaw : new Map();
   const items = [];
   for (const s of shieldedItems) {
     const item = { id: s.i, text: s.shielded };
-    const note = s.key === undefined ? null : dget(notes, s.key);
-    if (pyTruthy(note)) item.note = note;
+    const note = s.key === undefined ? null : pyGet(notes, s.key);
+    if (truthy(note)) item.note = note;
     items.push(item);
   }
-  const ctx = dget(cfg, "context");
-  const context = pyTruthy(ctx) ? ctx : "a software application";
-  return `Context: ${pyStr(context)}. Translate items: ${dumps(items, { ensureAscii: false })}`;
+  const ctx = pyGet(cfg, "context");
+  const context = truthy(ctx) ? ctx : "a software application";
+  return `Context: ${pyStr(context)}. Translate items: ${pyJson(items, { ensureAscii: false })}`;
 }
 
 // The response contract. Ids come back so a reordered or partial answer is detectable rather
@@ -158,7 +158,7 @@ export const RESPONSE_SCHEMA = {
   additionalProperties: false,
 };
 
-/** `isinstance(v, int)` on a loads() value — a bool IS an int in Python, a float is not. */
+/** `isinstance(v, int)` on a jsonLoadsExact() value — a bool IS an int in Python, a float is not. */
 function pyIntKey(v) {
   if (v === true) return 1; // {"id": true} is item 1 (True == 1 as a dict key)
   if (v === false) return 0;
@@ -174,14 +174,14 @@ function pyIntKey(v) {
 export function parseItems(content) {
   let parsed;
   try {
-    parsed = loads(content);
+    parsed = jsonLoadsExact(content);
   } catch (e) {
     if (!(e instanceof JSONDecodeError)) throw e;
     const m = /\{[\s\S]*\}/.exec(content);
     if (!m) throw new ValueError(`Response was not JSON: ${cpSlice(content, 0, 200)}`);
-    parsed = loads(m[0]);
+    parsed = jsonLoadsExact(m[0]);
   }
-  const items = parsed instanceof Map ? dget(parsed, "items") : null;
+  const items = parsed instanceof Map ? pyGet(parsed, "items") : null;
   if (!Array.isArray(items)) {
     // ValueError on purpose: the caller passed a fine string — it is the MODEL's reply that
     // is invalid, and the retry ladder catches ValueError.
@@ -190,8 +190,8 @@ export function parseItems(content) {
   const out = new Map();
   for (const it of items) {
     if (!(it instanceof Map)) continue;
-    const id = pyIntKey(dget(it, "id"));
-    const tr = dget(it, "translation");
+    const id = pyIntKey(pyGet(it, "id"));
+    const tr = pyGet(it, "translation");
     if (id !== undefined && typeof tr === "string") out.set(id, tr);
   }
   return out;

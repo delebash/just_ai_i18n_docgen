@@ -21,8 +21,9 @@
 // And it is never silent: the count is always reported.
 
 import { createHash } from "node:crypto";
-import { FileNotFoundError, ValueError } from "@delebash/llm-runner/platform/py";
-import { asMap, dget, dhas, dumps, OSError, readJson, toPlain, writeText } from "./jsonio.js";
+import { FileNotFoundError, pyGet, ValueError } from "@delebash/llm-runner/platform/py";
+import { pyJson } from "@delebash/llm-runner/platform/pyjson";
+import { asMap, dhas, OSError, readJson, toPlain, writeText } from "./jsonio.js";
 import { exists } from "./paths.js";
 
 // "unknown" on purpose, and NOT the OS username: an automated run under a developer's
@@ -68,7 +69,7 @@ export function loadAccepted(p) {
  * this file is for lives in the docs, never in the JSON. */
 export function saveAccepted(p, entries) {
   const ordered = new Map(Object.entries(entries).sort(([a], [b]) => cmpStr(a, b)));
-  writeText(p, `${dumps(ordered, { indent: 2, ensureAscii: false })}\n`);
+  writeText(p, `${pyJson(ordered, { indent: 2, ensureAscii: false })}\n`);
 }
 
 function cmpStr(a, b) {
@@ -86,8 +87,8 @@ export function partitionAccepted(findings, accepted, sourceFlat, targetFlat) {
     const h = acceptanceHash({
       key: f.key,
       code: f.code,
-      src: dget(sourceFlat, f.key, ""),
-      dst: dget(targetFlat, f.key, ""),
+      src: pyGet(sourceFlat, f.key, ""),
+      dst: pyGet(targetFlat, f.key, ""),
     });
     if (dhas(accepted, h)) cleared.push({ ...f, hash: h });
     else kept.push(f);

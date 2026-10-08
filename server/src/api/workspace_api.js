@@ -17,7 +17,8 @@
 
 import { HttpError } from "@delebash/llm-runner/platform/errors";
 import { T } from "@delebash/llm-runner/platform/models";
-import { pySorted, RuntimeError, ValueError } from "@delebash/llm-runner/platform/py";
+import { errText, pyGet, pyIter, pySorted, RuntimeError, truthy, ValueError } from "@delebash/llm-runner/platform/py";
+import { pyJson } from "@delebash/llm-runner/platform/pyjson";
 import * as appmeta from "../appmeta.js";
 import { acceptanceEntry, acceptanceHash, loadAccepted, saveAccepted } from "../accepted.js";
 import { getState } from "../app_state.js";
@@ -25,7 +26,7 @@ import { buildContext, checkOne } from "../checks.js";
 import { CONFIRM_CODE, confirmIdentical, makeAsk } from "../confirm.js";
 import * as engine from "../engine.js";
 import { JobBusyError } from "../jobs.js";
-import { dget, dumps, errText, firstOf, flatten, pyIter, pyStr, pyTruthy } from "../jsonio.js";
+import { firstOf, flatten, pyStr } from "../jsonio.js";
 import { parseItems } from "../shieldlib.js";
 import { unfilteredFindings } from "../service.js";
 import {
@@ -75,7 +76,7 @@ export function project() {
 }
 
 /** `lang or p.targets[0]` */
-const langOr = (lang, p) => (pyTruthy(lang) ? lang : firstOf(pyIter(p.targets)));
+const langOr = (lang, p) => (truthy(lang) ? lang : firstOf(pyIter(p.targets)));
 
 export async function router(app) {
   // ── the project surface ────────────────────────────────────────────────────
@@ -86,7 +87,7 @@ export async function router(app) {
     const targets = pyIter(p.targets);
     return {
       langs: p.targets,
-      source: dget(p.cfg, "sourceLanguage"),
+      source: pyGet(p.cfg, "sourceLanguage"),
       job: ws.jobs.status(),
       progress: Object.fromEntries(targets.map((lg) => [lg, reviewProgress(p.state, lg)])),
       proposals: Object.fromEntries(targets.map((lg) => [lg, proposalCount(p.state, lg)])),
@@ -101,13 +102,13 @@ export async function router(app) {
   app.post("/v1/ai/prompt-preview", { schema: { body: BODY } }, async (req) => {
     const body = req.body;
     const p = project();
-    const f = dget(body, "feature");
-    const feature = pyStr(pyTruthy(f) ? f : "");
-    const l = dget(body, "lang");
-    const lang = pyStr(pyTruthy(l) ? l : "") || _pickPreviewLang(p, feature);
+    const f = pyGet(body, "feature");
+    const feature = pyStr(truthy(f) ? f : "");
+    const l = pyGet(body, "lang");
+    const lang = pyStr(truthy(l) ? l : "") || _pickPreviewLang(p, feature);
     if (!lang) throw new HttpError(400, "No target languages configured — add one in Setup.");
-    const k = dget(body, "keys");
-    const keys = pyTruthy(k) ? k : null;
+    const k = pyGet(body, "keys");
+    const keys = truthy(k) ? k : null;
     if (feature === "translate") return _previewTranslate(p, lang, keys);
     if (feature === "confirm") return _previewConfirm(p, lang, keys);
     throw new HttpError(400, `No prompt preview for "${feature}" yet — routing still picks its engine preset.`);
@@ -156,7 +157,7 @@ export async function router(app) {
       });
     }
     return {
-      source: dget(p.cfg, "sourceLanguage"),
+      source: pyGet(p.cfg, "sourceLanguage"),
       keyCount: p.src.size,
       configPath: p.configPath,
       langs,
@@ -175,7 +176,7 @@ export async function router(app) {
     const body = req.body;
     const ws = getState().workspace;
     const p = project();
-    const [lang, key, value] = [dget(body, "lang"), dget(body, "key"), dget(body, "value")];
+    const [lang, key, value] = [pyGet(body, "lang"), pyGet(body, "key"), pyGet(body, "value")];
     if (![lang, key, value].every((x) => typeof x === "string")) throw new HttpError(400, "lang, key and value must be strings");
     if (!p.src.has(key)) throw new HttpError(404, `no such key: ${key}`);
     const prev = (p.targetFlat(lang) ?? new Map()).get(key) ?? null;
@@ -199,10 +200,10 @@ export async function router(app) {
     const body = req.body;
     const ws = getState().workspace;
     const p = project();
-    const lang = dget(body, "lang");
-    const [key, keys] = [dget(body, "key"), dget(body, "keys")];
+    const lang = pyGet(body, "lang");
+    const [key, keys] = [pyGet(body, "key"), pyGet(body, "keys")];
     const wanted = Array.isArray(keys) ? keys : key !== null ? [key] : null;
-    if (typeof lang !== "string" || !pyTruthy(wanted) || !wanted.every((k) => typeof k === "string")) {
+    if (typeof lang !== "string" || !truthy(wanted) || !wanted.every((k) => typeof k === "string")) {
       throw new HttpError(400, "lang and keys[] (or key) must be strings");
     }
     const missing = wanted.filter((k) => !p.src.has(k));
@@ -261,7 +262,7 @@ export async function router(app) {
   app.delete("/v1/accept", { schema: { body: BODY } }, async (req) => {
     const body = req.body;
     const p = project();
-    const [lang, key, code] = [dget(body, "lang"), dget(body, "key"), dget(body, "code")];
+    const [lang, key, code] = [pyGet(body, "lang"), pyGet(body, "key"), pyGet(body, "code")];
     if (typeof lang !== "string" || typeof key !== "string") throw new HttpError(400, "lang and key must be strings");
     const path = p.paths.acceptedFile(lang);
     const store = loadAccepted(path);
@@ -278,7 +279,7 @@ export async function router(app) {
   app.post("/v1/undo", { schema: { body: BODY } }, async (req) => {
     const ws = getState().workspace;
     const p = project();
-    const a = popAction(p.state, { lang: dget(req.body, "lang") });
+    const a = popAction(p.state, { lang: pyGet(req.body, "lang") });
     if (a === null) throw new HttpError(404, "nothing to undo");
     if (a.kind === "edit") {
       // null, not "" — a key that had no translation goes back to none.
@@ -326,7 +327,7 @@ export async function router(app) {
   app.post("/v1/proposals/apply", { schema: { body: BODY } }, async (req) => {
     const ws = getState().workspace;
     const p = project();
-    const [lang, keys] = [dget(req.body, "lang"), dget(req.body, "keys")];
+    const [lang, keys] = [pyGet(req.body, "lang"), pyGet(req.body, "keys")];
     if (typeof lang !== "string" || !Array.isArray(keys)) throw new HttpError(400, "lang and keys[] required");
     // ONE undo for the whole click — the bulk-accept promise, applied to writes. A run stages
     // one proposal per key, so "apply what the run produced" is a 2,000-key action; 2,000
@@ -351,7 +352,7 @@ export async function router(app) {
 
   app.delete("/v1/proposals", { schema: { body: BODY } }, async (req) => {
     const p = project();
-    const [lang, keys] = [dget(req.body, "lang"), dget(req.body, "keys")];
+    const [lang, keys] = [pyGet(req.body, "lang"), pyGet(req.body, "keys")];
     if (typeof lang !== "string") throw new HttpError(400, "lang required");
     // Discard destroys staged work by hand, so it is UNDOABLE like every other human action
     // (audit 2026-08-05: it recorded nothing — the next undo silently reversed some OLDER
@@ -396,8 +397,8 @@ export async function router(app) {
     const p = project();
     const lg = langOr(req.query.lang, p);
     const targetFlat = p.targetFlat(lg) ?? new Map();
-    if (pyTruthy(term)) return { term, usage: termUsage({ sourceFlat: p.src, targetFlat, term }) };
-    if (!pyTruthy(key)) throw new HttpError(400, "key or term required");
+    if (truthy(term)) return { term, usage: termUsage({ sourceFlat: p.src, targetFlat, term }) };
+    if (!truthy(key)) throw new HttpError(400, "key or term required");
     const { index } = checkTerms({ sourceFlat: p.src, targetFlat });
     return {
       key,
@@ -408,9 +409,9 @@ export async function router(app) {
   app.put("/v1/notes", { schema: { body: BODY } }, async (req) => {
     const ws = getState().workspace;
     const p = project();
-    const [lang, key] = [dget(req.body, "lang"), dget(req.body, "key")];
-    const n = dget(req.body, "note");
-    const note = pyTruthy(n) ? n : null;
+    const [lang, key] = [pyGet(req.body, "lang"), pyGet(req.body, "key")];
+    const n = pyGet(req.body, "note");
+    const note = truthy(n) ? n : null;
     if (typeof lang !== "string" || typeof key !== "string") throw new HttpError(400, "lang and key required");
     const prev = flatten(p.readNotes(lang)).get(key) ?? null;
     ws.writeNote(lang, key, note);
@@ -443,13 +444,13 @@ export async function router(app) {
    */
   app.post("/v1/backtranslate", { schema: { body: BODY } }, async (req) => {
     const p = project();
-    const [lang, key] = [dget(req.body, "lang"), dget(req.body, "key")];
+    const [lang, key] = [pyGet(req.body, "lang"), pyGet(req.body, "key")];
     if (typeof lang !== "string" || typeof key !== "string") throw new HttpError(400, "lang and key required");
     const dst = (p.targetFlat(lang) ?? new Map()).get(key);
     if (!dst) throw new HttpError(404, `no translation for ${key}`);
     const cached = getReference(p.state, { lang, key, engine: "backtranslate" });
-    if (pyTruthy(cached)) return { key, lang, english: cached.value, cached: true };
-    const sourceLang = dget(p.cfg, "sourceLanguage", "en");
+    if (truthy(cached)) return { key, lang, english: cached.value, cached: true };
+    const sourceLang = pyGet(p.cfg, "sourceLanguage", "en");
     const system =
       `You are a translator, ${lang}→${sourceLang}. Translate the text ` +
       "literally, preserving any {placeholders} exactly. Output ONLY JSON " +
@@ -457,7 +458,7 @@ export async function router(app) {
     let english;
     try {
       const send = self.makeSend("review");
-      const out = await send(system, `Translate items: ${dumps([{ id: 0, text: dst }])}`);
+      const out = await send(system, `Translate items: ${pyJson([{ id: 0, text: dst }])}`);
       english = parseItems(out).get(0);
     } catch (e) {
       // A dead second opinion must never block reviewing. (EngineNotConfigured is a
@@ -476,10 +477,10 @@ export async function router(app) {
     const body = req.body;
     const ws = getState().workspace;
     const p = project();
-    const lang = dget(body, "lang");
-    const scope = dget(body, "scope", "flagged");
-    const keys = dget(body, "keys");
-    const presetId = dget(body, "presetId");
+    const lang = pyGet(body, "lang");
+    const scope = pyGet(body, "scope", "flagged");
+    const keys = pyGet(body, "keys");
+    const presetId = pyGet(body, "presetId");
     const targets = pyIter(p.targets);
     if (!targets.includes(lang)) throw new HttpError(400, `unknown language: ${pyStr(lang)}`);
     if (!SCOPES.has(scope)) {
@@ -488,7 +489,7 @@ export async function router(app) {
     if (ws.jobs.busy) throw new HttpError(409, "a job is already running");
 
     let wanted;
-    if (scope === "keys") wanted = pyTruthy(keys) ? pyIter(keys) : [];
+    if (scope === "keys") wanted = truthy(keys) ? pyIter(keys) : [];
     else if (scope === "all") wanted = [...p.src.keys()];
     else {
       const [tflat, findings] = ws.findingsFor(lang);
@@ -521,10 +522,10 @@ export async function router(app) {
       if (e instanceof engine.EngineNotConfigured) throw new HttpError(400, errText(e));
       throw e;
     }
-    const conv = dget(p.conventions, lang);
+    const conv = pyGet(p.conventions, lang);
     const cfg = {
       ...p.cfg,
-      conventionsLine: dget(pyTruthy(conv) ? conv : {}, "promptLine", ""),
+      conventionsLine: pyGet(truthy(conv) ? conv : {}, "promptLine", ""),
       // notes MUST be here: the note a reviewer writes on a key is sent when they press
       // re-translate on that same key — the one place it matters.
       notes: flatten(p.readNotes(lang)),
@@ -547,7 +548,7 @@ export async function router(app) {
           sourceFlat: p.src,
           targetFlat: identical,
           targetLang: lang,
-          context: dget(p.cfg, "context", ""),
+          context: pyGet(p.cfg, "context", ""),
           doNotTranslate: _glossaryList(p.cfg),
           ask,
         });
@@ -577,7 +578,7 @@ export async function router(app) {
     try {
       status = ws.jobs.start({
         lang,
-        engine: pyTruthy(presetId) ? presetId : "translate",
+        engine: truthy(presetId) ? presetId : "translate",
         send,
         scope,
         subset,
@@ -624,7 +625,7 @@ export async function router(app) {
     let keepalive = null;
     const off = ws.jobs.subscribe((e) => {
       if (closed) return;
-      res.write(`event: ${e.type}\ndata: ${dumps(e)}\n\n`);
+      res.write(`event: ${e.type}\ndata: ${pyJson(e)}\n\n`);
       armKeepalive();
       if (e.type === "done") finish();
     });
@@ -644,7 +645,7 @@ export async function router(app) {
       res.end();
     };
     res.on("close", finish);
-    res.write(`event: hello\ndata: ${dumps(ws.jobs.status())}\n\n`);
+    res.write(`event: hello\ndata: ${pyJson(ws.jobs.status())}\n\n`);
     armKeepalive();
   });
 
@@ -669,7 +670,7 @@ export async function router(app) {
 <div id="google_translate_element"></div>
 <div id="src">${esc}</div>
 <script>
- window.__tl = ${dumps(tl)};
+ window.__tl = ${pyJson(tl)};
  function googleTranslateElementInit() { new google.translate.TranslateElement({ pageLanguage: 'en' }, 'google_translate_element'); }
 </script>
 <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>

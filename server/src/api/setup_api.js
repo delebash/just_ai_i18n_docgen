@@ -7,32 +7,19 @@
 
 import path from "node:path";
 import { HttpError } from "@delebash/llm-runner/platform/errors";
-import { FileNotFoundError, ValueError } from "@delebash/llm-runner/platform/py";
+import { errText, FileNotFoundError, isDict, pyGet, pyTypeName, strip, truthy, ValueError } from "@delebash/llm-runner/platform/py";
 import * as appmeta from "../appmeta.js";
 import { getState } from "../app_state.js";
 import { gitignoreLines, planInit, writeInit } from "../init.js";
-import {
-  dget,
-  errText,
-  flatten,
-  isDict,
-  mergeDicts,
-  pyStr,
-  pyStrip,
-  pyTruthy,
-  readJson,
-  stripChars,
-  toPlain,
-  typeName,
-} from "../jsonio.js";
+import { flatten, mergeDicts, pyStr, readJson, toPlain } from "../jsonio.js";
 import { exists } from "../paths.js";
 import { _glossaryList } from "../workspace.js";
 import { BODY } from "./server_auth_api.js";
 
 /** `str(body.get("path") or "").strip().strip("\"'")` */
 const pathOf = (body) => {
-  const p = dget(body, "path");
-  return stripChars(pyStrip(pyStr(pyTruthy(p) ? p : "")), "\"'");
+  const p = pyGet(body, "path");
+  return strip(strip(pyStr(truthy(p) ? p : "")), "\"'");
 };
 
 /** FileNotFoundError / ValueError → 400 with the message (Python's `except … as e: 400`). */
@@ -52,7 +39,7 @@ export async function router(app) {
       langs: p ? p.targets : [],
       // Prefill, not decoration: an edit screen that shows blanks over a configured project
       // invites "save" to feel like it erased something.
-      context: p ? (pyTruthy(dget(p.cfg, "context")) ? dget(p.cfg, "context") : "") : "",
+      context: p ? (truthy(pyGet(p.cfg, "context")) ? pyGet(p.cfg, "context") : "") : "",
       // ALWAYS a bare list on the wire: the loaded cfg normalizes a list to {"doNotTranslate":
       // [...]} (infer.js), and handing that dict to the UI blew up the Setup prefill and let a
       // Save erase the real glossary (found by the 2026-08-05 audit).
@@ -121,23 +108,23 @@ export async function router(app) {
     // planInit's defaults — the defaults overwrote the real glossary through the merge below
     // (found by the 2026-08-05 audit). The existing file is read for fallbacks BEFORE
     // planning; the merge still preserves every unmanaged key.
-    const bodyTargets = Array.isArray(dget(body, "targets")) ? dget(body, "targets") : null;
-    const bodyContext = typeof dget(body, "context") === "string" ? dget(body, "context") : null;
-    const bodyGlossary = Array.isArray(dget(body, "glossary")) ? dget(body, "glossary") : null;
+    const bodyTargets = Array.isArray(pyGet(body, "targets")) ? pyGet(body, "targets") : null;
+    const bodyContext = typeof pyGet(body, "context") === "string" ? pyGet(body, "context") : null;
+    const bodyGlossary = Array.isArray(pyGet(body, "glossary")) ? pyGet(body, "glossary") : null;
     let plan;
     try {
       const probe = planInit(p);
       // Read in loads() form (a Map): the merge below writes it back in its own order.
       const existingCfg = exists(probe.configPath) ? readJson(probe.configPath) : new Map();
-      const eTargets = dget(existingCfg, "targets");
-      const eContext = dget(existingCfg, "context");
+      const eTargets = pyGet(existingCfg, "targets");
+      const eContext = pyGet(existingCfg, "context");
       plan = planInit(p, {
         targets: bodyTargets !== null ? bodyTargets : Array.isArray(eTargets) ? eTargets : null,
         context: bodyContext !== null ? bodyContext : typeof eContext === "string" ? eContext : null,
         glossary:
           bodyGlossary !== null
             ? bodyGlossary
-            : dget(existingCfg, "glossary") !== null
+            : pyGet(existingCfg, "glossary") !== null
               ? _glossaryList(toPlain(existingCfg))
               : null,
       });
@@ -146,7 +133,7 @@ export async function router(app) {
     }
     const configPath = plan.configPath;
     const existing = exists(configPath) ? readJson(configPath) : new Map();
-    if (!isDict(existing)) throw new TypeError(`'${typeName(existing)}' object is not a mapping`);
+    if (!isDict(existing)) throw new TypeError(`'${pyTypeName(existing)}' object is not a mapping`);
     writeInit({ ...plan, cfg: mergeDicts(existing, plan.cfg) }, { force: true });
     ws.load(configPath);
     return { ok: true, configPath, langs: ws.project.targets };
@@ -155,7 +142,7 @@ export async function router(app) {
   app.get("/v1/reviewer", async () => ({ reviewer: appmeta.getReviewer() }));
 
   app.put("/v1/reviewer", { schema: { body: BODY } }, async (req) => {
-    const r = dget(req.body, "reviewer");
+    const r = pyGet(req.body, "reviewer");
     if (r !== null && typeof r !== "string") throw new HttpError(400, "reviewer must be a string or null");
     appmeta.setReviewer(r);
     return { reviewer: appmeta.getReviewer() };

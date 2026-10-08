@@ -21,8 +21,9 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { bootLlmStack, seedLlmStack } from "./app.js";
 import { runExtract } from "./extract.js";
-import { fmtFixed, pyStrip } from "./jsonio.js";
 import { acceptKeys, Project, runCheck, runEscalate, runTranslate } from "./service.js";
+import { strip } from "@delebash/llm-runner/platform/py";
+import { pyFixed } from "@delebash/llm-runner/platform/pyjson";
 
 const PROG = "just-ai-i18n-docgen";
 const USAGE = `usage: ${PROG} [-h] [--data-dir DATA_DIR] {translate,check,escalate,accept,extract} ...`;
@@ -102,7 +103,7 @@ export async function main(argv = process.argv.slice(2)) {
   if (args.command === "translate") {
     const started = monotonic();
     const result = await runTranslate(project, { force: !!args.force, probe: !!args.probe, noConfirm: !!args["no-confirm"] });
-    console.log(`Elapsed ${fmtFixed(monotonic() - started, 1)}s`);
+    console.log(`Elapsed ${pyFixed(monotonic() - started, 1)}s`);
     const check = runCheck(project);
     return result.hardFailures || check.failed ? 1 : 0;
   }
@@ -110,13 +111,13 @@ export async function main(argv = process.argv.slice(2)) {
   if (args.command === "escalate") {
     const started = monotonic();
     await runEscalate(project, args.preset_id);
-    console.log(`Elapsed ${fmtFixed(monotonic() - started, 1)}s`);
+    console.log(`Elapsed ${pyFixed(monotonic() - started, 1)}s`);
     return runCheck(project).failed ? 1 : 0;
   }
   if (args.command === "accept") {
     const keys = args.keys
       .split(",")
-      .map((k) => pyStrip(k))
+      .map((k) => strip(k))
       .filter((k) => k);
     acceptKeys(project, keys, { by: args.by });
     return 0;

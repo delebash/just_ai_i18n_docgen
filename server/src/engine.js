@@ -21,8 +21,7 @@ import { LLMMessage } from "@delebash/llm-runner/llm";
 import * as presetResolve from "@delebash/llm-runner/llm/preset_resolve";
 import * as registry from "@delebash/llm-runner/llm/registry";
 import * as stores from "@delebash/llm-runner/llm/stores";
-import { pyFloatParse, pyInt, RuntimeError, ValueError } from "@delebash/llm-runner/platform/py";
-import { pyStrip, pyTruthy } from "./jsonio.js";
+import { pyFloatParse, pyInt, RuntimeError, strip, truthy, ValueError } from "@delebash/llm-runner/platform/py";
 import { RESPONSE_SCHEMA } from "./shieldlib.js";
 
 /** Raised when a feature resolves to no usable preset/adapter — loudly, with the fix in the
@@ -43,7 +42,7 @@ export class EngineNotConfigured extends RuntimeError {
  */
 export function resolveEngine(feature = "translate", presetId = null) {
   let preset;
-  if (pyTruthy(presetId)) {
+  if (truthy(presetId)) {
     preset = stores.getEnginePresetStore().list().find((p) => p.id === presetId) ?? null;
     if (preset === null) {
       throw new EngineNotConfigured(`no engine preset with id "${presetId}" — list them on the AI-features page.`);
@@ -107,7 +106,7 @@ export function makeSend(feature = "translate", presetId = null) {
       extra: { ...structuredExtra(adapter.provider_type), ...presetExtra(preset) },
     });
     const text = response.text;
-    if (typeof text !== "string" || !pyStrip(text)) {
+    if (typeof text !== "string" || !strip(text)) {
       throw new RuntimeError(
         "Empty content from the engine. A thinking model with no output budget " +
           "does this — check the preset's think toggle.",
@@ -124,7 +123,7 @@ export function makeSend(feature = "translate", presetId = null) {
  * whole overlay was found missing here).
  */
 function parseSamplerValue(v) {
-  const s = pyStrip(v || "");
+  const s = strip(v || "");
   if (!s) return null;
   const low = s.toLowerCase();
   if (low === "true" || low === "false") return low === "true";
@@ -154,7 +153,7 @@ export function presetExtra(preset) {
   const topP = preset?.topP ?? null;
   if (topP !== null) extra.top_p = topP;
   for (const row of preset?.samplers || []) {
-    const name = pyStrip(row?.flagName || "");
+    const name = strip(row?.flagName || "");
     if (name && !Object.hasOwn(extra, name)) {
       const val = parseSamplerValue(row?.flagValue || "");
       if (val !== null) extra[name] = val;
@@ -167,7 +166,7 @@ export function presetExtra(preset) {
   if (typeof extra.samplers === "string") {
     extra.samplers = extra.samplers
       .split(",")
-      .map((s) => pyStrip(s))
+      .map((s) => strip(s))
       .filter((s) => s);
   }
   return extra;

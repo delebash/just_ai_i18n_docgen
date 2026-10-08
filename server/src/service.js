@@ -18,7 +18,8 @@
 import { statSync } from "node:fs";
 import path from "node:path";
 import { purePath } from "@delebash/llm-runner/platform/data_paths";
-import { FileNotFoundError, pySorted, ValueError } from "@delebash/llm-runner/platform/py";
+import { cpLen, FileNotFoundError, pyGet, pySorted, truthy, ValueError } from "@delebash/llm-runner/platform/py";
+import { pyJson } from "@delebash/llm-runner/platform/pyjson";
 import {
   acceptanceEntry,
   acceptanceHash,
@@ -32,19 +33,7 @@ import * as confirm from "./confirm.js";
 import { CONFIRM_CODE, attachConfirmations, confirmIdentical } from "./confirm.js";
 import * as engine from "./engine.js";
 import { inferConfig } from "./infer.js";
-import {
-  asMap,
-  cpLen,
-  dget,
-  dumps,
-  flatten,
-  OSError,
-  pyTruthy,
-  readJson,
-  rebuild,
-  toPlain,
-  writeText,
-} from "./jsonio.js";
+import { asMap, flatten, OSError, readJson, rebuild, toPlain, writeText } from "./jsonio.js";
 import { translateLanguage } from "./loop.js";
 import { exists, projectPaths } from "./paths.js";
 import * as self from "./service.js";
@@ -109,7 +98,7 @@ export class Project {
   }
 
   get targets() {
-    return dget(this.cfg, "targets", []);
+    return pyGet(this.cfg, "targets", []);
   }
 
   /** Per-key notes written during review. Committed — a note changes translation output, so
@@ -171,13 +160,13 @@ export function unfilteredFindings(project, lang, targetFlat, { topN = null, inc
   });
   const probePath = project.paths.probeFile(lang);
   if (exists(probePath)) {
-    const suspects = dget(project.cfg, "suspects");
+    const suspects = pyGet(project.cfg, "suspects");
     findings = findings.concat(
       rankSuspects({
         sourceFlat: project.src,
         targetFlat,
         probeFlat: flatten(readJson(probePath)),
-        topN: topN !== null ? topN : dget(pyTruthy(suspects) ? suspects : {}, "topN", 20),
+        topN: topN !== null ? topN : pyGet(truthy(suspects) ? suspects : {}, "topN", 20),
       }),
     );
   }
@@ -206,17 +195,17 @@ function termFindings(project, lang, targetFlat, cache) {
 
 /** The project cfg as one language's run sends it: the conventions line and the notes. */
 function runCfg(project, lang, notes) {
-  const conv = dget(project.conventions, lang);
+  const conv = pyGet(project.conventions, lang);
   return {
     ...project.cfg,
-    conventionsLine: dget(pyTruthy(conv) ? conv : {}, "promptLine", ""),
+    conventionsLine: pyGet(truthy(conv) ? conv : {}, "promptLine", ""),
     notes,
   };
 }
 
 /** `json.dumps(rebuild(...), indent=2, ensure_ascii=False) + "\n"` into `p`. */
 function writeCatalogue(p, sourceRaw, values) {
-  writeText(p, `${dumps(rebuild(sourceRaw, values), { indent: 2, ensureAscii: false })}\n`);
+  writeText(p, `${pyJson(rebuild(sourceRaw, values), { indent: 2, ensureAscii: false })}\n`);
 }
 
 /**
@@ -334,14 +323,14 @@ async function confirmationPass(project, { ask = null, log = console.log } = {})
     const keys = findings.filter((f) => f.code === CONFIRM_CODE).map((f) => f.key);
     if (!keys.length) continue;
     log(`${lang}: confirming ${keys.length} identical key(s)`);
-    const gl = dget(project.cfg, "glossary");
+    const gl = pyGet(project.cfg, "glossary");
     const result = await confirmIdentical({
       keys,
       sourceFlat: project.src,
       targetFlat: dst,
       targetLang: lang,
-      context: dget(project.cfg, "context", ""),
-      doNotTranslate: dget(pyTruthy(gl) ? gl : {}, "doNotTranslate", []),
+      context: pyGet(project.cfg, "context", ""),
+      doNotTranslate: pyGet(truthy(gl) ? gl : {}, "doNotTranslate", []),
       ask,
     });
     const by = "engine (confirm preset)";
@@ -367,7 +356,7 @@ async function confirmationPass(project, { ask = null, log = console.log } = {})
     log(`  ${result.cleared.length} look correct as-is — approve them in the review page (nothing was signed off for you)`);
     if (result.proposed.length) {
       log(`  ${result.proposed.length} look SKIPPED. Suggestions, NOT applied:`);
-      for (const p of result.proposed) log(`      ${p.key}  ${dumps(p.src)} -> ${dumps(p.suggestion)}`);
+      for (const p of result.proposed) log(`      ${p.key}  ${pyJson(p.src)} -> ${pyJson(p.suggestion)}`);
     }
     if (result.failed.length) log(`  ${result.failed.length} could not be checked (engine error) — left as findings`);
   }
@@ -392,14 +381,14 @@ export function runCheck(project, { log = console.log } = {}) {
     }
     const [findings, acceptedNow] = allFindings(project, lang, dst);
     let translated = 0;
-    for (const k of project.src.keys()) if (pyTruthy(dst.get(k))) translated += 1;
+    for (const k of project.src.keys()) if (truthy(dst.get(k))) translated += 1;
     log(`\n${lang}: ${translated}/${project.src.size} translated`);
     for (const [code, items] of summarise(findings)) {
       if (code !== "disagreement") failed += items.length;
       const note = code === "disagreement" ? " [advisory — review or escalate]" : "";
       log(`  ${code} (${items.length})${note}: ${items.map((f) => f.key).join(", ")}`);
       for (const f of items) {
-        if (pyTruthy(f.suggestion)) log(`      ${f.key}: suggested ${dumps(f.suggestion)} (not applied)`);
+        if (truthy(f.suggestion)) log(`      ${f.key}: suggested ${pyJson(f.suggestion)} (not applied)`);
       }
     }
     if (!findings.length) log("  all checks passed");

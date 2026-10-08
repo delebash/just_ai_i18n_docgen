@@ -29,8 +29,8 @@
 import { readdirSync, realpathSync, statSync } from "node:fs";
 import path from "node:path";
 import { purePath } from "@delebash/llm-runner/platform/data_paths";
-import { ValueError } from "@delebash/llm-runner/platform/py";
-import { dget, pyStr } from "./jsonio.js";
+import { pyGet, ValueError } from "@delebash/llm-runner/platform/py";
+import { pyStr } from "./jsonio.js";
 
 export const CACHE_FILE = ".just-ai-i18n-docgen-cache.json";
 
@@ -133,18 +133,18 @@ export function projectPaths(configPath, cfg) {
   let localesDir;
   let sourceLanguage;
 
-  const source = dget(cfg, "source");
+  const source = pyGet(cfg, "source");
   if (source) {
     const src = pyStr(source);
     sourceFile = isAbsolutePy(src) ? purePath(src) : resolvePath(path.join(configDir, src));
     localesDir = path.dirname(sourceFile);
     sourceLanguage = removeSuffix(path.basename(sourceFile), ".json");
   } else {
-    const rel = dget(cfg, "locales") || dget(cfg, "localesDir");
+    const rel = pyGet(cfg, "locales") || pyGet(cfg, "localesDir");
     if (!rel) throw new ValueError(`config at ${configPath} has no "source" — it must name your en.json`);
     const relP = pyStr(rel);
     localesDir = isAbsolutePy(relP) ? purePath(relP) : resolvePath(path.join(configDir, relP));
-    sourceLanguage = pyStr(dget(cfg, "sourceLanguage", "en"));
+    sourceLanguage = pyStr(pyGet(cfg, "sourceLanguage", "en"));
     sourceFile = path.join(localesDir, `${sourceLanguage}.json`);
   }
 

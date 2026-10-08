@@ -12,7 +12,9 @@
 // knows which one is being moved to. Whatever was inferred is REPORTED, never decided
 // quietly — the whole complaint about this tool was invisible decisions.
 
-import { dhas, dumps, pyStrip, pyTruthy } from "./jsonio.js";
+import { dhas } from "./jsonio.js";
+import { strip, truthy } from "@delebash/llm-runner/platform/py";
+import { pyJson } from "@delebash/llm-runner/platform/pyjson";
 
 // The interpolation syntaxes worth detecting, longest delimiter first so `{{` beats `{`.
 const SYNTAXES = [
@@ -52,7 +54,7 @@ const SEPARATORS = [" | ", "|", " || ", "||"];
 export function inferPluralSeparator(values) {
   for (const sep of SEPARATORS) {
     for (const v of values) {
-      if (v.includes(sep) && v.split(sep).every((half) => pyStrip(half))) return sep;
+      if (v.includes(sep) && v.split(sep).every((half) => strip(half))) return sep;
     }
   }
   return null;
@@ -69,14 +71,14 @@ export function inferConfig(cfg, sourceFlat) {
   const out = { ...cfg };
   const inferred = [];
 
-  if (!pyTruthy(out.placeholder)) {
+  if (!truthy(out.placeholder)) {
     out.placeholder = inferPlaceholder(values);
     inferred.push(`placeholder ${out.placeholder.prefix}…${out.placeholder.suffix}`);
   }
   if (!dhas(out, "pluralSeparator")) {
     out.pluralSeparator = inferPluralSeparator(values);
     const sep = out.pluralSeparator;
-    inferred.push(`pluralSeparator ${sep === null ? "none" : dumps(sep)}`);
+    inferred.push(`pluralSeparator ${sep === null ? "none" : pyJson(sep)}`);
   }
   // `glossary` accepts a bare array as well as {"doNotTranslate": [...]} — the nesting
   // bought nothing and the array is what every config actually wants to write.

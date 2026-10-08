@@ -17,9 +17,10 @@
 
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { cmp, FileNotFoundError, pySorted, ValueError } from "@delebash/llm-runner/platform/py";
+import { cmp, FileNotFoundError, pySorted, S, strip, ValueError } from "@delebash/llm-runner/platform/py";
+import { pyJson } from "@delebash/llm-runner/platform/pyjson";
 import { inferPlaceholder, inferPluralSeparator } from "./infer.js";
-import { dumps, FileExistsError, flatten, LETTER, pyStrip, readJson, S, writeText } from "./jsonio.js";
+import { FileExistsError, flatten, LETTER, readJson, writeText } from "./jsonio.js";
 import { exists, isDir, listNames, removeSuffix, resolvePath } from "./paths.js";
 
 export const CONFIG_DIR = "just-ai-i18n-docgen";
@@ -75,7 +76,7 @@ export function glossaryCandidates(values, { minCount = 3, limit = 12 } = {}) {
   for (const v of values) {
     for (const chunk of String(v).split(SENTENCE_SPLIT)) {
       const words = [...chunk.matchAll(WORD)].map((m) => m[0]).filter((w) => IS_UPPER.test(w));
-      const stripped = pyStrip(chunk);
+      const stripped = strip(chunk);
       const first = words.length && stripped.startsWith(words[0]) ? words[0] : null;
       words.forEach((w, i) => {
         counts.set(w, (counts.get(w) ?? 0) + 1);
@@ -153,7 +154,7 @@ export function writeInit(plan, { force = false } = {}) {
   const configPath = plan.configPath;
   if (exists(configPath) && !force) throw new FileExistsError(`${configPath} already exists — pass force to overwrite it`);
   mkdirSync(path.dirname(configPath), { recursive: true });
-  writeText(configPath, `${dumps(plan.cfg, { indent: 2, ensureAscii: false })}\n`);
+  writeText(configPath, `${pyJson(plan.cfg, { indent: 2, ensureAscii: false })}\n`);
   return String(configPath);
 }
 

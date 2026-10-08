@@ -10,10 +10,10 @@
 
 import { HttpError } from "@delebash/llm-runner/platform/errors";
 import { T } from "@delebash/llm-runner/platform/models";
+import { pyGet, strip, truthy } from "@delebash/llm-runner/platform/py";
 import { pyJson } from "@delebash/llm-runner/platform/pyjson";
 import * as appmeta from "../appmeta.js";
 import { readAuth } from "../auth.js";
-import { dget, pyStrip, pyTruthy } from "../jsonio.js";
 
 /** FastAPI's `body: dict`. */
 export const BODY = T.Record(T.String(), T.Any());
@@ -26,11 +26,11 @@ export async function router(app) {
 
   app.put("/v1/server-auth", { schema: { body: BODY } }, async (req) => {
     const body = req.body;
-    const tokens = dget(body, "tokens");
+    const tokens = pyGet(body, "tokens");
     if (!Array.isArray(tokens) || !tokens.every((t) => typeof t === "string")) {
       throw new HttpError(400, "tokens must be a list of strings");
     }
-    const cfg = { tokens: tokens.filter((t) => pyStrip(t)), requireForLoopback: pyTruthy(dget(body, "requireForLoopback")) };
+    const cfg = { tokens: tokens.filter((t) => strip(t)), requireForLoopback: truthy(pyGet(body, "requireForLoopback")) };
     appmeta.setSetting("auth", pyJson(cfg));
     return cfg;
   });

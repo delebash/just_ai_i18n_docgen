@@ -17,22 +17,21 @@
 // It runs at BUILD time. Runtime stays plain vue-i18n; nothing parses markdown in the app.
 
 import path from "node:path";
-import { FileNotFoundError, ValueError } from "@delebash/llm-runner/platform/py";
-import { parseFrontMatter } from "./frontmatter.js";
 import {
   AttributeError,
-  cpCompare,
-  dget,
-  dumps,
+  cmp,
   errText,
+  FileNotFoundError,
   isDict,
-  pyStrip,
-  pyTruthy,
-  readJson,
-  readText,
-  typeName,
-  writeText,
-} from "./jsonio.js";
+  pyGet,
+  pyTypeName,
+  strip,
+  truthy,
+  ValueError,
+} from "@delebash/llm-runner/platform/py";
+import { pyJson } from "@delebash/llm-runner/platform/pyjson";
+import { parseFrontMatter } from "./frontmatter.js";
+import { readJson, readText, writeText } from "./jsonio.js";
 import { isAbsolutePy, isDir, listNames, removeSuffix, resolvePath } from "./paths.js";
 
 /**
@@ -92,21 +91,21 @@ const pathSortKey = (p) => (process.platform === "win32" ? p.toLowerCase() : p);
  */
 export function runExtract(project, { check = false, log = console.log } = {}) {
   const cfg = project.cfg;
-  const docsRel = String(dget(cfg, "docsDir", "docs"));
+  const docsRel = String(pyGet(cfg, "docsDir", "docs"));
   const docsDir = resolvePath(isAbsolutePy(docsRel) ? docsRel : path.join(project.paths.configDir, docsRel));
-  const ledePrefix = dget(cfg, "ledePrefix", "lede");
-  const hintsPrefix = dget(cfg, "hintsPrefix", "hints");
+  const ledePrefix = pyGet(cfg, "ledePrefix", "lede");
+  const hintsPrefix = pyGet(cfg, "hintsPrefix", "hints");
 
   if (!isDir(docsDir)) throw new FileNotFoundError(`No docs directory at ${docsDir} — set "docsDir" in your config.`);
 
   const raw = readJson(project.paths.sourceFile);
-  if (!(raw instanceof Map)) throw new AttributeError(`'${typeName(raw)}' object has no attribute 'get'`);
+  if (!(raw instanceof Map)) throw new AttributeError(`'${pyTypeName(raw)}' object has no attribute 'get'`);
   const flat = isFlat(raw);
 
   const files = listNames(docsDir)
     .filter((n) => n.endsWith(".md"))
     .map((n) => path.join(docsDir, n))
-    .sort((a, b) => cpCompare(pathSortKey(a), pathSortKey(b)));
+    .sort((a, b) => cmp(pathSortKey(a), pathSortKey(b)));
   const generated = new Map();
   let docsWithFm = 0;
 
@@ -122,23 +121,23 @@ export function runExtract(project, { check = false, log = console.log } = {}) {
       if (err instanceof ValueError) throw new ValueError(`${name}: ${errText(err)}`, { cause: err });
       throw err;
     }
-    if (!pyTruthy(data)) continue;
+    if (!truthy(data)) continue;
     docsWithFm += 1;
 
     const lede = data.get("lede");
-    if (typeof lede === "string" && pyStrip(lede)) generated.set(`${ledePrefix}.${slug}`, pyStrip(lede));
+    if (typeof lede === "string" && strip(lede)) generated.set(`${ledePrefix}.${slug}`, strip(lede));
     const hints = data.get("hints");
     if (hints instanceof Map) {
       for (const [hname, text] of hints) {
-        if (typeof text === "string" && pyStrip(text)) generated.set(`${hintsPrefix}.${slug}.${hname}`, pyStrip(text));
+        if (typeof text === "string" && strip(text)) generated.set(`${hintsPrefix}.${slug}.${hname}`, strip(text));
       }
     }
   }
 
-  const before = dumps(raw, { sortKeys: true });
+  const before = pyJson(raw, { sortKeys: true });
   const removed = clearPrefix(raw, ledePrefix, flat) + clearPrefix(raw, hintsPrefix, flat);
   for (const [k, v] of generated) setKey(raw, k, v, flat);
-  const changed = dumps(raw, { sortKeys: true }) !== before;
+  const changed = pyJson(raw, { sortKeys: true }) !== before;
 
   const nLede = [...generated.keys()].filter((k) => k.startsWith(`${ledePrefix}.`)).length;
   const nHints = [...generated.keys()].filter((k) => k.startsWith(`${hintsPrefix}.`)).length;
@@ -154,7 +153,7 @@ export function runExtract(project, { check = false, log = console.log } = {}) {
       log(`STALE: ${project.paths.sourceFile} does not match ${docsDir}. Run: just-ai-i18n-docgen extract ${project.configPath}`);
     } else log("up to date");
   } else if (changed) {
-    writeText(project.paths.sourceFile, `${dumps(raw, { indent: 2, ensureAscii: false })}\n`);
+    writeText(project.paths.sourceFile, `${pyJson(raw, { indent: 2, ensureAscii: false })}\n`);
     log(`wrote ${project.paths.sourceFile}`);
   } else log("no change");
 

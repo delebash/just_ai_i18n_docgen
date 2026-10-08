@@ -22,8 +22,9 @@
 // Findings come back in the SAME {key, code, detail} shape as every check, so the review page
 // renders them and escalation re-translates them with no new concepts anywhere.
 
-import { pySorted } from "@delebash/llm-runner/platform/py";
-import { ALNUM, asMap, cpLen, cpSlice, dget, fmtFixed, pySplit, pyStr, S } from "./jsonio.js";
+import { cpLen, cpSlice, pyGet, pySorted, S, splitWs } from "@delebash/llm-runner/platform/py";
+import { pyFixed } from "@delebash/llm-runner/platform/pyjson";
+import { ALNUM, asMap, pyStr } from "./jsonio.js";
 
 // [^\w\s]|_ — everything but letters, digits and (Python's) whitespace; the underscore is
 // neither, so it is in.
@@ -31,7 +32,7 @@ const STRIP = new RegExp(`(?!${ALNUM})[^${S.slice(1)}`, "gu");
 
 /** Word set, case- and punctuation-insensitive. Unicode-aware so accents survive. */
 function tokens(s) {
-  return new Set(pySplit(pyStr(s).toLowerCase().replace(STRIP, " ")));
+  return new Set(splitWs(pyStr(s).toLowerCase().replace(STRIP, " ")));
 }
 
 /**
@@ -54,7 +55,7 @@ export function spread(a, b) {
  * paragraphs.
  */
 function bandsOf(keys, sourceFlat, bandCount) {
-  const ordered = pySorted(keys, (k) => cpLen(pyStr(dget(sourceFlat, k))));
+  const ordered = pySorted(keys, (k) => cpLen(pyStr(pyGet(sourceFlat, k))));
   const size = Math.ceil(ordered.length / bandCount) || 1;
   const out = [];
   for (let i = 0; i < ordered.length; i += size) out.push(ordered.slice(i, i + size));
@@ -80,8 +81,8 @@ function clip(s, n = 80) {
 export function rankSuspects({ sourceFlat, targetFlat, probeFlat, topN = 20, bandCount = 3 }) {
   const scored = [];
   for (const key of asMap(sourceFlat).keys()) {
-    const a = dget(targetFlat, key);
-    const b = dget(probeFlat, key);
+    const a = pyGet(targetFlat, key);
+    const b = pyGet(probeFlat, key);
     if (typeof a !== "string" || typeof b !== "string") continue;
     const s = spread(a, b);
     if (s === 0) continue;
@@ -122,6 +123,6 @@ export function rankSuspects({ sourceFlat, targetFlat, probeFlat, topN = 20, ban
     code: "disagreement",
     // The alternative rendering IS the useful part: a reviewer judges which is right by
     // seeing what the second pass said. A bare score sends them digging.
-    detail: `a second pass wrote "${clip(r.alt)}" (spread ${fmtFixed(r.s, 2)})`,
+    detail: `a second pass wrote "${clip(r.alt)}" (spread ${pyFixed(r.s, 2)})`,
   }));
 }

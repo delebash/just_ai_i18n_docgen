@@ -8,8 +8,10 @@
 // /v1 request so a change applies live.
 
 import { getLogger } from "@delebash/llm-runner/platform/log";
+import { errText, isDict, pyGet, truthy } from "@delebash/llm-runner/platform/py";
+import { jsonLoadsExact } from "@delebash/llm-runner/platform/pyjson";
 import * as appmeta from "./appmeta.js";
-import { dget, errText, isDict, loads, pyTruthy, toPlain } from "./jsonio.js";
+import { toPlain } from "./jsonio.js";
 
 const log = getLogger("just_ai_i18n_docgen.auth");
 
@@ -21,12 +23,12 @@ export function readAuth() {
   try {
     const raw = appmeta.getSetting("auth");
     if (!raw) return [[], false];
-    let cfg = toPlain(loads(raw));
-    if (!pyTruthy(cfg)) cfg = {}; // `json.loads(raw) or {}`
+    let cfg = toPlain(jsonLoadsExact(raw));
+    if (!truthy(cfg)) cfg = {}; // `json.loads(raw) or {}`
     if (!isDict(cfg)) throw new Error(`'${Array.isArray(cfg) ? "list" : typeof cfg}' object has no attribute 'get'`);
-    const tokens = dget(cfg, "tokens");
-    const list = pyTruthy(tokens) ? tokens : [];
-    return [Array.from(list).filter((t) => typeof t === "string" && t), pyTruthy(dget(cfg, "requireForLoopback"))];
+    const tokens = pyGet(cfg, "tokens");
+    const list = truthy(tokens) ? tokens : [];
+    return [Array.from(list).filter((t) => typeof t === "string" && t), truthy(pyGet(cfg, "requireForLoopback"))];
   } catch (e) {
     // never let an auth-config read 500
     log.warning(`auth config read failed (treating as no-auth): ${errText(e)}`);

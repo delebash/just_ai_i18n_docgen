@@ -22,22 +22,11 @@
 // Workspace holder, the write rules, and the prompt-preview builders.
 
 import { HttpError } from "@delebash/llm-runner/platform/errors";
-import { cmp, pyMax } from "@delebash/llm-runner/platform/py";
+import { cmp, isDict, pyGet, pyIter, pyMax, truthy } from "@delebash/llm-runner/platform/py";
+import { pyJson } from "@delebash/llm-runner/platform/pyjson";
 import { buildConfirmPrompt } from "./confirm.js";
 import { JobManager } from "./jobs.js";
-import {
-  cpCompare,
-  dget,
-  dumps,
-  flatten,
-  isDict,
-  placeholderRe,
-  pyIter,
-  pyTruthy,
-  readJson,
-  rebuild,
-  writeText,
-} from "./jsonio.js";
+import { flatten, placeholderRe, readJson, rebuild, writeText } from "./jsonio.js";
 import { exists } from "./paths.js";
 import { allFindings, Project } from "./service.js";
 import { buildSystemPrompt, buildUserMessage, shield } from "./shieldlib.js";
@@ -80,13 +69,13 @@ export class Workspace {
     const values = p.targetFlat(lang) ?? new Map();
     if (value === null || value === undefined) values.delete(key);
     else values.set(key, value);
-    writeText(p.paths.targetFile(lang), `${dumps(rebuild(p.sourceRaw, values), { indent: 2, ensureAscii: false })}\n`);
+    writeText(p.paths.targetFile(lang), `${pyJson(rebuild(p.sourceRaw, values), { indent: 2, ensureAscii: false })}\n`);
     const probe = p.paths.probeFile(lang);
     if (exists(probe)) {
       const pf = flatten(readJson(probe));
       if (pf.has(key)) {
         pf.delete(key);
-        writeText(probe, `${dumps(rebuild(p.sourceRaw, pf), { indent: 2, ensureAscii: false })}\n`);
+        writeText(probe, `${pyJson(rebuild(p.sourceRaw, pf), { indent: 2, ensureAscii: false })}\n`);
       }
     }
     dropReferences(p.state, { lang, key });
@@ -99,8 +88,8 @@ export class Workspace {
     const notes = flatten(p.readNotes(lang));
     if (note === null || note === undefined) notes.delete(key);
     else notes.set(key, note);
-    const sorted = new Map([...notes].sort(([a], [b]) => cpCompare(a, b)));
-    writeText(p.paths.notesFile(lang), `${dumps(sorted, { indent: 2, ensureAscii: false })}\n`);
+    const sorted = new Map([...notes].sort(([a], [b]) => cmp(a, b)));
+    writeText(p.paths.notesFile(lang), `${pyJson(sorted, { indent: 2, ensureAscii: false })}\n`);
   }
 
   // ── the queue ──────────────────────────────────────────────────────────────
@@ -119,7 +108,7 @@ export class Workspace {
 
   buildRows(lang = null) {
     const p = this.project;
-    const wanted = pyTruthy(lang) ? [lang] : pyIter(p.targets);
+    const wanted = truthy(lang) ? [lang] : pyIter(p.targets);
     const rows = [];
     const counts = {};
     let acceptedTotal = 0;
@@ -141,7 +130,7 @@ export class Workspace {
         byKey.get(f.key).push({
           code: f.code,
           detail: f.detail,
-          advisory: pyTruthy(f.advisory),
+          advisory: truthy(f.advisory),
           suggestion: f.suggestion ?? null,
           confirmed: f.confirmed ?? null,
           confirmedBy: f.confirmedBy ?? null,
@@ -224,25 +213,25 @@ export function _previewTranslate(p, lang, keys, n = 6) {
   // reviewer notes ride the preview too, or the Lab shows a prompt production never sends
   // (audit 2026-08-05 — both were dropped here). The glossary goes through _glossaryList:
   // both shapes are legal everywhere.
-  const conv = dget(p.conventions, lang);
+  const conv = pyGet(p.conventions, lang);
   const cfg = {
     ...p.cfg,
-    conventionsLine: dget(pyTruthy(conv) ? conv : {}, "promptLine", ""),
+    conventionsLine: pyGet(truthy(conv) ? conv : {}, "promptLine", ""),
     notes: flatten(p.readNotes(lang)),
   };
   const phRe = placeholderRe(cfg.placeholder);
   const terms = _glossaryList(cfg);
   const system = buildSystemPrompt({
-    source: dget(cfg, "sourceLanguage", "en"),
+    source: pyGet(cfg, "sourceLanguage", "en"),
     targetLang: lang,
     doNotTranslate: terms,
     conventionsLine: cfg.conventionsLine,
-    pluralSeparator: dget(cfg, "pluralSeparator"),
+    pluralSeparator: pyGet(cfg, "pluralSeparator"),
   });
   const existing = p.targetFlat(lang) ?? new Map();
   let sampledDone = false;
   let pick;
-  if (pyTruthy(keys)) {
+  if (truthy(keys)) {
     pick = pyIter(keys)
       .filter((k) => p.src.has(k))
       .slice(0, n);
@@ -277,7 +266,7 @@ export function _previewConfirm(p, lang, keys) {
   const dst = p.targetFlat(lang) ?? new Map();
   let picked;
   let note;
-  if (pyTruthy(keys)) {
+  if (truthy(keys)) {
     const same = pyIter(keys).filter((k) => p.src.has(k) && dst.get(k) === p.src.get(k));
     if (!same.length) throw new HttpError(400, `None of the requested keys are byte-identical in ${lang}.`);
     [picked, note] = [same[0], "identical key"];
@@ -292,15 +281,15 @@ export function _previewConfirm(p, lang, keys) {
     }
   }
   const cfg = p.cfg;
-  const gl = dget(cfg, "glossary");
-  const dnt = dget(pyTruthy(gl) ? gl : {}, "doNotTranslate");
+  const gl = pyGet(cfg, "glossary");
+  const dnt = pyGet(truthy(gl) ? gl : {}, "doNotTranslate");
   const system = buildConfirmPrompt({
     targetLang: lang,
-    context: dget(cfg, "context", ""),
-    doNotTranslate: pyTruthy(dnt) ? dnt : [],
+    context: pyGet(cfg, "context", ""),
+    doNotTranslate: truthy(dnt) ? dnt : [],
   });
   const src = p.src.get(picked);
-  const user = `Translate items: ${dumps([{ id: 0, text: src }])}`;
+  const user = `Translate items: ${pyJson([{ id: 0, text: src }])}`;
   return { system, user, sample: `${note} ${picked} · ${lang}` };
 }
 
@@ -309,10 +298,10 @@ export function _previewConfirm(p, lang, keys) {
  * both-shapes design; infer.js normalizes to the dict on load).
  */
 export function _glossaryList(cfg) {
-  const g = dget(cfg, "glossary");
+  const g = pyGet(cfg, "glossary");
   if (isDict(g)) {
-    const d = dget(g, "doNotTranslate");
-    return [...pyIter(pyTruthy(d) ? d : [])];
+    const d = pyGet(g, "doNotTranslate");
+    return [...pyIter(truthy(d) ? d : [])];
   }
-  return [...pyIter(pyTruthy(g) ? g : [])];
+  return [...pyIter(truthy(g) ? g : [])];
 }

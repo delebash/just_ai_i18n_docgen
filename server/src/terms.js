@@ -24,8 +24,8 @@
 // changes from run to run. The JavaScript uses first-occurrence order — one of Python's
 // possible answers, and a stable one.
 
-import { pyRound, pySorted } from "@delebash/llm-runner/platform/py";
-import { asMap, cpLen, cpSlice, dget, dhas, pyStr } from "./jsonio.js";
+import { cpLen, cpSlice, pyGet, pyRound, pySorted } from "@delebash/llm-runner/platform/py";
+import { asMap, dhas, pyStr } from "./jsonio.js";
 
 export const DOMINANCE = 0.85;
 
@@ -82,7 +82,7 @@ export function termIndex({ sourceFlat, targetFlat, minKeys = 4, dominance = DOM
     const forms = new Map();
     for (const key of keys) {
       const seen = new Set();
-      for (const full of terms(dget(targetFlat, key), minLen)) {
+      for (const full of terms(pyGet(targetFlat, key), minLen)) {
         const s = stem(full);
         if (!seen.has(s)) {
           counts.set(s, (counts.get(s) ?? 0) + 1);
@@ -140,7 +140,7 @@ export function checkTerms({ sourceFlat, targetFlat, minKeys = 4, dominance = DO
   const findings = [];
   for (const [key, src] of asMap(sourceFlat)) {
     if (!dhas(targetFlat, key)) continue;
-    findings.push(...checkKeyTerms({ key, src, dst: dget(targetFlat, key), index }));
+    findings.push(...checkKeyTerms({ key, src, dst: pyGet(targetFlat, key), index }));
   }
   return { findings, index };
 }
@@ -156,7 +156,7 @@ export function termUsage({ sourceFlat, targetFlat, term }) {
   const examples = new Map();
   for (const [key, src] of asMap(sourceFlat)) {
     if (!dhas(targetFlat, key) || !terms(src).has(t)) continue;
-    for (const tgt of terms(dget(targetFlat, key))) {
+    for (const tgt of terms(pyGet(targetFlat, key))) {
       counts.set(tgt, (counts.get(tgt) ?? 0) + 1);
       if (!examples.has(tgt)) examples.set(tgt, key);
     }

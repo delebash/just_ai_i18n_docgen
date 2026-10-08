@@ -21,8 +21,8 @@
 import { randomUUID } from "node:crypto";
 import { AsyncEvent, background } from "@delebash/llm-runner/platform/asyncutil";
 import { getLogger } from "@delebash/llm-runner/platform/log";
-import { RuntimeError } from "@delebash/llm-runner/platform/py";
-import { asMap, dget, errText } from "./jsonio.js";
+import { errText, pyGet, RuntimeError } from "@delebash/llm-runner/platform/py";
+import { asMap } from "./jsonio.js";
 import { translateLanguage } from "./loop.js";
 import { finishRun, putProposal, startRun } from "./state.js";
 
@@ -159,7 +159,7 @@ export class JobManager {
         // the run whose translations already staged; the run's final state reflects the
         // TRANSLATE outcome.
         if (confirm !== null) {
-          const identical = new Map([...asMap(result.values)].filter(([k, v]) => dget(subset, k) === v));
+          const identical = new Map([...asMap(result.values)].filter(([k, v]) => pyGet(subset, k) === v));
           if (identical.size) {
             job.state = "confirming";
             this._emit("confirming", { count: identical.size, lang: job.lang });

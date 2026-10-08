@@ -24,10 +24,11 @@
 // WHY NOT ASK TWICE: tried, and it agreed with itself confidently on BOTH wrong answers (4
 // disagreements of 71). Single pass.
 
-import { ValueError } from "@delebash/llm-runner/platform/py";
+import { errText, pyGet, S, strip, truthy, ValueError } from "@delebash/llm-runner/platform/py";
+import { pyJson } from "@delebash/llm-runner/platform/pyjson";
 import { acceptanceHash } from "./accepted.js";
 import * as engine from "./engine.js";
-import { dget, dumps, errText, pyStr, pyStrip, pyTruthy, S } from "./jsonio.js";
+import { pyStr } from "./jsonio.js";
 import { parseItems } from "./shieldlib.js";
 
 // The code the confirmation pass reasons about. Only `untranslated` has this ambiguity.
@@ -39,10 +40,10 @@ export const CONFIRM_CODE = "untranslated";
  * answering "SAME" becomes a deliberate refusal, not a shrug.
  */
 export function buildConfirmPrompt({ targetLang, context = "", doNotTranslate = null }) {
-  const never = pyTruthy(doNotTranslate)
+  const never = truthy(doNotTranslate)
     ? `\nThese terms stay exactly as they are and are always SAME: ${doNotTranslate.join(", ")}.`
     : "";
-  const ctx = pyTruthy(context) ? ` from ${context}` : "";
+  const ctx = truthy(context) ? ` from ${context}` : "";
   return `You are checking ONE user-interface string${ctx}.
 
 A translator was asked to translate it from English into ${targetLang} and returned it UNCHANGED.
@@ -68,7 +69,7 @@ Reply with a single item whose translation field is EXACTLY one of:
  */
 export function isSameVerdict(answer, source) {
   // str(s or "").strip(), then trailing dots/whitespace off.
-  const norm = (s) => pyStrip(pyStr(pyTruthy(s) ? s : "")).replace(TRAILING_DOTS, "");
+  const norm = (s) => strip(pyStr(truthy(s) ? s : "")).replace(TRAILING_DOTS, "");
   const a = norm(answer);
   return /^same$/iu.test(a) || a === norm(source);
 }
@@ -83,7 +84,7 @@ const TRAILING_DOTS = new RegExp(`[.${S.slice(1)}+$`, "u"); // [.\s]+$
 export function makeAsk(feature = "confirm") {
   const send = engine.makeSend(feature);
   return async function ask(system, source) {
-    const user = `Translate items: ${dumps([{ id: 0, text: source }])}`;
+    const user = `Translate items: ${pyJson([{ id: 0, text: source }])}`;
     const answer = parseItems(await send(system, user)).get(0);
     if (typeof answer !== "string") {
       // ValueError on purpose: the MODEL's reply is what is invalid, and confirmIdentical
@@ -122,11 +123,11 @@ export async function confirmIdentical({
   const failed = [];
 
   for (const key of keys) {
-    const src = dget(sourceFlat, key);
+    const src = pyGet(sourceFlat, key);
     try {
       const answer = await ask(system, src);
-      if (isSameVerdict(answer, src)) cleared.push({ key, src, dst: dget(targetFlat, key) });
-      else proposed.push({ key, src, dst: dget(targetFlat, key), suggestion: answer });
+      if (isSameVerdict(answer, src)) cleared.push({ key, src, dst: pyGet(targetFlat, key) });
+      else proposed.push({ key, src, dst: pyGet(targetFlat, key), suggestion: answer });
     } catch (e) {
       failed.push({ key, src, error: errText(e) }); // an engine error is a routed outcome
     }
@@ -143,7 +144,7 @@ export async function confirmIdentical({
  * pre-ticks a row for a human, it does not stand in for one.
  */
 export function attachConfirmations(findings, verdicts, sourceFlat, targetFlat) {
-  if (!pyTruthy(verdicts)) return findings;
+  if (!truthy(verdicts)) return findings;
   const out = [];
   for (const f of findings) {
     if (f.code !== CONFIRM_CODE || !Object.hasOwn(verdicts, f.key)) {
@@ -154,15 +155,15 @@ export function attachConfirmations(findings, verdicts, sourceFlat, targetFlat) 
     const live = acceptanceHash({
       key: f.key,
       code: CONFIRM_CODE,
-      src: dget(sourceFlat, f.key, ""),
-      dst: dget(targetFlat, f.key, ""),
+      src: pyGet(sourceFlat, f.key, ""),
+      dst: pyGet(targetFlat, f.key, ""),
     });
     if (v.hash !== live) {
       out.push(f);
       continue;
     }
     const annotated = { ...f, confirmed: v.verdict, confirmedBy: v.engine };
-    if (pyTruthy(v.suggestion)) annotated.suggestion = v.suggestion;
+    if (truthy(v.suggestion)) annotated.suggestion = v.suggestion;
     out.push(annotated);
   }
   return out;

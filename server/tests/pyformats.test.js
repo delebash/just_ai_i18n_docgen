@@ -6,23 +6,18 @@
 // \s \d \w classes. Every other docgen module stands on these.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { PyFloat } from "@delebash/llm-runner/platform/pyjson";
-import { expect, test } from "vitest";
 import {
-  ALNUM,
   D,
-  dumps,
-  fmtFixed,
-  LETTER,
-  loads,
-  pyIntDigits,
-  pyLstrip,
-  pyRstrip,
-  pySplit,
-  pyStr,
-  pyStrip,
+  digitsToInt as pyIntDigits,
+  lstrip as pyLstrip,
+  rstrip as pyRstrip,
   S,
-} from "../src/jsonio.js";
+  splitWs as pySplit,
+  strip as pyStrip,
+} from "@delebash/llm-runner/platform/py";
+import { jsonLoadsExact as loads, PyFloat, pyFixed as fmtFixed, pyJson as dumps } from "@delebash/llm-runner/platform/pyjson";
+import { expect, test } from "vitest";
+import { ALNUM, LETTER, pyStr } from "../src/jsonio.js";
 
 const FIX = JSON.parse(readFileSync(join(import.meta.dirname, "fixtures", "python-text.json"), "utf8"));
 

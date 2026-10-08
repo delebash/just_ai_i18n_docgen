@@ -24,8 +24,9 @@
 // anyway", not "throw away what every other key and language already learned".
 
 import { sleep } from "@delebash/llm-runner/platform/asyncutil";
-import { FileNotFoundError, ValueError } from "@delebash/llm-runner/platform/py";
-import { asMap, dget, dumps, errText, isDict, OSError, placeholderRe, pyStrip, pyTruthy, readJson, toPlain, writeText } from "./jsonio.js";
+import { errText, FileNotFoundError, isDict, pyGet, strip, truthy, ValueError } from "@delebash/llm-runner/platform/py";
+import { pyJson } from "@delebash/llm-runner/platform/pyjson";
+import { asMap, OSError, placeholderRe, readJson, toPlain, writeText } from "./jsonio.js";
 import { exists } from "./paths.js";
 import { buildSystemPrompt, buildUserMessage, cacheKey, parseItems, restore, sha1, shield } from "./shieldlib.js";
 
@@ -66,20 +67,20 @@ export async function translateLanguage({
   isCancelled = null,
 }) {
   const source = asMap(sourceFlat);
-  const existing = asMap(pyTruthy(existingFlat) ? existingFlat : null);
+  const existing = asMap(truthy(existingFlat) ? existingFlat : null);
   const phRe = placeholderRe(cfg.placeholder);
-  const ctx = dget(cfg, "context");
-  const contextHash = sha1(pyTruthy(ctx) ? ctx : "");
-  const gl = dget(cfg, "glossary");
-  const glossaryHash = sha1(dumps(pyTruthy(gl) ? gl : {}, { sortKeys: true }));
-  const dnt = dget(pyTruthy(gl) ? gl : {}, "doNotTranslate");
-  const terms = pyTruthy(dnt) ? dnt : [];
+  const ctx = pyGet(cfg, "context");
+  const contextHash = sha1(truthy(ctx) ? ctx : "");
+  const gl = pyGet(cfg, "glossary");
+  const glossaryHash = sha1(pyJson(truthy(gl) ? gl : {}, { sortKeys: true }));
+  const dnt = pyGet(truthy(gl) ? gl : {}, "doNotTranslate");
+  const terms = truthy(dnt) ? dnt : [];
   const system = buildSystemPrompt({
-    source: dget(cfg, "sourceLanguage", "en"),
+    source: pyGet(cfg, "sourceLanguage", "en"),
     targetLang: lang,
     doNotTranslate: terms,
-    conventionsLine: dget(cfg, "conventionsLine", ""),
-    pluralSeparator: dget(cfg, "pluralSeparator"),
+    conventionsLine: pyGet(cfg, "conventionsLine", ""),
+    pluralSeparator: pyGet(cfg, "pluralSeparator"),
   });
 
   const cache = loadCache(cachePath);
@@ -124,7 +125,7 @@ export async function translateLanguage({
     for (const s of shielded) {
       const raw = items.get(s.i);
       const restored = raw === undefined ? null : restore(raw, s.tokens);
-      if (restored === null || !pyStrip(restored)) stillMissing.push(s);
+      if (restored === null || !strip(restored)) stillMissing.push(s);
       else {
         values.set(s.key, restored);
         cache[s.ck] = restored;
@@ -168,7 +169,7 @@ export async function translateLanguage({
       if (!done) failed.push(item.key);
     }
 
-    writeText(cachePath, dumps(cache, { indent: 2, ensureAscii: false }));
+    writeText(cachePath, pyJson(cache, { indent: 2, ensureAscii: false }));
     if (onBatch) onBatch(values);
     log(`  ${lang}: ${values.size}/${source.size} done (batch ${bi + 1}/${batches.length})`);
   }
