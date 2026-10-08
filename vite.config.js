@@ -25,7 +25,7 @@ export default defineConfig(async () => ({
   },
 
   clearScreen: false,
-  // A fixed port: `npm run dev` points the desktop window at it (scripts/dev.mjs).
+  // A fixed port: `npm run dev` points the desktop window at it (scripts/dev.js).
   // 1450/1451 (target-tree P10): each family app owns its dev-port pair —
   // JW 1420 · JV 1430/1431 · this app 1450/1451. With strictPort a collision fails loudly
   // instead of leaving the window pointed at the OTHER app's dev server.

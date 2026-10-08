@@ -7,18 +7,18 @@
   "type": "module",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "node scripts/dev.mjs",
+    "dev": "node scripts/dev.js",
     "dev:vite": "vite",
     "build": "vite build && electron-builder",
     "build:vite": "vite build",
     "preview:vite": "vite preview",
-    "server": "node scripts/node24.mjs server/src/serve.js serve",
-    "test:server": "node scripts/node24.mjs node_modules/vitest/vitest.mjs run --config server/vitest.config.js",
+    "server": "node scripts/node24.js server/src/serve.js serve",
+    "test:server": "node scripts/node24.js node_modules/vitest/vitest.mjs run --config server/vitest.config.js",
     "lint": "biome check .",
     "test": "npm test --prefix e2e",
     "screenshots": "node e2e/capture-direct.js",
     "test:unit": "vitest run",
-    "cli": "node scripts/node24.mjs server/src/cli.js"
+    "cli": "node scripts/node24.js server/src/cli.js"
   },
   "dependencies": {
     "@delebash/llm-runner": "file:../just-llm-runner/server",
@@ -81,6 +81,15 @@
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "include": "node_modules/@delebash/llm-runner/src/shell/installer.nsh"
+    },
+    "electronFuses": {
+      "runAsNode": true,
+      "enableCookieEncryption": true,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "onlyLoadAppFromAsar": true,
+      "grantFileProtocolExtraPrivileges": false
     },
     "mac": {
       "icon": "build/icon.icns",

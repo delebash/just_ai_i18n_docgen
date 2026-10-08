@@ -3,7 +3,7 @@
 // headless or by the desktop shell (its `utilityProcess`, which reads the `ready` message the
 // kit's runServer posts). The port of serve.py.
 //
-//   node scripts/node24.mjs server/src/serve.js serve --port 8742
+//   node scripts/node24.js server/src/serve.js serve --port 8742
 //
 // Defaults as Python's: host 127.0.0.1, port 8742; the data dir is `--data-dir`, else
 // JUST_AI_I18N_DOCGEN_DATA_DIR, else the family ladder (`<repo>/data` in a checkout).

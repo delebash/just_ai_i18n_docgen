@@ -16,7 +16,7 @@ all go". The kit's register carries the rule in full; in short:
   carries that section and the line *"don't re-derive these; re-check one only if the code it
   cites changed after its date"*.
 - **After research:** its facts land here in the same change. A research doc with no entry here
-  is not done. The family guard (`../just-llm-runner/scripts/check-family.mjs`, check 15) fails
+  is not done. The family guard (`../just-llm-runner/scripts/check-family.js`, check 15) fails
   any `docs/plans/YYYY-MM-DD-*.md` dated 2026-10-04 or later that this page does not link, and
   any link here that points nowhere.
 - **Filled as each subject comes up.** Until then a subject's records are indexed below, so
