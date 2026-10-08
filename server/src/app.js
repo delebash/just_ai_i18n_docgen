@@ -34,6 +34,7 @@ import * as llmDb from "@delebash/llm-runner/llm/db";
 import { FeatureCatalogEntry } from "@delebash/llm-runner/llm/routing_api";
 import {
   BearerAuthMiddleware,
+  CorsMiddleware,
   createServer,
   CsrfOriginMiddleware,
   installFileLog,
@@ -430,44 +431,6 @@ export function seedLlmStack() {
   loadFromConfigs(stores.getProviderStore().list());
 }
 
-// ── CORS: Starlette's CORSMiddleware(allow_origins=["*"], allow_methods=["*"],
-// allow_headers=["*"]) — answers preflights itself, stamps `*` on every other answer to a
-// request that carries an Origin (the request's own origin + Vary when it carries a cookie).
-// Candidate for platform/.
-const ALL_METHODS = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"];
-
-export async function corsAllowAll(request, reply) {
-  const origin = request.headers.origin;
-  if (origin === undefined) return;
-  const wanted = request.headers["access-control-request-method"];
-  if (request.method === "OPTIONS" && wanted !== undefined) {
-    const headers = {
-      "access-control-allow-origin": "*",
-      "access-control-allow-methods": ALL_METHODS.join(", "),
-      "access-control-max-age": "600",
-    };
-    const asked = request.headers["access-control-request-headers"];
-    if (asked !== undefined) headers["access-control-allow-headers"] = asked; // allow-all mirrors
-    const ok = ALL_METHODS.includes(wanted);
-    reply
-      .code(ok ? 200 : 400)
-      .headers(headers)
-      .type("text/plain; charset=utf-8")
-      .send(ok ? "OK" : "Disallowed CORS method");
-    return reply;
-  }
-  if (request.headers.cookie !== undefined) {
-    reply.header("access-control-allow-origin", origin);
-    reply.header("vary", "Origin");
-  } else reply.header("access-control-allow-origin", "*");
-}
-
-/** The hook as a root-level plugin, so it loads in its place among the other two. */
-export async function CorsAllowAllMiddleware(app) {
-  app.addHook("onRequest", corsAllowAll);
-}
-CorsAllowAllMiddleware[Symbol.for("skip-override")] = true;
-
 /** True for an error FastAPI's own handlers don't answer — the envelope's to catch. */
 function isUnhandled(err) {
   if (err instanceof HttpError || err instanceof RequestValidationError || err?.validation) return false;
@@ -499,8 +462,10 @@ export async function createApp(dataDir = null, configPath = null) {
   app.register(CsrfOriginMiddleware, { appOrigins: APP_ORIGINS, typeBase: TYPE_BASE });
   // CORS — allow-all: the kit's origin-aware resolver hits :8742 DIRECTLY from Vite dev
   // (:1450) and from the desktop window, so without this every request dies as a silent CORS
-  // block (found live 2026-08-02 — no same-origin test can see it).
-  app.register(CorsAllowAllMiddleware);
+  // block (found live 2026-08-02 — no same-origin test can see it). The kit's Starlette 1.3.1
+  // port; docgen's Python ran an older Starlette that also mirrored the origin to a request
+  // carrying a cookie — this app sends none.
+  app.register(CorsMiddleware, { allowOrigins: ["*"], allowMethods: ["*"], allowHeaders: ["*"] });
   // Bearer auth — OFF unless tokens are configured (Settings → Server). Gates /v1/* only.
   app.register(BearerAuthMiddleware, { readAuth, typeBase: TYPE_BASE });
 
