@@ -6,7 +6,7 @@
 // data dir), and both routers mounted. This test doubles as the adoption proof.
 //
 // `lockout_escape_…`: Python patched the kit's `_is_loopback` to say yes; the JS sends the
-// request from 127.0.0.1 instead (the kit's hook calls isLoopback directly, so a spy can't
+// request from 127.0.0.1 instead (the kit's middleware calls isLoopback directly, so a spy can't
 // reach it — and a real loopback address is the honest version anyway).
 import { getLogger } from "@delebash/llm-runner/platform/log";
 import { pyPath } from "@delebash/llm-runner/runner/cache_registry";
@@ -109,16 +109,20 @@ test("lockout_escape_health_and_auth_door_stay_open_from_loopback", async () => 
   // boot gate died on ConnectionError FOREVER) and /v1/server-auth (the very door to fix it).
   // From the machine itself both stay open; everything else stays gated.
   const local = (method, url, json) =>
-    client.app.inject({ method, url, remoteAddress: "127.0.0.1", ...(json !== undefined ? { payload: json } : {}) });
+    client.app.request(
+      url,
+      { method, ...(json !== undefined ? { body: JSON.stringify(json), headers: { "content-type": "application/json" } } : {}) },
+      { incoming: { socket: { remoteAddress: "127.0.0.1" } } },
+    );
   await local("PUT", "/v1/server-auth", { tokens: ["s3cret"], requireForLoopback: true });
   try {
-    expect((await local("GET", "/v1/health")).statusCode, "the boot probe never locks").toBe(200);
-    expect((await local("GET", "/v1/server-auth")).statusCode, "the fix-it door never locks").toBe(200);
-    expect((await local("GET", "/v1/setup/state")).statusCode, "the rest stays gated").toBe(401);
+    expect((await local("GET", "/v1/health")).status, "the boot probe never locks").toBe(200);
+    expect((await local("GET", "/v1/server-auth")).status, "the fix-it door never locks").toBe(200);
+    expect((await local("GET", "/v1/setup/state")).status, "the rest stays gated").toBe(401);
   } finally {
     await local("PUT", "/v1/server-auth", { tokens: [] });
   }
-  expect((await local("GET", "/v1/setup/state")).statusCode).toBe(200);
+  expect((await local("GET", "/v1/setup/state")).status).toBe(200);
 });
 
 test("a_browser_origin_gets_cors_headers", async () => {

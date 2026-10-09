@@ -5,9 +5,10 @@
 // Bearer tokens gating /v1/* when the server runs exposed. Off (empty) by default;
 // reading/writing this endpoint is itself gated once tokens exist — loopback stays exempt
 // unless requireForLoopback is set, so the local user can never lock themselves out (the
-// kit's BearerAuthMiddleware leaves /v1/health and THIS route reachable from loopback — the
-// lockout escape).
+// kit's bearerAuth leaves /v1/health and THIS route reachable from loopback — the lockout
+// escape).
 
+import { Hono, input } from "@delebash/llm-runner/platform";
 import { HttpError } from "@delebash/llm-runner/platform/errors";
 import { T } from "@delebash/llm-runner/platform/models";
 import { pyGet, strip, truthy } from "@delebash/llm-runner/platform/py";
@@ -18,20 +19,22 @@ import { readAuth } from "../auth.js";
 /** FastAPI's `body: dict`. */
 export const BODY = T.Record(T.String(), T.Any());
 
-export async function router(app) {
-  app.get("/v1/server-auth", async () => {
+export function router() {
+  const app = new Hono();
+  app.get("/v1/server-auth", async (c) => {
     const [tokens, require] = readAuth();
-    return { tokens, requireForLoopback: require };
+    return c.json({ tokens, requireForLoopback: require });
   });
 
-  app.put("/v1/server-auth", { schema: { body: BODY } }, async (req) => {
-    const body = req.body;
+  app.put("/v1/server-auth", input({ body: BODY }), async (c) => {
+    const body = c.req.valid("json");
     const tokens = pyGet(body, "tokens");
     if (!Array.isArray(tokens) || !tokens.every((t) => typeof t === "string")) {
       throw new HttpError(400, "tokens must be a list of strings");
     }
     const cfg = { tokens: tokens.filter((t) => strip(t)), requireForLoopback: truthy(pyGet(body, "requireForLoopback")) };
     appmeta.setSetting("auth", pyJson(cfg));
-    return cfg;
+    return c.json(cfg);
   });
+  return app;
 }

@@ -65,19 +65,49 @@ export function useHermeticKit() {
   });
 }
 
-/** Starlette's TestClient, over `app.inject`. Each verb takes (url, {json, params, headers}). */
+/**
+ * The answer as the suites read it (the shape Fastify's inject gave): `statusCode`, `headers` (a
+ * plain object, lowercase names), `body` / `payload` (the text), `rawPayload` (a Buffer) and a
+ * synchronous `json()` — the body is read once, here.
+ */
+async function answer(res) {
+  const rawPayload = Buffer.from(await res.arrayBuffer());
+  const body = rawPayload.toString("utf8");
+  return {
+    statusCode: res.status,
+    headers: Object.fromEntries(res.headers),
+    body,
+    payload: body,
+    rawPayload,
+    json: () => JSON.parse(body),
+  };
+}
+
+/**
+ * The request body as inject sent it: an object as JSON with `content-type: application/json`
+ * (a caller's own content type wins); a string as it is, with NO content type (read as JSON by
+ * the family's rules) — sent as bytes, because a string body would get `text/plain` from the
+ * Request.
+ */
+function withBody(init, json) {
+  if (json === undefined) return init;
+  if (typeof json === "string") return { ...init, body: new TextEncoder().encode(json) };
+  return { ...init, body: JSON.stringify(json), headers: { "content-type": "application/json", ...init.headers } };
+}
+
+/** Starlette's TestClient, over Hono's `app.request`. Each verb takes (url, {json, params, headers}). */
 export function testClient(app) {
   const call =
     (method) =>
-    (url, { json, params, headers } = {}) => {
+    async (url, { json, params, headers } = {}) => {
       const qs = params ? `?${new URLSearchParams(params)}` : "";
-      return app.inject({
-        method,
-        url: url + qs,
-        headers: { host: "testserver", ...(headers || {}) },
-        remoteAddress: "192.0.2.10",
-        ...(json !== undefined ? { payload: json } : {}),
+      const init = withBody({ method, headers: { host: "testserver", ...(headers || {}) } }, json);
+      // The client address rides on the Node request (`c.env.incoming`), where the kit's
+      // clientHost reads it.
+      const res = await app.request(`http://testserver${url}${qs}`, init, {
+        incoming: { socket: { remoteAddress: "192.0.2.10" } },
       });
+      return answer(res);
     };
   return {
     app,

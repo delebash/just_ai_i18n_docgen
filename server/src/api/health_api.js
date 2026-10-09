@@ -6,10 +6,13 @@
 // forever — found 2026-08-04 by the real-webview smoke against the real project (nothing else
 // boots through the boot file, so no other gate could see it).
 
+import { Hono } from "@delebash/llm-runner/platform";
 import { API_VERSION, PRODUCT, VERSION } from "../version.js";
 
-export async function router(app) {
+export function router() {
+  const app = new Hono();
   // The family base shape (camelCase wire): docgen carries no extras (JW adds dataDir/dbReady,
   // JV its engine block). checkServer() reads only the HTTP status.
-  app.get("/v1/health", async () => ({ status: "ok", product: PRODUCT, version: VERSION, apiVersion: API_VERSION }));
+  app.get("/v1/health", (c) => c.json({ status: "ok", product: PRODUCT, version: VERSION, apiVersion: API_VERSION }));
+  return app;
 }

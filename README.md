@@ -6,7 +6,7 @@ keys — with a human review workspace where nothing ships unseen. It embeds the
 shared LLM stack (`../just-llm-runner`) for everything engine-shaped.
 
 Desktop app: a Quasar app (Vue 3) — its Electron mode is the desktop window — over a Node
-(Fastify) server on port **8742**. It was the first family app to move off Tauri and Python
+(Hono) server on port **8742**. It was the first family app to move off Tauri and Python
 (2026-10-08; the plan is JustVoice's `docs/plans/2026-10-07-electron-node-plan.md`) and moved
 onto Quasar on 2026-10-09 (the kit's `docs/app-structure.md` §Q). A job writes only proposals — the locale
 file is byte-identical until a human applies; the engine never signs off

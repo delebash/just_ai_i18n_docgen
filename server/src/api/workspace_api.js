@@ -15,6 +15,7 @@
 // Python's tests patch `workspace_api.make_send`: it is this module's own export, called as
 // `self.makeSend` (build sheet rule 18).
 
+import { Hono, input, stream } from "@delebash/llm-runner/platform";
 import { HttpError } from "@delebash/llm-runner/platform/errors";
 import { T } from "@delebash/llm-runner/platform/models";
 import { errText, pyGet, pyIter, pySorted, RuntimeError, truthy, ValueError } from "@delebash/llm-runner/platform/py";
@@ -78,20 +79,21 @@ export function project() {
 /** `lang or p.targets[0]` */
 const langOr = (lang, p) => (truthy(lang) ? lang : firstOf(pyIter(p.targets)));
 
-export async function router(app) {
+export function router() {
+  const app = new Hono();
   // ── the project surface ────────────────────────────────────────────────────
 
-  app.get("/v1/state", async () => {
+  app.get("/v1/state", async (c) => {
     const ws = getState().workspace;
     const p = project();
     const targets = pyIter(p.targets);
-    return {
+    return c.json({
       langs: p.targets,
       source: pyGet(p.cfg, "sourceLanguage"),
       job: ws.jobs.status(),
       progress: Object.fromEntries(targets.map((lg) => [lg, reviewProgress(p.state, lg)])),
       proposals: Object.fromEntries(targets.map((lg) => [lg, proposalCount(p.state, lg)])),
-    };
+    });
   });
 
   /**
@@ -99,8 +101,8 @@ export async function router(app) {
    * Lab POSTs {feature, lang?, keys?} and renders the REAL generated prompt read-only. Loud
    * named 400s; 409 needsSetup like every project route.
    */
-  app.post("/v1/ai/prompt-preview", { schema: { body: BODY } }, async (req) => {
-    const body = req.body;
+  app.post("/v1/ai/prompt-preview", input({ body: BODY }), async (c) => {
+    const body = c.req.valid("json");
     const p = project();
     const f = pyGet(body, "feature");
     const feature = pyStr(truthy(f) ? f : "");
@@ -109,14 +111,14 @@ export async function router(app) {
     if (!lang) throw new HttpError(400, "No target languages configured — add one in Setup.");
     const k = pyGet(body, "keys");
     const keys = truthy(k) ? k : null;
-    if (feature === "translate") return _previewTranslate(p, lang, keys);
-    if (feature === "confirm") return _previewConfirm(p, lang, keys);
+    if (feature === "translate") return c.json(_previewTranslate(p, lang, keys));
+    if (feature === "confirm") return c.json(_previewConfirm(p, lang, keys));
     throw new HttpError(400, `No prompt preview for "${feature}" yet — routing still picks its engine preset.`);
   });
 
-  app.get("/v1/rows", { schema: q({ lang: optStr() }) }, async (req) => {
+  app.get("/v1/rows", input(q({ lang: optStr() })), async (c) => {
     project();
-    return getState().workspace.buildRows(req.query.lang ?? null);
+    return c.json(getState().workspace.buildRows(c.req.valid("query").lang ?? null));
   });
 
   /**
@@ -124,7 +126,7 @@ export async function router(app) {
    * run — light enough to refresh after every job. Counts only; /rows is the page that
    * carries the strings.
    */
-  app.get("/v1/summary", async () => {
+  app.get("/v1/summary", async (c) => {
     const ws = getState().workspace;
     const p = project();
     const langs = [];
@@ -156,24 +158,24 @@ export async function router(app) {
         lastRun: runs.length ? runs[0] : null,
       });
     }
-    return {
+    return c.json({
       source: pyGet(p.cfg, "sourceLanguage"),
       keyCount: p.src.size,
       configPath: p.configPath,
       langs,
       job: ws.jobs.status(),
-    };
+    });
   });
 
-  app.get("/v1/accepted", { schema: q({ lang: optStr() }) }, async (req) => {
+  app.get("/v1/accepted", input(q({ lang: optStr() })), async (c) => {
     const p = project();
-    const lg = langOr(req.query.lang, p);
+    const lg = langOr(c.req.valid("query").lang, p);
     const entries = loadAccepted(p.paths.acceptedFile(lg));
-    return { lang: lg, entries: Object.entries(entries).map(([h, e]) => ({ hash: h, ...e })) };
+    return c.json({ lang: lg, entries: Object.entries(entries).map(([h, e]) => ({ hash: h, ...e })) });
   });
 
-  app.post("/v1/save", { schema: { body: BODY } }, async (req) => {
-    const body = req.body;
+  app.post("/v1/save", input({ body: BODY }), async (c) => {
+    const body = c.req.valid("json");
     const ws = getState().workspace;
     const p = project();
     const [lang, key, value] = [pyGet(body, "lang"), pyGet(body, "key"), pyGet(body, "value")];
@@ -186,7 +188,7 @@ export async function router(app) {
     const flags = checkOne({ key, src: p.src.get(key), dst: value, ctx: buildContext(p.cfg, p.conventions, lang) }).map(
       (f) => ({ code: f.code, detail: f.detail }),
     );
-    return { key, lang, flags };
+    return c.json({ key, lang, flags });
   });
 
   /**
@@ -196,8 +198,8 @@ export async function router(app) {
    * ONE CALL IS ONE UNDO: the batch records a single bulk-accept holding every hash it added.
    * `by` comes from the app's reviewer setting — never the OS username.
    */
-  app.post("/v1/accept", { schema: { body: BODY } }, async (req) => {
-    const body = req.body;
+  app.post("/v1/accept", input({ body: BODY }), async (c) => {
+    const body = c.req.valid("json");
     const ws = getState().workspace;
     const p = project();
     const lang = pyGet(body, "lang");
@@ -252,15 +254,15 @@ export async function router(app) {
       // A machine's opinion has served its purpose once a human has ruled.
       dropConfirmation(p.state, { lang, key: k });
     }
-    return { lang, keys: wanted, recorded: added.length, by: by || null };
+    return c.json({ lang, keys: wanted, recorded: added.length, by: by || null });
   });
 
   /**
    * The fix for the complaint that started the Node rebuild: an acceptance was one-way, and
    * accepted keys vanished from the page, so a decision could never be revisited.
    */
-  app.delete("/v1/accept", { schema: { body: BODY } }, async (req) => {
-    const body = req.body;
+  app.delete("/v1/accept", input({ body: BODY }), async (c) => {
+    const body = c.req.valid("json");
     const p = project();
     const [lang, key, code] = [pyGet(body, "lang"), pyGet(body, "key"), pyGet(body, "code")];
     if (typeof lang !== "string" || typeof key !== "string") throw new HttpError(400, "lang and key must be strings");
@@ -273,13 +275,13 @@ export async function router(app) {
     for (const h of Object.keys(removed)) delete store[h];
     saveAccepted(path, store);
     recordAction(p.state, { lang, key, kind: "unaccept", prev: removed });
-    return { key, lang, removed: Object.keys(removed).length };
+    return c.json({ key, lang, removed: Object.keys(removed).length });
   });
 
-  app.post("/v1/undo", { schema: { body: BODY } }, async (req) => {
+  app.post("/v1/undo", input({ body: BODY }), async (c) => {
     const ws = getState().workspace;
     const p = project();
-    const a = popAction(p.state, { lang: pyGet(req.body, "lang") });
+    const a = popAction(p.state, { lang: pyGet(c.req.valid("json"), "lang") });
     if (a === null) throw new HttpError(404, "nothing to undo");
     if (a.kind === "edit") {
       // null, not "" — a key that had no translation goes back to none.
@@ -311,23 +313,25 @@ export async function router(app) {
         putProposal(p.state, { lang: a.lang, key: r.key, engine: r.engine || "engine", value: r.value });
       }
     }
-    return { undone: a };
+    return c.json({ undone: a });
   });
 
-  app.get("/v1/history", { schema: q({ lang: optStr() }) }, async (req) => ({
-    actions: actionHistory(project().state, { lang: req.query.lang ?? null }),
-  }));
+  app.get("/v1/history", input(q({ lang: optStr() })), async (c) =>
+    c.json({ actions: actionHistory(project().state, { lang: c.req.valid("query").lang ?? null }) }),
+  );
 
-  app.get("/v1/proposals", { schema: q({ lang: optStr(), key: optStr() }) }, async (req) => {
+  app.get("/v1/proposals", input(q({ lang: optStr(), key: optStr() })), async (c) => {
+    const query = c.req.valid("query");
     const p = project();
-    const lg = langOr(req.query.lang, p);
-    return { lang: lg, proposals: proposals(p.state, { lang: lg, key: req.query.key ?? null }) };
+    const lg = langOr(query.lang, p);
+    return c.json({ lang: lg, proposals: proposals(p.state, { lang: lg, key: query.key ?? null }) });
   });
 
-  app.post("/v1/proposals/apply", { schema: { body: BODY } }, async (req) => {
+  app.post("/v1/proposals/apply", input({ body: BODY }), async (c) => {
     const ws = getState().workspace;
     const p = project();
-    const [lang, keys] = [pyGet(req.body, "lang"), pyGet(req.body, "keys")];
+    const body = c.req.valid("json");
+    const [lang, keys] = [pyGet(body, "lang"), pyGet(body, "keys")];
     if (typeof lang !== "string" || !Array.isArray(keys)) throw new HttpError(400, "lang and keys[] required");
     // ONE undo for the whole click — the bulk-accept promise, applied to writes. A run stages
     // one proposal per key, so "apply what the run produced" is a 2,000-key action; 2,000
@@ -347,12 +351,13 @@ export async function router(app) {
     if (applied.length) {
       recordAction(p.state, { lang, kind: "bulk-apply", prev: prevMap, key: applied.length === 1 ? applied[0] : null });
     }
-    return { lang, applied };
+    return c.json({ lang, applied });
   });
 
-  app.delete("/v1/proposals", { schema: { body: BODY } }, async (req) => {
+  app.delete("/v1/proposals", input({ body: BODY }), async (c) => {
     const p = project();
-    const [lang, keys] = [pyGet(req.body, "lang"), pyGet(req.body, "keys")];
+    const body = c.req.valid("json");
+    const [lang, keys] = [pyGet(body, "lang"), pyGet(body, "keys")];
     if (typeof lang !== "string") throw new HttpError(400, "lang required");
     // Discard destroys staged work by hand, so it is UNDOABLE like every other human action
     // (audit 2026-08-05: it recorded nothing — the next undo silently reversed some OLDER
@@ -370,17 +375,18 @@ export async function router(app) {
         key: dropped.length === 1 ? dropped[0].key : null,
       });
     }
-    return { lang, discarded: dropped.length };
+    return c.json({ lang, discarded: dropped.length });
   });
 
   /**
    * How characterAudit.why was actually proven a defect: its sibling renders the same
    * label-with-colon pattern correctly. A reviewer needs that view.
    */
-  app.get("/v1/siblings", { schema: q({ key: T.String(), lang: optStr() }) }, async (req) => {
-    const { key } = req.query;
+  app.get("/v1/siblings", input(q({ key: T.String(), lang: optStr() })), async (c) => {
+    const query = c.req.valid("query");
+    const { key } = query;
     const p = project();
-    const lg = langOr(req.query.lang, p);
+    const lg = langOr(query.lang, p);
     const ns = key.includes(".") ? key.slice(0, key.lastIndexOf(".")) : "";
     const targetFlat = p.targetFlat(lg) ?? new Map();
     // (A top-level key's namespace is "" — its "siblings" are keys starting with ".", as in
@@ -389,48 +395,51 @@ export async function router(app) {
       .filter(([k]) => k !== key && k.startsWith(`${ns}.`) && !k.slice(ns.length + 1).includes("."))
       .slice(0, 25)
       .map(([k, src]) => ({ key: k, source: src, target: targetFlat.get(k) ?? "" }));
-    return { key, namespace: ns, siblings: sibs };
+    return c.json({ key, namespace: ns, siblings: sibs });
   });
 
-  app.get("/v1/terms", { schema: q({ lang: optStr(), key: optStr(), term: optStr() }) }, async (req) => {
-    const { key = null, term = null } = req.query;
+  app.get("/v1/terms", input(q({ lang: optStr(), key: optStr(), term: optStr() })), async (c) => {
+    const query = c.req.valid("query");
+    const { key = null, term = null } = query;
     const p = project();
-    const lg = langOr(req.query.lang, p);
+    const lg = langOr(query.lang, p);
     const targetFlat = p.targetFlat(lg) ?? new Map();
-    if (truthy(term)) return { term, usage: termUsage({ sourceFlat: p.src, targetFlat, term }) };
+    if (truthy(term)) return c.json({ term, usage: termUsage({ sourceFlat: p.src, targetFlat, term }) });
     if (!truthy(key)) throw new HttpError(400, "key or term required");
     const { index } = checkTerms({ sourceFlat: p.src, targetFlat });
-    return {
+    return c.json({
       key,
       findings: checkKeyTerms({ key, src: p.src.get(key) ?? "", dst: targetFlat.get(key) ?? null, index }),
-    };
+    });
   });
 
-  app.put("/v1/notes", { schema: { body: BODY } }, async (req) => {
+  app.put("/v1/notes", input({ body: BODY }), async (c) => {
     const ws = getState().workspace;
     const p = project();
-    const [lang, key] = [pyGet(req.body, "lang"), pyGet(req.body, "key")];
-    const n = pyGet(req.body, "note");
+    const body = c.req.valid("json");
+    const [lang, key] = [pyGet(body, "lang"), pyGet(body, "key")];
+    const n = pyGet(body, "note");
     const note = truthy(n) ? n : null;
     if (typeof lang !== "string" || typeof key !== "string") throw new HttpError(400, "lang and key required");
     const prev = flatten(p.readNotes(lang)).get(key) ?? null;
     ws.writeNote(lang, key, note);
     recordAction(p.state, { lang, key, kind: "note", prev, nextValue: note });
-    return { lang, key, note };
+    return c.json({ lang, key, note });
   });
 
-  app.get("/v1/runs", { schema: q({ lang: optStr() }) }, async (req) => ({
-    runs: runHistory(project().state, { lang: req.query.lang ?? null }),
-  }));
+  app.get("/v1/runs", input(q({ lang: optStr() })), async (c) =>
+    c.json({ runs: runHistory(project().state, { lang: c.req.valid("query").lang ?? null }) }),
+  );
 
   app.get(
     "/v1/reference",
-    { schema: q({ key: T.String(), lang: optStr(), engine: T.Optional(T.String({ default: "backtranslate" })) }) },
-    async (req) => {
-      const { key, engine: eng = "backtranslate" } = req.query;
+    input(q({ key: T.String(), lang: optStr(), engine: T.Optional(T.String({ default: "backtranslate" })) })),
+    async (c) => {
+      const query = c.req.valid("query");
+      const { key, engine: eng = "backtranslate" } = query;
       const p = project();
-      const lg = langOr(req.query.lang, p);
-      return { key, lang: lg, engine: eng, cached: getReference(p.state, { lang: lg, key, engine: eng }) };
+      const lg = langOr(query.lang, p);
+      return c.json({ key, lang: lg, engine: eng, cached: getReference(p.state, { lang: lg, key, engine: eng }) });
     },
   );
 
@@ -442,14 +451,15 @@ export async function router(app) {
    * English because the ambiguity was in the source). Read-only, cached, never written to a
    * catalogue.
    */
-  app.post("/v1/backtranslate", { schema: { body: BODY } }, async (req) => {
+  app.post("/v1/backtranslate", input({ body: BODY }), async (c) => {
     const p = project();
-    const [lang, key] = [pyGet(req.body, "lang"), pyGet(req.body, "key")];
+    const body = c.req.valid("json");
+    const [lang, key] = [pyGet(body, "lang"), pyGet(body, "key")];
     if (typeof lang !== "string" || typeof key !== "string") throw new HttpError(400, "lang and key required");
     const dst = (p.targetFlat(lang) ?? new Map()).get(key);
     if (!dst) throw new HttpError(404, `no translation for ${key}`);
     const cached = getReference(p.state, { lang, key, engine: "backtranslate" });
-    if (truthy(cached)) return { key, lang, english: cached.value, cached: true };
+    if (truthy(cached)) return c.json({ key, lang, english: cached.value, cached: true });
     const sourceLang = pyGet(p.cfg, "sourceLanguage", "en");
     const system =
       `You are a translator, ${lang}→${sourceLang}. Translate the text ` +
@@ -468,13 +478,13 @@ export async function router(app) {
     }
     if (!english) throw new HttpError(502, "the engine returned nothing usable");
     putReference(p.state, { lang, key, engine: "backtranslate", value: english });
-    return { key, lang, english, cached: false };
+    return c.json({ key, lang, english, cached: false });
   });
 
   // ── jobs ───────────────────────────────────────────────────────────────────
 
-  app.post("/v1/jobs", { schema: { body: BODY } }, async (req, reply) => {
-    const body = req.body;
+  app.post("/v1/jobs", input({ body: BODY }), async (c) => {
+    const body = c.req.valid("json");
     const ws = getState().workspace;
     const p = project();
     const lang = pyGet(body, "lang");
@@ -590,18 +600,17 @@ export async function router(app) {
       if (e instanceof JobBusyError) throw new HttpError(409, errText(e));
       throw e;
     }
-    reply.code(202);
-    return { job: status };
+    return c.json({ job: status }, 202);
   });
 
-  app.get("/v1/jobs/current", async () => {
+  app.get("/v1/jobs/current", async (c) => {
     project();
-    return { job: getState().workspace.jobs.status() };
+    return c.json({ job: getState().workspace.jobs.status() });
   });
 
-  app.post("/v1/jobs/cancel", async () => {
+  app.post("/v1/jobs/cancel", async (c) => {
     project();
-    return { job: getState().workspace.jobs.cancel() };
+    return c.json({ job: getState().workspace.jobs.cancel() });
   });
 
   /**
@@ -609,44 +618,47 @@ export async function router(app) {
    * plain-callback subscriber feeds — transport stays out of jobs.js. A 15 s keepalive while
    * idle; the stream ends after the `done` event (or when the client goes away).
    */
-  app.get("/v1/jobs/stream", async (req, reply) => {
+  app.get("/v1/jobs/stream", async (c) => {
     const ws = getState().workspace;
     project();
     // Starlette's StreamingResponse: status 200, the media type with its charset, our
-    // cache-control. Headers a hook already set on the reply (CORS) ride along.
-    reply.hijack();
-    const res = reply.raw;
-    res.writeHead(200, {
-      ...reply.getHeaders(),
-      "content-type": "text/event-stream; charset=utf-8",
-      "cache-control": "no-cache",
-    });
-    let closed = false;
-    let keepalive = null;
-    const off = ws.jobs.subscribe((e) => {
-      if (closed) return;
-      res.write(`event: ${e.type}\ndata: ${pyJson(e)}\n\n`);
-      armKeepalive();
-      if (e.type === "done") finish();
-    });
-    const armKeepalive = () => {
-      clearTimeout(keepalive);
-      keepalive = setTimeout(() => {
-        if (closed) return;
-        res.write(": keepalive\n\n");
-        armKeepalive();
-      }, 15000);
-    };
-    const finish = () => {
-      if (closed) return;
-      closed = true;
-      clearTimeout(keepalive);
-      off();
-      res.end();
-    };
-    res.on("close", finish);
-    res.write(`event: hello\ndata: ${pyJson(ws.jobs.status())}\n\n`);
-    armKeepalive();
+    // cache-control. Headers a middleware already set on `c` (CORS) ride along.
+    c.header("Content-Type", "text/event-stream; charset=utf-8");
+    c.header("Cache-Control", "no-cache");
+    // The stream stays open until `finish` resolves it: after the `done` event, or when the
+    // client goes away (`onAbort`). Writes queue in order on the stream's writer.
+    return stream(
+      c,
+      (s) =>
+        new Promise((resolve) => {
+          let closed = false;
+          let keepalive = null;
+          const off = ws.jobs.subscribe((e) => {
+            if (closed) return;
+            s.write(`event: ${e.type}\ndata: ${pyJson(e)}\n\n`);
+            armKeepalive();
+            if (e.type === "done") finish();
+          });
+          const armKeepalive = () => {
+            clearTimeout(keepalive);
+            keepalive = setTimeout(() => {
+              if (closed) return;
+              s.write(": keepalive\n\n");
+              armKeepalive();
+            }, 15000);
+          };
+          const finish = () => {
+            if (closed) return;
+            closed = true;
+            clearTimeout(keepalive);
+            off();
+            resolve();
+          };
+          s.onAbort(finish);
+          s.write(`event: hello\ndata: ${pyJson(ws.jobs.status())}\n\n`);
+          armKeepalive();
+        }),
+    );
   });
 
   // ── the Google Translate frame ─────────────────────────────────────────────
@@ -658,12 +670,11 @@ export async function router(app) {
    */
   app.get(
     "/v1/gt-frame",
-    { schema: q({ text: T.Optional(T.String({ default: "" })), tl: T.Optional(T.String({ default: "es" })) }) },
-    async (req, reply) => {
-      const { text = "", tl = "es" } = req.query;
+    input(q({ text: T.Optional(T.String({ default: "" })), tl: T.Optional(T.String({ default: "es" })) })),
+    async (c) => {
+      const { text = "", tl = "es" } = c.req.valid("query");
       const esc = text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-      reply.type("text/html; charset=utf-8");
-      return `<!doctype html>
+      const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>gt</title>
 <style> body { font: 15px/1.5 system-ui, sans-serif; margin: 8px; color-scheme: light dark; }
  #src { padding: 8px; border-radius: 6px; }</style></head><body>
@@ -675,7 +686,9 @@ export async function router(app) {
 </script>
 <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </body></html>`;
+      return c.body(html, 200, { "Content-Type": "text/html; charset=utf-8" });
     },
   );
+  return app;
 }
 

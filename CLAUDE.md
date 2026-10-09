@@ -4,7 +4,7 @@ Translate standard i18n JSON locale folders with a local or online AI engine, VE
 every string that was written, and author help docs whose front-matter becomes locale
 keys — with a human review workspace where nothing ships unseen. A rewrite of
 `just-ai-help`, embedding `just-llm-runner` for everything engine-shaped. **Electron +
-a Node (Fastify) server since 2026-10-08** — the first family app off Tauri and Python
+a Node (Hono) server since 2026-10-08** — the first family app off Tauri and Python
 (JustVoice's `docs/plans/2026-10-07-electron-node-plan.md` §5). **A Quasar app since
 2026-10-09** — its Electron mode is the desktop app (the kit's `docs/app-structure.md` §Q).
 

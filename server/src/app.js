@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// The Fastify application factory — the standard, three lines of wiring. The port of app.py.
+// The Hono application factory — the standard, three lines of wiring. The port of app.py.
 //
 // The rewrite of just-ai-help, embedding the shared LLM stack the way every family app does
 // (JW, JV): mount the kit's runner router, call `installLlm` (data SEEDING lives in
@@ -27,16 +27,14 @@
 
 import { existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
-import fastifyStatic from "@fastify/static";
 import { installLlm, router as runnerRouter } from "@delebash/llm-runner";
 import { LLM_TABLES, loadFromConfigs, seedLlm, stores } from "@delebash/llm-runner/llm";
 import * as llmDb from "@delebash/llm-runner/llm/db";
 import { FeatureCatalogEntry } from "@delebash/llm-runner/llm/routing_api";
 import {
-  BearerAuthMiddleware,
-  CorsMiddleware,
+  bearerAuth,
   createServer,
-  CsrfOriginMiddleware,
+  csrfOrigin,
   installFileLog,
   installLogRing,
   makeDataRouter,
@@ -45,10 +43,12 @@ import {
   makePrefsRouter,
   openDatabase,
   resolveDataDir,
+  serveStatic,
+  starletteCors,
 } from "@delebash/llm-runner/platform";
 import { sortedTables } from "@delebash/llm-runner/platform/data_api";
 import { purePath } from "@delebash/llm-runner/platform/data_paths";
-import { HttpError, RequestValidationError } from "@delebash/llm-runner/platform/errors";
+import { HttpError } from "@delebash/llm-runner/platform/errors";
 import { getLogger } from "@delebash/llm-runner/platform/log";
 import { cpSlice, errText } from "@delebash/llm-runner/platform/py";
 import * as lifecycle from "@delebash/llm-runner/runner/lifecycle";
@@ -390,7 +390,7 @@ export async function bootLlmStack(dataDir = null, app = null) {
   if (app !== null) {
     // The standard: the host mounts the runner's process API, installLlm mounts the rest —
     // JW's exact order.
-    app.register(runnerRouter);
+    app.route("/", runnerRouter());
     // The shared /v1/data backup/restore/reset. One DB, two table sets; no asset dirs —
     // per-project text lives in the USER'S project, anchored to the config file, never under
     // the data dir. Reset = drop both schemas + recreate + reseed (the family true-drop rule:
@@ -403,7 +403,8 @@ export async function bootLlmStack(dataDir = null, app = null) {
       h.createTables(LLM_TABLES);
       seedLlm();
     };
-    app.register(
+    app.route(
+      "/",
       makeDataRouter({
         getDbPath: () => path.join(dataDir, "app.db"),
         metadata: [APP_TABLES, LLM_TABLES],
@@ -414,7 +415,8 @@ export async function bootLlmStack(dataDir = null, app = null) {
     );
     // The family /v1/prefs door: the renderer's prefs are `pref.*` rows in app_settings —
     // same DB, so the backup/restore/reset above covers them.
-    app.register(
+    app.route(
+      "/",
       makePrefsRouter({
         readAll: appmeta.prefsReadAll,
         writeMany: appmeta.prefsWriteMany,
@@ -446,14 +448,18 @@ export function seedLlmStack() {
   loadFromConfigs(stores.getProviderStore().list());
 }
 
-/** True for an error FastAPI's own handlers don't answer — the envelope's to catch. */
-function isUnhandled(err) {
-  if (err instanceof HttpError || err instanceof RequestValidationError || err?.validation) return false;
-  if (err?.code === "FST_ERR_CTP_INVALID_JSON_BODY" || err?.code === "FST_ERR_CTP_EMPTY_JSON_BODY") return false;
-  return !(err?.statusCode && err.statusCode < 500);
+/**
+ * docgen's answer to an unhandled exception — the kit's FastAPI handler answers everything else
+ * (HTTPException, validation, a body it refuses) and logs this one, with its stack, before
+ * handing it here: a JSON 500 that still carries the CORS headers (stamped on the request), so
+ * the browser sees a real error instead of a CORS block. JW parity — verified the hard way in
+ * JV, 2026-06-12.
+ */
+function errorEnvelope(err, c) {
+  return c.json({ title: "Internal Server Error", detail: cpSlice(errText(err), 0, 300) }, 500);
 }
 
-/** The Fastify app: the kit, the data/prefs/logs/disk routers, the workspace and the UI. */
+/** The Hono app: the kit, the data/prefs/logs/disk routers, the workspace and the UI. */
 export async function createApp(dataDir = null, configPath = null) {
   dataDir = dataDir ? purePath(String(dataDir)) : defaultDataDir();
 
@@ -462,82 +468,61 @@ export async function createApp(dataDir = null, configPath = null) {
   installLogRing();
   installFileLog(path.join(dataDir, "logs", "just-ai-i18n-docgen.log"));
 
-  const app = createServer({ errors: "fastapi" });
-  const fastapiHandler = app.errorHandler;
+  // FastAPI's default error answers, and docgen's envelope for an unhandled exception. Hono has
+  // no encapsulated scopes: the envelope is the app's own, so every route — the kit's and
+  // docgen's — answers through it, as every route did inside the one Fastify scope before.
+  const app = createServer({ errors: "fastapi", onUnhandled: errorEnvelope });
 
-  // Python's middleware order: CSRF outermost, then CORS, then auth. Fastify runs onRequest
-  // hooks in the order the three plugins load (registration order), so the same order here —
-  // all three registered as root plugins, never one by a bare addHook (that would run
-  // first): a CSRF 403 carries no CORS headers; CORS answers preflights before auth sees them
-  // and stamps auth's 401/403.
+  // Python's middleware order: CSRF outermost, then CORS, then auth. Hono runs middleware in
+  // the order it is added and covers only the routes added after it, so the three come first,
+  // in that order, before any router: a CSRF 403 carries no CORS headers; CORS answers
+  // preflights before auth sees them and stamps auth's 401/403.
   //
   // CSRF: reject cross-site browser mutations to /v1 (no token — can never lock anyone out).
   // With allow-all CORS, this is what stops a foreign web page from WRITING to :8742 while the
   // app runs.
-  app.register(CsrfOriginMiddleware, { appOrigins: APP_ORIGINS, typeBase: TYPE_BASE });
+  app.use("*", csrfOrigin({ appOrigins: APP_ORIGINS, typeBase: TYPE_BASE }));
   // CORS — allow-all: the kit's origin-aware resolver hits :8742 DIRECTLY from Vite dev
   // (:1450) and from the desktop window, so without this every request dies as a silent CORS
   // block (found live 2026-08-02 — no same-origin test can see it). The kit's Starlette 1.3.1
   // port; docgen's Python ran an older Starlette that also mirrored the origin to a request
   // carrying a cookie — this app sends none.
-  app.register(CorsMiddleware, { allowOrigins: ["*"], allowMethods: ["*"], allowHeaders: ["*"] });
+  app.use("*", starletteCors({ allowOrigins: ["*"], allowMethods: ["*"], allowHeaders: ["*"] }));
   // Bearer auth — OFF unless tokens are configured (Settings → Server). Gates /v1/* only.
-  app.register(BearerAuthMiddleware, { readAuth, typeBase: TYPE_BASE });
+  app.use("*", bearerAuth({ readAuth, typeBase: TYPE_BASE }));
 
-  // Every route lives in one encapsulated scope that owns the catch-all error envelope (a
-  // second setErrorHandler on the root would only override it — Fastify warns): an unhandled
-  // exception becomes a JSON 500 that still carries the CORS headers (stamped on the
-  // request), so the browser sees a real error instead of a CORS block. JW parity — verified
-  // the hard way in JV, 2026-06-12. Awaited, so the stack is booted when createApp returns.
-  await app.register(async function docgen(scope) {
-    scope.setErrorHandler(function errorEnvelope(err, request, reply) {
-      if (!isUnhandled(err)) return fastapiHandler.call(this, err, request, reply);
-      log.exception(`unhandled error on ${request.method} ${request.url.split("?")[0]}`, err);
-      return reply.code(500).send({ title: "Internal Server Error", detail: cpSlice(errText(err), 0, 300) });
+  // Awaited, so the stack is booted when createApp returns.
+  await bootLlmStack(dataDir, app);
+
+  // Shared platform surfaces: the log ring's API and the read-only disk-usage route the
+  // Settings → Storage panel reads.
+  app.route("/", makeLogsRouter(PRODUCT));
+  app.route("/", makeDiskRouter(dataDir));
+
+  // The review workspace: starts with NO project (the setup screen creates one);
+  // `configPath` pre-loads one for a configured launch. The handle lives in app_state (the
+  // family setState/getState seam).
+  const workspace = new Workspace(configPath);
+  setState(new AppState(dataDir, workspace));
+  app.route("/", healthRouter());
+  app.route("/", serverAuthRouter());
+  app.route("/", setupRouter());
+  app.route("/", workspaceRouter());
+
+  // Headless UI — serve the built UI (Quasar's dist/spa; the app folder when packaged) so the server + a browser gives the full app
+  // without the desktop shell (the kit's origin-aware serverApi targets
+  // window.location.origin). Every /v1/* route wins first (Hono runs the routes in the order
+  // they were added, and these come last). Starlette's StaticFiles(html=True) semantics: "/" is
+  // index.html; a missing file answers FastAPI's {"detail": "Not Found"}; any method but
+  // GET/HEAD on an unrouted path answers 405 — added before the files, which would otherwise
+  // answer any method.
+  const dist = locateUiDir();
+  if (dist !== null) {
+    app.on(["POST", "PUT", "PATCH", "DELETE", "OPTIONS"], "/*", () => {
+      throw new HttpError(405, "Method Not Allowed");
     });
-
-    await bootLlmStack(dataDir, scope);
-
-    // Shared platform surfaces: the log ring's API and the read-only disk-usage route the
-    // Settings → Storage panel reads.
-    scope.register(makeLogsRouter(PRODUCT));
-    scope.register(makeDiskRouter(dataDir));
-
-    // The review workspace: starts with NO project (the setup screen creates one);
-    // `configPath` pre-loads one for a configured launch. The handle lives in app_state (the
-    // family setState/getState seam).
-    const workspace = new Workspace(configPath);
-    setState(new AppState(dataDir, workspace));
-    scope.register(healthRouter);
-    scope.register(serverAuthRouter);
-    scope.register(setupRouter);
-    scope.register(workspaceRouter);
-
-    // Headless UI — serve the built UI (Quasar's dist/spa; the app folder when packaged) so the server + a browser gives the full app
-    // without the desktop shell (the kit's origin-aware serverApi targets
-    // window.location.origin). Every /v1/* route wins first (a static route beats the
-    // wildcard). Starlette's StaticFiles(html=True) semantics: "/" is index.html; a missing
-    // file answers FastAPI's {"detail": "Not Found"}; any method but GET/HEAD on an unrouted
-    // path answers 405.
-    const dist = locateUiDir();
-    if (dist !== null) {
-      scope.register(fastifyStatic, {
-        root: dist,
-        prefix: "/",
-        wildcard: true,
-        index: ["index.html"],
-        redirect: false,
-        cacheControl: false,
-      });
-      scope.route({
-        method: ["POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        url: "/*",
-        handler: async () => {
-          throw new HttpError(405, "Method Not Allowed");
-        },
-      });
-    }
-  });
+    app.use("/*", serveStatic({ root: dist }));
+  }
 
   return app;
 }

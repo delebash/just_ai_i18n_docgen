@@ -22,9 +22,10 @@ STATE:  DECIDED 2026-10-09, family-wide — the decision with the user's words i
 WHY:    one server for every platform, so docgen can run on a phone or as an offline web page
         later with no new server code; the kit's item has the full reasons.
 NOT:    the kit's item.
-BUILT:  nothing yet — the plan: `../just-llm-runner/docs/plans/2026-10-09-hono-standard.md`.
-OPEN:   docgen's slice (plan §7, slice 5): 5 route files, 32 routes, the static UI on
-        `serveStatic` — after the kit's slice and the user's word on the plan's §3 and §5.
+BUILT:  2026-10-09 — 4 routers, app.js (FastAPI errors + the envelope as `onUnhandled`), the SSE jobs
+        stream, the static UI behind a 405 route, the test client (161/161). The plan:
+        `../just-llm-runner/docs/plans/2026-10-09-hono-standard.md` §9.
+OPEN:   nothing.
 GO:     given 2026-10-09 (the kit's item).
 
 ## The family moves to Electron and a Node server — docgen's step is BUILT, waiting on your use [2026-10-08]

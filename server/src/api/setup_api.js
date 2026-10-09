@@ -6,6 +6,7 @@
 // can say who made it (never the OS username).
 
 import path from "node:path";
+import { Hono, input } from "@delebash/llm-runner/platform";
 import { HttpError } from "@delebash/llm-runner/platform/errors";
 import { errText, FileNotFoundError, isDict, pyGet, pyTypeName, strip, truthy, ValueError } from "@delebash/llm-runner/platform/py";
 import * as appmeta from "../appmeta.js";
@@ -28,11 +29,12 @@ function asBadRequest(e) {
   return e;
 }
 
-export async function router(app) {
-  app.get("/v1/setup/state", async () => {
+export function router() {
+  const app = new Hono();
+  app.get("/v1/setup/state", async (c) => {
     const languages = toPlain(readJson(path.join(import.meta.dirname, "..", "config", "languages.json")));
     const p = getState().workspace.project;
-    return {
+    return c.json({
       loaded: p !== null,
       configPath: p ? p.configPath : null,
       source: p ? p.paths.sourceFile : null,
@@ -48,7 +50,7 @@ export async function router(app) {
       // Codes only. The display name is derived in the browser from Intl.DisplayNames, so the
       // menu reads in the user's own language and no English name can go stale here.
       languages,
-    };
+    });
   });
 
   /**
@@ -56,8 +58,8 @@ export async function router(app) {
    * validation behind the path box. Seeing that the tool understood your catalogue is what
    * proves the path is right before an hour of engine time proves it was not.
    */
-  app.post("/v1/setup/inspect", { schema: { body: BODY } }, async (req) => {
-    const p = pathOf(req.body);
+  app.post("/v1/setup/inspect", input({ body: BODY }), async (c) => {
+    const p = pathOf(c.req.valid("json"));
     if (!p) throw new HttpError(400, "give me the path to your en.json");
     let plan;
     try {
@@ -76,7 +78,7 @@ export async function router(app) {
       }
       locales.push({ code, done, total: plan.keyCount, missing: plan.keyCount - done });
     }
-    return {
+    return c.json({
       ok: true,
       source: plan.localesDir,
       sourceLanguage: plan.sourceLanguage,
@@ -90,7 +92,7 @@ export async function router(app) {
       configPath: plan.configPath,
       exists: exists(plan.configPath),
       gitignore: gitignoreLines(),
-    };
+    });
   });
 
   /**
@@ -99,8 +101,8 @@ export async function router(app) {
    * the file already had that this screen does not manage is preserved — the UI is a writer,
    * never an owner.
    */
-  app.post("/v1/setup/save", { schema: { body: BODY } }, async (req) => {
-    const body = req.body;
+  app.post("/v1/setup/save", input({ body: BODY }), async (c) => {
+    const body = c.req.valid("json");
     const ws = getState().workspace;
     const p = pathOf(body);
     if (!p) throw new HttpError(400, "give me the path to your en.json");
@@ -136,15 +138,16 @@ export async function router(app) {
     if (!isDict(existing)) throw new TypeError(`'${pyTypeName(existing)}' object is not a mapping`);
     writeInit({ ...plan, cfg: mergeDicts(existing, plan.cfg) }, { force: true });
     ws.load(configPath);
-    return { ok: true, configPath, langs: ws.project.targets };
+    return c.json({ ok: true, configPath, langs: ws.project.targets });
   });
 
-  app.get("/v1/reviewer", async () => ({ reviewer: appmeta.getReviewer() }));
+  app.get("/v1/reviewer", async (c) => c.json({ reviewer: appmeta.getReviewer() }));
 
-  app.put("/v1/reviewer", { schema: { body: BODY } }, async (req) => {
-    const r = pyGet(req.body, "reviewer");
+  app.put("/v1/reviewer", input({ body: BODY }), async (c) => {
+    const r = pyGet(c.req.valid("json"), "reviewer");
     if (r !== null && typeof r !== "string") throw new HttpError(400, "reviewer must be a string or null");
     appmeta.setReviewer(r);
-    return { reviewer: appmeta.getReviewer() };
+    return c.json({ reviewer: appmeta.getReviewer() });
   });
+  return app;
 }
