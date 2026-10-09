@@ -9,8 +9,10 @@ a Node (Fastify) server since 2026-10-08** — the first family app off Tauri an
 2026-10-09** — its Electron mode is the desktop app (the kit's `docs/app-structure.md` §Q).
 
 **The family structure standard lives in `../just-llm-runner/docs/app-structure.md` —
-read it before changing layout, scripts, ports, or the shell. This app is the standard's
-reference implementation.**
+read it before changing layout, scripts, ports, or the shell. Its reference app is the kit's
+`template/`.**
+
+The family rules every family repo follows: @../just-llm-runner/docs/family-rules.md
 
 ## Commands
 
@@ -26,6 +28,7 @@ npm test               # e2e smoke: the REAL desktop app via Playwright's Electr
 npm run screenshots    # every surface shot from the real window → e2e/shots/
 npm run build          # the installer (Quasar's Electron mode, electron-builder → dist/electron/Packaged)
 npm run lint           # biome
+node ../just-llm-runner/scripts/check-family.js   # the family guard — must pass before a commit
 
 # The CLI door (same service functions as the workspace — one resolver, two doors):
 npm run cli -- translate|check|escalate|accept|extract <config>
