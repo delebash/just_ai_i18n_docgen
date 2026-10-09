@@ -80,7 +80,10 @@ body {
 .card h2 { margin: 0 0 4px; font-size: 14.5px; }
 .card .hint { margin-top: 0; }
 .hint { color: var(--muted); font-size: 12.5px; margin: 0 0 12px; }
-.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+/* not on Quasar's own elements: Quasar names a flex row `row` too (QBtn's content, QCheckbox,
+   QToggle…), and this unlayered rule would outrank Quasar's inside them (the kit's controls on
+   Quasar, docs/plans/2026-10-09-kit-controls-on-quasar.md in the kit). :where() keeps it one class. */
+:where(:not([class*="q-"])).row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .mono { font-family: var(--font-mono); font-size: 12.5px; }
 .muted { color: var(--muted); }
 .spacer { flex: 1; }

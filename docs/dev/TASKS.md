@@ -73,6 +73,12 @@ OPEN:   1. After pulling: `npm install` and once `cd src-electron && npm install
         2. Found, not changed: the kit's AI status button asks for a `v-tooltip` directive this app
            never registered (Vue warns in dev; JustWrite and JustVoice register the kit's
            `tooltipDirective` in their boot files). The same before the move.
+        3. Found, not changed (2026-10-09, while the kit's controls moved onto Quasar — the kit's
+           `docs/plans/2026-10-09-kit-controls-on-quasar.md`, slice 3): Settings → Server's
+           "Require a token even on localhost" switch passes its text as `label=` to UiToggle,
+           which has no `label`, so the switch has never shown it (a bare switch on its own line).
+           The kit keeps it that way; showing it is a one-line change here (the switch and a
+           `<span>` in a `<label class="row">`, as the "Keep server running…" row above it).
 GO:     given 2026-10-08 ("we need to do the quasar conversion as well you have a go on that").
 
 ## THE FAMILY PARITY BATCH — SHIPPED 2026-08-06 (all twelve slices)
