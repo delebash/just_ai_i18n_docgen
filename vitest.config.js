@@ -14,11 +14,24 @@ import { defineConfig } from "vitest/config";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
+// Quasar's browser build for a test with a DOM (jsdom — Vite's client environment), its server
+// build for the rest: a bare `quasar` resolves by the "node" export condition to the SSR build,
+// which refuses to install outside an SSR app (Quasar's own error: alias "quasar" to
+// "quasar/dist/quasar.client.js" under jsdom), while the browser build reads `window` as it loads.
+const quasarBuildPerEnvironment = {
+  name: "quasar-build-per-environment",
+  enforce: "pre",
+  resolveId(id, importer, options) {
+    if (id !== "quasar" || this.environment?.config?.consumer !== "client") return null;
+    return this.resolve("quasar/dist/quasar.client.js", importer, { ...options, skipSelf: true });
+  },
+};
+
 export default defineConfig({
   // transformAssetUrls off IN TESTS ONLY: a template's `/public-asset.svg` src
   // stays a URL string (vite dev/build behavior) instead of becoming a file
   // import node can't resolve (JV's boot smoke hit this on the splash logo).
-  plugins: [vue({ template: { transformAssetUrls: false } })],
+  plugins: [quasarBuildPerEnvironment, vue({ template: { transformAssetUrls: false } })],
   resolve: {
     alias: {
       "@renderer": resolve(__dirname, "src"),
