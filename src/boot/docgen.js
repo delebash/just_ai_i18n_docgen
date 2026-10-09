@@ -3,11 +3,10 @@
 // app-structure §Q.4). Quasar creates the app (root: App.vue), Pinia (stores/index.js) and the
 // router (router/index.js), awaits this file, then installs the router and mounts. Until the
 // Quasar move (2026-10-09) this was src/main.js, which created and mounted the app itself (or the
-// connection-error screen as its own app); App.vue now picks the root from services/bootState.js,
-// and the sequence below is unchanged. The stylesheets are quasar.config.js's `css`.
+// connection-error screen as its own app); the start-up now decides by route — the app, or the
+// connection-error page (/offline) — and the sequence below is unchanged. The stylesheets are quasar.config.js's `css`.
 import { defineBoot } from "#q-app";
 import { bootPrefs, checkServer, configureHelp, installLlmUi, startWarmOnBoot } from "@delebash/llm-ui";
-import { bootView } from "../services/bootState.js";
 import { hasDoc, loadDoc, titleForSlug } from "../services/helpDocs.js";
 import { openPath, openUrl } from "../services/native.js";
 import { useUiStore } from "../stores/ui";
@@ -57,11 +56,14 @@ async function boot({ app, router, store: pinia }) {
 
   // Server unreachable → the kit's ConnectionError INSTEAD of the app (JW's pattern, family
   // canon): the renderer holds no data of its own, so a dead server breaks every view —
-  // rendering empty stores looks broken and silently fails. App.vue shows it.
+  // rendering empty stores looks broken and silently fails. Every route goes to the
+  // connection-error page (pages/ConnectionErrorPage.vue, outside the layout); its Retry
+  // reloads the window, and once the server answers /offline goes back to the page it came from.
   if (!(await checkServer())) {
-    bootView.value = "server-down";
+    router.beforeEach((to) => (to.path === "/offline" ? true : { path: "/offline", query: { from: to.fullPath } }));
     return;
   }
+  router.beforeEach((to) => (to.path === "/offline" ? to.query.from || "/" : true));
   // Prefs before the ui store's FIRST init (its state reads them), theme before mount — the
   // static plate covers this await, so still no flash of the wrong mode (target-tree P9: prefs
   // are server-backed now).

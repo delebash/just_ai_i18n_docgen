@@ -21,9 +21,9 @@ export default defineConfig(() => {
     // The renderer's start-up (the old src/main.js), awaited before Quasar mounts the app.
     boot: ['docgen'],
 
-    // The app's stylesheets (src/styles/; Quasar resolves these names from src/css/), in the entry
-    // stylesheet rather than the boot file's chunk.
-    css: [ '../styles/tokens.css', '../styles/styles.css' ],
+    // The app's stylesheets (src/css/), in the entry stylesheet rather than the boot file's chunk:
+    // the design tokens, then the app's own styles — ahead of the kit's, as they have always loaded.
+    css: [ 'tokens.css', 'app.scss' ],
 
     // No Quasar icon font or Roboto: the app's look is its own tokens; it uses no Quasar
     // component yet — the family theme and icon set come with the kit's UI on Quasar.

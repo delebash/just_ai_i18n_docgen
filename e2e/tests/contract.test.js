@@ -15,10 +15,10 @@ import { FAMILY_LABELS } from "../../../just-llm-runner/ui/src/common/familyCont
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const read = (p) => readFileSync(path.join(root, p), "utf8");
-const viewFiles = readdirSync(path.join(root, "src", "views")).filter((f) => f.endsWith(".vue"));
+const pageFiles = readdirSync(path.join(root, "src", "pages")).filter((f) => f.endsWith(".vue"));
 
 test("the nav trio takes its words FROM the contract (by construction)", () => {
-  const app = read("src/AppShell.vue"); // the shell (the nav); src/App.vue is the Quasar root
+  const app = read("src/layouts/MainLayout.vue"); // the layout (the nav); src/App.vue is the Quasar root
   assert.ok(app.includes("FAMILY_LABELS.nav.aiSettings"), "AI Settings label must come from the contract");
   assert.ok(app.includes("FAMILY_LABELS.nav.appSettings"), "App Settings label must come from the contract");
   assert.ok(app.includes("AI tasks"), `the AI-tasks row carries the canon words ("${FAMILY_LABELS.nav.aiTasks}")`);
@@ -28,9 +28,9 @@ test("the nav trio takes its words FROM the contract (by construction)", () => {
 });
 
 test("no hand-rolled primitives where the kit has the control", () => {
-  assert.ok(viewFiles.length >= 5, "the view scan must actually scan views (vacuous pass guard)");
-  for (const f of viewFiles) {
-    const src = read(path.join("src", "views", f));
+  assert.ok(pageFiles.length >= 5, "the page scan must actually scan pages (vacuous pass guard)");
+  for (const f of pageFiles) {
+    const src = read(path.join("src", "pages", f));
     // Tables are the kit's: UiTable for grids, .ui-formgrid for fact sheets.
     const rawTables = [...src.matchAll(/<table\s+class="(?!ui-)[^"]*"/g)];
     assert.equal(rawTables.length, 0, `${f}: raw <table> — use UiTable or class="ui-formgrid"`);
@@ -50,13 +50,13 @@ test("the settings sections use the contract's words for shared concepts", () =>
   // Slice 11 moved the section ORDER into settingsSections.js (the vitest canon
   // test asserts the relative order against the kit manifest); the view maps
   // every id through the contract's words. Assert both halves of that shape.
-  const settings = read("src/views/SettingsView.vue");
+  const settings = read("src/pages/SettingsPage.vue");
   assert.ok(
     settings.includes("FAMILY_LABELS.settingsSections[") &&
       settings.includes("SETTINGS_SECTION_IDS.map"),
     "SettingsView must build its sections from settingsSections.js, labeled from the contract",
   );
-  const ids = read("src/views/settingsSections.js");
+  const ids = read("src/services/settingsSections.js");
   // backups + updates joined the canon in the family parity batch (2026-08-06).
   for (const key of ["appearance", "backups", "storage", "server", "logs", "updates", "about"]) {
     assert.ok(ids.includes(`"${key}"`), `Settings section "${key}" must be rendered`);

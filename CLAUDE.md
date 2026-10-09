@@ -90,9 +90,10 @@ this app's settings. The installer ships `just-ai-i18n-docgen-server` and `just-
 ## Layout
 
 Per the standard's Quasar layout (§Q, the move 2026-10-09): `quasar.config.js`, `index.html` +
-`src/` (the Vue renderer: the boot file `src/boot/docgen.js` instead of a `main.js`, the root
-`src/App.vue` choosing the shell `AppShell.vue` or the connection-error screen,
-`router/routes.js`, `stores/index.js`), `src-electron/` (`electron-main.js` = the shell's
+`src/` (the Vue renderer, laid out as Quasar's CLI creates a project: the boot file
+`src/boot/docgen.js` instead of a `main.js`, `src/App.vue` a bare `<router-view>`, the chrome
+`src/layouts/MainLayout.vue`, the screens `src/pages/<Name>Page.vue`, the stylesheets `src/css/`,
+the connection-error screen its own route `/offline`, `router/routes.js`, `stores/index.js`), `src-electron/` (`electron-main.js` = the shell's
 settings, the preload, the icons in `electron-assets/icons/`), the server its own package in
 `server/` (`just-ai-i18n-docgen-server`, an npm workspace; the headless UI from `dist/spa`, the
 app folder when packaged) — domain modules flat, HTTP routes one file per area under `api/`

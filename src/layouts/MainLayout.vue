@@ -1,7 +1,10 @@
 <script setup>
 // SPDX-License-Identifier: MIT
-// The shell — Design 1, ruled 2026-08-03: TitleBar (JW pattern) over a labeled
-// sidebar + one main scroller. The boot splash (the user's plate, JW mechanics)
+// The app's layout — Quasar's, as its CLI creates it (the kit's app-structure §Q.1) — Design 1,
+// ruled 2026-08-03: the TitleBar (JW pattern) in q-header over the labeled nav in q-drawer and the
+// one main scroller in q-page-container (the pages, each a q-page, flow in it). The drawer keeps
+// desktop behaviour at every width — docgen is a desktop app, the nav a column as before. Until
+// 2026-10-09 this was AppShell.vue, a flex column. The boot splash (the user's plate, JW mechanics)
 // covers the shell until the server answers and — when "load the default local
 // model on startup" is on — the warm load finishes, showing the SAME shared
 // DownloadBars the engine panel uses. Continue is the universal escape: a slow
@@ -10,11 +13,11 @@
 import { onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { AiSetupOffer, BootModelLoad, FAMILY_LABELS, HelpDrawer, Icon, LlmUiHosts, pushToast, useAiTasksNav, warmModelId } from "@delebash/llm-ui";
-import TitleBar from "./components/TitleBar.vue";
-import splashPlate from "./assets/images/splash-plate.jpg";
-import { onShellEvent, setKeepRunning } from "./services/native.js";
-import { useProjectStore } from "./stores/project";
-import { useUiStore } from "./stores/ui";
+import TitleBar from "../components/TitleBar.vue";
+import splashPlate from "../assets/images/splash-plate.jpg";
+import { onShellEvent, setKeepRunning } from "../services/native.js";
+import { useProjectStore } from "../stores/project";
+import { useUiStore } from "../stores/ui";
 
 const project = useProjectStore();
 const ui = useUiStore();
@@ -42,6 +45,8 @@ const TOOLS = [
 // `data-panel-toggle` attribute come from the kit, so the row cannot be rebuilt
 // without the one attribute that makes it work (see useAiTasksNav).
 const aiTasksNav = useAiTasksNav();
+// The nav column's width (app.scss .shell__nav), which QDrawer takes in pixels.
+const NAV_WIDTH = 196;
 
 // ── boot splash — the PAGE is this app's, the load group is the KIT's ─────
 // (2026-08-04 ruling: the loading-model control is shared, the splash page is
@@ -75,9 +80,15 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="shell">
-    <TitleBar />
-    <div class="shell__body">
+  <!-- view "hhh lpr fff": the title bar over the full width, the nav under it on the left —
+       neither fixed: the layout's root is fixed to the window and never scrolls (the main
+       scroller does), and a fixed drawer is a compositing layer of its own whose icons Chrome
+       antialiases differently from the rest of the window (measured on JustWrite, 2026-10-09). -->
+  <q-layout view="hhh lpr fff" class="shell">
+    <q-header>
+      <TitleBar />
+    </q-header>
+    <q-drawer :model-value="true" side="left" behavior="desktop" :width="NAV_WIDTH">
       <aside class="shell__nav">
         <div class="shell__brand">
           <span class="brand-mark">i18</span>
@@ -117,10 +128,12 @@ onMounted(async () => {
           </span>
         </div>
       </aside>
-      <main class="shell__main">
+    </q-drawer>
+    <q-page-container>
+      <div class="shell__main">
         <router-view />
-      </main>
-    </div>
+      </div>
+    </q-page-container>
     <!-- Every host the shared UI needs, as one tag. It was two, and the day the
          confirm host was missing every confirmed action in the app — Change folder,
          Clear models cache, Clear spawn logs, Apply all staged — became a button that
@@ -148,5 +161,5 @@ onMounted(async () => {
         <BootModelLoad />
       </div>
     </div>
-  </div>
+  </q-layout>
 </template>

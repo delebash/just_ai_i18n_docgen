@@ -7,7 +7,7 @@
 // cache-offer lives in the kit step. It honours JW's ?quicksetup=1 deep link.
 import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { AiModelsArea, PaneHeader, useModelApply } from "@delebash/llm-ui";
+import { AiModelsArea, PaneHeader, useModelApply, pageFlow } from "@delebash/llm-ui";
 
 const route = useRoute();
 const router = useRouter();
@@ -33,7 +33,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="ai-page">
+  <q-page :style-fn="pageFlow" class="ai-page">
     <!-- The family header shape (kit PaneHeader) with JW's canon words for this
          page — same eyebrow, same title, every app. -->
     <PaneHeader eyebrow="AI" title="Providers, routing &amp; usage" help-key="ai-providers" />
@@ -50,5 +50,5 @@ onMounted(async () => {
           { label: 'Per-key notes', href: '#/review' },
         ]" />
     </div>
-  </div>
+  </q-page>
 </template>

@@ -6,7 +6,7 @@
 // A path box with server-side validation, never a file picker: a browser file input
 // hands JS a File and no path — that ruling from the Node repo still holds.
 import { computed, onMounted, ref } from "vue";
-import { PaneHeader, UiButton, UiCheckbox, UiInput, UiMultiSelect, UiTag, pushToast } from "@delebash/llm-ui";
+import { PaneHeader, UiButton, UiCheckbox, UiInput, UiMultiSelect, UiTag, pushToast, pageFlow } from "@delebash/llm-ui";
 import { useRouter } from "vue-router";
 import { useProjectStore } from "../stores/project";
 import { useUiStore } from "../stores/ui";
@@ -80,7 +80,7 @@ async function save() {
 </script>
 
 <template>
-  <div class="setup">
+  <q-page :style-fn="pageFlow" class="setup">
     <!-- The family header shape (kit PaneHeader — parity batch 2026-08-06);
          the loaded config path rides the actions slot. -->
     <PaneHeader eyebrow="Project" title="Setup" help-key="project-setup">
@@ -213,5 +213,5 @@ async function save() {
         Your reviewer name lives in <router-link to="/settings/reviewer">Settings → Reviewer</router-link>.
       </span>
     </div>
-  </div>
+  </q-page>
 </template>

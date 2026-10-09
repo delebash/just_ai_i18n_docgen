@@ -18,6 +18,7 @@ import { useRoute } from "vue-router";
 import { langName, langOptions } from "../services/langs";
 import { useProjectStore } from "../stores/project";
 import { BUCKETS, useReviewStore } from "../stores/review";
+import { pageFlow } from "@delebash/llm-ui";
 
 const project = useProjectStore();
 const review = useReviewStore();
@@ -275,7 +276,7 @@ async function discardAll() {
 <template>
   <!-- Column wrap so the family header (kit PaneHeader — parity batch
        2026-08-06) sits above the full-height rail+detail layout. -->
-  <div class="review-pane">
+  <q-page :style-fn="pageFlow" class="review-pane">
   <PaneHeader eyebrow="Translating" title="Review" help-key="review" />
   <div class="review">
     <!-- ── the queue rail: buckets · by check · search (the original's QueuePane) ── -->
@@ -513,5 +514,5 @@ async function discardAll() {
                   message="Every entry names its check, pair of strings and reviewer. Un-accept puts a key back in the queue — a decision can always be revisited." />
     </div>
   </div>
-  </div>
+  </q-page>
 </template>

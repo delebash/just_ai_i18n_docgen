@@ -16,9 +16,10 @@ import {
 } from "@delebash/llm-ui";
 import { loadDoc } from "../services/helpDocs.js";
 import { pickDirectory, storageGetRoot, storageRelocate, setKeepRunning as nativeSetKeepRunning } from "../services/native.js";
-import { SETTINGS_SECTION_IDS } from "./settingsSections.js";
+import { SETTINGS_SECTION_IDS } from "../services/settingsSections.js";
 import { useProjectStore } from "../stores/project";
 import { useUiStore } from "../stores/ui";
+import { pageFlow } from "@delebash/llm-ui";
 
 const props = defineProps({ section: { type: String, default: "" } });
 const router = useRouter();
@@ -178,7 +179,7 @@ function dropToken(t) {
 }
 
 // The keep-running toggle writes the shell's flag immediately AND persists in the
-// ui store (App.vue re-applies it every boot — the shell's flag resets per launch).
+// ui store (layouts/MainLayout.vue re-applies it every boot — the shell's flag resets per launch).
 async function setKeepRunning(v) {
   ui.setKeepServerRunning(!!v);
   // services/native.js — no-op in browser dev; the store still remembers.
@@ -191,7 +192,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="settings">
+  <q-page :style-fn="pageFlow" class="settings">
     <!-- The family Settings chrome: PaneHeader + the kit's top-tab shell (the rail
          this page invented died in the 2026-08-04 consistency pass). -->
     <PaneHeader eyebrow="App" title="Settings" help-key="settings" />
@@ -397,5 +398,5 @@ onMounted(async () => {
         </section>
       </template>
     </SettingsShell>
-  </div>
+  </q-page>
 </template>

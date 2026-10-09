@@ -5,7 +5,7 @@
 // is the review page's explicit human action. Close the tab and come back: the page
 // rejoins the run it did not start.
 import { computed, onMounted, onUnmounted } from "vue";
-import { PaneHeader, UiButton, UiProgress, UiSelect, UiTable, pushToast } from "@delebash/llm-ui";
+import { PaneHeader, UiButton, UiProgress, UiSelect, UiTable, pushToast, pageFlow } from "@delebash/llm-ui";
 import { ref } from "vue";
 import { langLabel, langOptions } from "../services/langs";
 import { useJobsStore } from "../stores/jobs";
@@ -50,7 +50,7 @@ async function start() {
 </script>
 
 <template>
-  <div>
+  <q-page :style-fn="pageFlow">
     <!-- The family header shape (kit PaneHeader — parity batch 2026-08-06). -->
     <PaneHeader eyebrow="Translating" title="Runs" help-key="translate" />
     <div class="card">
@@ -102,5 +102,5 @@ async function start() {
         <template #empty><span class="muted">No runs yet.</span></template>
       </UiTable>
     </div>
-  </div>
+  </q-page>
 </template>

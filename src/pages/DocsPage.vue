@@ -4,11 +4,11 @@
 // so one sentence serves the article, the surface lede and the field hint.
 // HONEST STATE: extraction runs from the CLI today; this page says exactly that
 // instead of hiding the feature or faking a button that does nothing.
-import { PaneHeader } from "@delebash/llm-ui";
+import { PaneHeader, pageFlow } from "@delebash/llm-ui";
 </script>
 
 <template>
-  <div>
+  <q-page :style-fn="pageFlow">
     <!-- The family header shape (kit PaneHeader — parity batch 2026-08-06). -->
     <PaneHeader eyebrow="Help docs" title="Docs" help-key="docs-authoring" />
     <p class="page-sub pane-lede">Front-matter → locale keys. Author once, serve three surfaces.</p>
@@ -29,5 +29,5 @@ import { PaneHeader } from "@delebash/llm-ui";
       <pre class="mono setup__pre">just-ai-i18n-docgen extract config.json          # write the keys
 just-ai-i18n-docgen extract config.json --check  # drift check only, writes nothing</pre>
     </section>
-  </div>
+  </q-page>
 </template>
