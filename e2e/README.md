@@ -1,7 +1,9 @@
 # just_ai_i18n_docgen — E2E test & screenshot harness
 
 Automation over the REAL desktop app — Electron, the built UI from `app://` — through
-Playwright's Electron driver (`playwright-core`; since the move off Tauri, 2026-10-08). The
+Playwright's Electron driver (`playwright-core`; since the move off Tauri, 2026-10-08). Since the
+Quasar move (2026-10-09) it drives Quasar's built desktop app before packaging,
+`dist/electron/UnPackaged`, with the checkout's Electron (`src-electron/node_modules`). The
 wrapper lives in `lib/driver.js`; it keeps the old harness's `Driver` API, so the tests read
 as before: `exec(script, args)` runs a WebDriver-style script body in the page (over the
 debugger protocol, so the app's real Content-Security-Policy stays on), and every DOM helper
@@ -10,8 +12,8 @@ rides it.
 ## Prereqs
 
 ```bash
-npm install                          # in e2e/ (playwright-core) and at the app root (electron)
-npm run build:vite                   # from the app root — the harness drives the BUILT UI
+npm install                          # in e2e/ (playwright-core), at the app root, and once in src-electron/ (electron)
+npm run build:unpacked               # from the app root — the harness drives the BUILT desktop app
 ```
 
 No browser download and no driver binary: Playwright attaches to the Electron the app ships.
@@ -45,7 +47,7 @@ the installed app — and read `<data>/logs/*.log` plus `<data>/ai-cache/llamacp
   endpoints. `JAID_DEV_NO_SIDECAR=1` keeps the app from starting (or evicting) a server.
   **Cadence** (user ruling 2026-08-05): this suite is a PRE-COMMIT gate, not a per-change one.
   Per-change verification is the fast gates (`npm run lint`, `npm run test:server`,
-  `npm run build:vite` — seconds), then ONE suite run before the commit.
+  `npm run build:spa` — seconds), then `npm run build:unpacked` and ONE suite run before the commit.
   **One test writes**: "quick setup RUNS" drives the real wizard, so it writes the engine
   presets (that write IS the assertion — a wizard that corrupts routing must fail here) and
   then restores them, verifying the restore. It also starts a real load and cancels it.
@@ -55,5 +57,8 @@ the installed app — and read `<data>/logs/*.log` plus `<data>/ai-cache/llamacp
 
 ## Gotchas
 
-- The harness drives whatever `dist/` was last built — rebuild after renderer changes.
+- The harness drives whatever `dist/electron/UnPackaged` was last built — rebuild after renderer
+  or shell changes.
+- The unpacked app has no `node_modules` of its own: it finds the kit's shell in the checkout's,
+  and its server data folder is `<repo>/data` (`JUST_AI_I18N_DOCGEN_DATA_DIR` overrides it).
 - Don't run capture while your own dev window is open on the same server.

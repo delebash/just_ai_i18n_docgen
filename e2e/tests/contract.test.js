@@ -18,7 +18,7 @@ const read = (p) => readFileSync(path.join(root, p), "utf8");
 const viewFiles = readdirSync(path.join(root, "src", "views")).filter((f) => f.endsWith(".vue"));
 
 test("the nav trio takes its words FROM the contract (by construction)", () => {
-  const app = read("src/App.vue");
+  const app = read("src/AppShell.vue"); // the shell (the nav); src/App.vue is the Quasar root
   assert.ok(app.includes("FAMILY_LABELS.nav.aiSettings"), "AI Settings label must come from the contract");
   assert.ok(app.includes("FAMILY_LABELS.nav.appSettings"), "App Settings label must come from the contract");
   assert.ok(app.includes("AI tasks"), `the AI-tasks row carries the canon words ("${FAMILY_LABELS.nav.aiTasks}")`);

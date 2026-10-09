@@ -2,7 +2,7 @@
 // UI chrome state: appearance + the ui flags, server-backed via the family
 // /v1/prefs door (target-tree P9 — left localStorage so they survive
 // reinstall/machine moves and ride app.db's backup/restore/reset). readPref
-// serves from the cache bootPrefs() filled — main.js awaits bootPrefs BEFORE
+// serves from the cache bootPrefs() filled — the boot file awaits bootPrefs BEFORE
 // this store first initializes, pre-mount. (The design-variant switch died
 // 2026-08-03 when Design 1 was ruled.)
 import { defineStore } from "pinia";

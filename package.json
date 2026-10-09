@@ -3,15 +3,19 @@
   "private": true,
   "version": "0.1.0",
   "description": "Translate i18n catalogues with a verifying AI pipeline.",
+  "productName": "Just AI i18n & DocGen",
   "author": "delebash",
   "type": "module",
-  "main": "electron/main.js",
+  "workspaces": [
+    "server"
+  ],
   "scripts": {
-    "dev": "node scripts/dev.js",
-    "dev:vite": "vite",
-    "build": "vite build && electron-builder",
-    "build:vite": "vite build",
-    "preview:vite": "vite preview",
+    "dev": "quasar dev -m electron",
+    "dev:spa": "quasar dev",
+    "build": "quasar build -m electron",
+    "build:spa": "quasar build",
+    "build:unpacked": "quasar build -m electron --skip-pkg",
+    "postinstall": "quasar prepare --silent",
     "server": "node scripts/node24.js server/src/serve.js serve",
     "test:server": "node scripts/node24.js node_modules/vitest/vitest.mjs run --config server/vitest.config.js",
     "lint": "biome check .",
@@ -22,86 +26,32 @@
   },
   "dependencies": {
     "@delebash/llm-runner": "file:../just-llm-runner/server",
-    "@fastify/static": "^10.1.5"
+    "@quasar/extras": "^2.1.0",
+    "quasar": "^2.35.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.6",
     "@floating-ui/dom": "^1.6.0",
+    "@quasar/app-vite": "^3.10.2",
     "@tanstack/vue-table": "^8.21.3",
-    "@vitejs/plugin-vue": "^5.2.1",
+    "@vitejs/plugin-vue": "^6.0.7",
     "@vueuse/core": "^14.3.0",
-    "electron": "44.7.0",
-    "electron-builder": "26.15.3",
+    "autoprefixer": "^10.4.27",
     "jsdom": "^30.0.1",
     "marked": "^18.0.5",
     "pinia": "^3.0.0",
+    "postcss": "^8.5.8",
     "reka-ui": "^2.10.0",
-    "vite": "^6.0.3",
     "vitest": "^4.1.10",
     "vue": "^3.5.13",
-    "vue-router": "^4.4.0",
+    "vue-router": "^5.1.0",
     "vue-sonner": "^2.0.9"
   },
   "allowScripts": {
     "electron": true,
     "koffi": true,
-    "better-sqlite3": true
-  },
-  "build": {
-    "appId": "com.just-ai-i18n-docgen.app",
-    "productName": "Just AI i18n & DocGen",
-    "directories": {
-      "buildResources": "build",
-      "output": "release"
-    },
-    "files": [
-      "electron/**",
-      "server/src/**",
-      "dist/**",
-      "package.json",
-      "!**/node_modules/better-sqlite3/{deps,src,build/Release/obj,build/Release/obj.target,build/deps}/**",
-      "!**/node_modules/better-sqlite3/build/Release/*.{pdb,iobj,ipdb,lib,exp}"
-    ],
-    "asarUnpack": [
-      "**/*.node"
-    ],
-    "extraResources": [
-      {
-        "from": "build/launcher",
-        "to": ".."
-      }
-    ],
-    "win": {
-      "target": "nsis",
-      "icon": "build/icon.ico",
-      "executableName": "just_ai_i18n_docgen"
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "include": "node_modules/@delebash/llm-runner/src/shell/installer.nsh"
-    },
-    "electronFuses": {
-      "runAsNode": true,
-      "enableCookieEncryption": true,
-      "enableNodeOptionsEnvironmentVariable": false,
-      "enableNodeCliInspectArguments": false,
-      "enableEmbeddedAsarIntegrityValidation": true,
-      "onlyLoadAppFromAsar": true,
-      "grantFileProtocolExtraPrivileges": false
-    },
-    "mac": {
-      "icon": "build/icon.icns",
-      "category": "public.app-category.developer-tools"
-    },
-    "linux": {
-      "icon": "build/icon.png",
-      "target": [
-        "AppImage",
-        "deb"
-      ],
-      "category": "Development"
-    }
+    "better-sqlite3": true,
+    "esbuild": true,
+    "@parcel/watcher": true
   }
 }

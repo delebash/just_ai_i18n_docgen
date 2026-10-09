@@ -1,19 +1,24 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!--
-      The desktop app's Content Security Policy is a response header from the shell's
-      app:// handler (the kit's server/src/shell/main.js); no meta-tag CSP here — it
-      would also bind Vite's dev server and the headless UI.
-    -->
-    <title>Just AI i18n &amp; DocGen</title>
-    <!-- First-paint boot layer (JW pattern, adopted 2026-08-04) — the SAME plate
-         App.vue's splash renders, shown before the JS bundle parses, so boot is ONE
-         continuous image: static plate → Vue splash → shell. The spinner that lived
-         here was a second, unrelated splash. KEEP the image + fit IN SYNC with
-         App.vue's .splash / styles.css .splash__plate. -->
+    <title><%= productName %></title>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The family's CSP (the kit's app-structure §Q.5). The page talks to its server — beside it
+         on the desktop (http://127.0.0.1:8742), or a server over the network — so connect/img
+         allow http(s); scripts stay 'self' only. In development Quasar's HMR also needs ws://.
+         The desktop shell sends its own CSP header for app:// (the kit's server/src/shell/main.js);
+         both apply there. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; media-src 'self' data: blob: http: https:; font-src 'self' data:; connect-src 'self' http: https:<% if (ctx.dev) { %> ws://localhost:* ws://127.0.0.1:*<% } %>; worker-src 'self' blob:;"
+    />
+    <!-- First-paint boot layer (JW pattern, adopted 2026-08-04) — the SAME plate the shell's
+         splash renders (AppShell.vue), shown before the JS bundle parses, so boot is ONE
+         continuous image: static plate → Vue splash → shell. KEEP the image + fit IN SYNC with
+         AppShell.vue's .splash / styles.css .splash__plate. App.vue removes it when it mounts
+         (the shell, or the connection-error screen). -->
     <style>
       #app-boot { position: fixed; inset: 0; background: #f7f3ea; }
       #app-boot img {
@@ -26,9 +31,7 @@
     </style>
   </head>
   <body>
-    <div id="app">
-      <div id="app-boot"><img src="./src/assets/images/splash-plate.jpg" alt="" /></div>
-    </div>
-    <script type="module" src="/src/main.js"></script>
+    <div id="app-boot"><img src="./src/assets/images/splash-plate.jpg" alt="" /></div>
+    <!-- quasar:entry-point -->
   </body>
 </html>

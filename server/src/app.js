@@ -25,7 +25,7 @@
 // docgen answers FastAPI's DEFAULT errors (it never called install_error_handlers — the kit's
 // route diff, 2026-10-08), plus its own catch-all envelope for an unhandled exception.
 
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import fastifyStatic from "@fastify/static";
 import { installLlm, router as runnerRouter } from "@delebash/llm-runner";
@@ -288,6 +288,21 @@ export const SOURCE_ROOT = path.resolve(import.meta.dirname, "..", "..");
 export const APP_ORIGINS = ["http://localhost:1450", "http://127.0.0.1:1450", "app://just-ai-i18n-docgen"];
 
 /**
+ * Where the built UI is, for the headless server (null when there is none): JUST_AI_I18N_DOCGEN_UI_DIR;
+ * a checkout's Quasar browser build, dist/spa/; or, packaged, the app folder — this package is
+ * installed at <app>/node_modules/just-ai-i18n-docgen-server, so SOURCE_ROOT (two folders above
+ * src/) is <app>/node_modules, and Quasar puts the built UI at <app> itself (resources/app.asar).
+ */
+export function locateUiDir() {
+  const candidates = [];
+  if (process.env.JUST_AI_I18N_DOCGEN_UI_DIR) candidates.push(process.env.JUST_AI_I18N_DOCGEN_UI_DIR);
+  candidates.push(path.join(SOURCE_ROOT, "dist", "spa"));
+  if (path.basename(SOURCE_ROOT) === "node_modules") candidates.push(path.dirname(SOURCE_ROOT));
+  candidates.push(path.join(process.cwd(), "dist", "spa"));
+  return candidates.find((c) => isDir(c) && existsSync(path.join(c, "index.html"))) ?? null;
+}
+
+/**
  * The app's data root, per the ONE family policy (user ruling 2026-08-14 — "absolutely no
  * data ... stored anywhere but where the user has set the storage directory, which by default
  * will be the install directory for the app"). Thin call into the kit; the ladder may never
@@ -498,14 +513,14 @@ export async function createApp(dataDir = null, configPath = null) {
     scope.register(setupRouter);
     scope.register(workspaceRouter);
 
-    // Headless UI — serve the Vite build so the server + a browser gives the full app
+    // Headless UI — serve the built UI (Quasar's dist/spa; the app folder when packaged) so the server + a browser gives the full app
     // without the desktop shell (the kit's origin-aware serverApi targets
     // window.location.origin). Every /v1/* route wins first (a static route beats the
     // wildcard). Starlette's StaticFiles(html=True) semantics: "/" is index.html; a missing
     // file answers FastAPI's {"detail": "Not Found"}; any method but GET/HEAD on an unrouted
     // path answers 405.
-    const dist = path.join(SOURCE_ROOT, "dist");
-    if (isDir(dist)) {
+    const dist = locateUiDir();
+    if (dist !== null) {
       scope.register(fastifyStatic, {
         root: dist,
         prefix: "/",

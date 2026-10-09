@@ -1,0 +1,15 @@
+{
+  "name": "just-ai-i18n-docgen-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Just AI i18n & DocGen's Node server — Fastify on the family kit, run by the desktop app in a utilityProcess, headless as `just-ai-i18n-docgen-server serve`, or `npm run server` in a checkout. Its own package because the packaged app installs only what src-electron/package.json names (the kit's app-structure §Q.3).",
+  "license": "MIT",
+  "exports": {
+    "./serve": "./src/serve.js"
+  },
+  "dependencies": {
+    "@delebash/llm-runner": "file:../../just-llm-runner/server",
+    "@fastify/static": "^10.1.5"
+  }
+}

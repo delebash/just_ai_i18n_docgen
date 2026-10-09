@@ -75,9 +75,9 @@ test("disk_usage_reports_the_data_dir", async () => {
 });
 
 test("health_answers_the_boot_gate", async () => {
-  // The kit's checkServer() pings /v1/health before main.js mounts the app. Without this route
+  // The kit's checkServer() pings /v1/health before the boot file lets the app mount. Without this route
   // every RELEASE boot showed ConnectionError forever (found 2026-08-04 by the real-webview
-  // smoke; nothing else boots through main.js, so this test is the only cheap tripwire).
+  // smoke; nothing else boots through the boot file, so this test is the only cheap tripwire).
   const r = await client.get("/v1/health");
   expect(r.statusCode).toBe(200);
   const body = r.json();

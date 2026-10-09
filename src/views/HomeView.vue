@@ -112,7 +112,7 @@ function lastRunLabel(l) {
 </script>
 
 <template>
-  <!-- Server-down now mounts the kit ConnectionError INSTEAD of the app (main.js —
+  <!-- Server-down now shows the kit ConnectionError INSTEAD of the app (App.vue —
        JW's pattern): a dead server breaks every view, not just Home. -->
   <!-- CONFIRMED no project (409): the welcome — what this is, and the two ways in. -->
   <div v-if="project.noProject" class="intro">
@@ -138,7 +138,7 @@ function lastRunLabel(l) {
     </div>
   </div>
 
-  <!-- Server unreachable AFTER boot (main.js's gate only covers boot): say so and
+  <!-- Server unreachable AFTER boot (the boot file's gate only covers boot): say so and
        keep retrying — a blank page reads as broken (audit 2026-08-05). -->
   <div v-else-if="project.serverDown" class="intro">
     <p class="muted" style="text-align: center">

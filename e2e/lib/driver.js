@@ -9,16 +9,23 @@
 // the page's Content-Security-Policy (no eval) does not apply to — the app's real CSP stays
 // on during the tests.
 //
-// What it launches: the app from this checkout (`electron .`), loading the BUILT UI from
-// app:// (`npm run build:vite` first). JAID_DEV_NO_SIDECAR=1 (the tests' switch) keeps the
+// What it launches: the built desktop app before packaging — Quasar's
+// dist/electron/UnPackaged (`npm run build:unpacked` first, or `npm run build`), run by the
+// checkout's Electron — loading the BUILT UI from app://, with its own server on the dev data
+// folder `<repo>/data` (JUST_AI_I18N_DOCGEN_DATA_DIR points it there, since an unpacked app has
+// no checkout of its own). JAID_DEV_NO_SIDECAR=1 (the tests' switch) keeps the
 // shell from starting its own server — the suite talks to the one already on :8742.
 
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { _electron } from "playwright-core";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const APP_ROOT = path.resolve(__dirname, "../..");
+const REPO_ROOT = path.resolve(__dirname, "../..");
+const APP_ROOT = path.join(REPO_ROOT, "dist", "electron", "UnPackaged");
+// Electron is the desktop app's dependency, installed in src-electron/ (Quasar's Electron mode).
+const ELECTRON = createRequire(path.join(REPO_ROOT, "src-electron", "package.json"))("electron");
 
 export class Driver {
   constructor() {
@@ -31,7 +38,8 @@ export class Driver {
     delete env.ELECTRON_RUN_AS_NODE;
     delete env.DEV_URL; // the built UI, from app://
     if (env.JAID_DEV_NO_SIDECAR) env.JUST_AI_I18N_DOCGEN_DEV_NO_SERVER = "1";
-    this.app = await _electron.launch({ args: [APP_ROOT], cwd: APP_ROOT, env });
+    env.JUST_AI_I18N_DOCGEN_DATA_DIR ??= path.join(REPO_ROOT, "data");
+    this.app = await _electron.launch({ executablePath: ELECTRON, args: [APP_ROOT], cwd: REPO_ROOT, env });
     this.page = await this.app.firstWindow();
     await this.page.waitForLoadState("domcontentloaded");
     // Give the app a moment to mount Vue + hydrate stores (the old driver's wait).

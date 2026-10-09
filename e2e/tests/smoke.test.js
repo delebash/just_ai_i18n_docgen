@@ -455,6 +455,10 @@ test("setup CREATE-FLOW: a fixture project round-trips the real form, then the r
   try {
     await d.navigate("#/setup");
     await d.waitUntil(`return !!document.querySelector('input[placeholder*="en.json"]')`);
+    // The view prefills the path from the loaded project once its refresh answers — wait for
+    // that, or the prefill lands after the fixture path and Save posts the real one (the race
+    // the Quasar move's router timing exposed, 2026-10-09).
+    await d.waitUntil(`return !!document.querySelector('input[placeholder*="en.json"]').value`);
     // Type the fixture path through Vue's v-model (native setter + input event).
     await d.exec(`
       const inp = document.querySelector('input[placeholder*="en.json"]');

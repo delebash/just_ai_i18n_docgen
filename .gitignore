@@ -23,8 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 
-# committed dist: the server serves it headless and users need no npm install —
-# the family pattern. node_modules stays out.
+# Quasar's generated files and its build output (dist/spa, dist/electron) — the headless server
+# serves dist/spa after `npm run build:spa`
+.quasar/
+/quasar.config.*.temporary.compiled*
 
 # brainstorming companion workshop (session-local, never shipped)
 .superpowers/

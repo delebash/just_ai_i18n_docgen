@@ -35,6 +35,46 @@ OPEN:   your use of the moved app — `npm run dev`, or the installer from `npm 
         plan: each step ends with the user's real app on the new build, on its real data root).
 GO:     none needed to use it; anything you find gets its own item.
 
+## docgen on Quasar — BUILT on branch `quasar`, merged by the go (2026-10-09)
+STATE:  DECIDED 2026-10-08 — every family app moves to Quasar (the kit's TASKS, "Every family app
+        moves to Quasar…", rec 1: "Quasar's own tooling for everything. Its Electron mode is the
+        desktop app, calling the kit's shared function for the data folder, the server and the
+        tray. Its Capacitor mode is the phone app."); the go: "we need to do the quasar conversion
+        as well you have a go on that". This repo's held tree, decided 2026-10-08 — the user: "keep
+        going using yo9ur recs, think on your recs twice do it unitl the whole conversions is
+        complete including the move to quasar dont stop", then "go", on the rec: "docgen's held
+        working tree (the stopped electron-vite restructure) is not touched; docgen moves to Quasar
+        on a branch in its own worktree from its last commit, as JustWrite and JustVoice did; at
+        the merge the held tree goes into a named stash (kept, recoverable), as their biome.json
+        leftover did." The order of work: the kit's `docs/plans/2026-10-08-sync-and-quasar-program.md`,
+        step Q6; the layout: the kit's `docs/app-structure.md` §Q.
+BUILT:  2026-10-09, on branch `quasar` (worktree `../docgen-quasar`, from f3ed692): `quasar.config.js`
+        (the kit UI alias; dev ports 1450 / HMR 1451; electron-builder with the old installer's
+        settings — NSIS, the fuses, the launchers, appId `com.just-ai-i18n-docgen.app`; no
+        Capacitor mode); `src-electron/` (the kit's `runDesktopApp`, the same settings as
+        `electron/main.js`; icons moved from `build/`); `src/main.js` → the boot file
+        `src/boot/docgen.js` (the same sequence), the root `src/App.vue` (the shell, renamed
+        `AppShell.vue`, or the connection-error screen); `router/routes.js`; `stores/index.js`;
+        `src/css/quasar.variables.scss` (the kit's theme); the kit's PostCSS step; `server/` its
+        own package (`just-ai-i18n-docgen-server`, an npm workspace; the launchers run it from the
+        archive); the headless UI from `dist/spa` (the app folder when packaged); the height chain
+        on Quasar's `#q-app`; vue-router 5 (Quasar's peer); the e2e harness on Quasar's
+        `dist/electron/UnPackaged`; the docs.
+CHECKED: unit 3/3 · server 161/161 · lint · the guard (kind quasar) · e2e 20/20, twice, against the
+        real project and the real data folder (the suite exposed a race in its Setup create-flow
+        test — it typed before the form's prefill landed; it now waits for the prefill) · dev mode
+        (the window on :1450, its own server, routes, zero JS errors) · the installer builds; the
+        packaged app on a copy of your data (`app://`, its server, routes, zero JS errors) · the
+        headless launcher serves the UI from the archive · ten screens against the Electron + Vite
+        build at 1440×900: identical but for live values (log sizes) and the appearance slider,
+        2 px left — Quasar's reset zeroes a range input's default margin, as in JustWrite and
+        JustVoice.
+OPEN:   1. After pulling: `npm install` and once `cd src-electron && npm install`.
+        2. Found, not changed: the kit's AI status button asks for a `v-tooltip` directive this app
+           never registered (Vue warns in dev; JustWrite and JustVoice register the kit's
+           `tooltipDirective` in their boot files). The same before the move.
+GO:     given 2026-10-08 ("we need to do the quasar conversion as well you have a go on that").
+
 ## THE FAMILY PARITY BATCH — SHIPPED 2026-08-06 (all twelve slices)
 - The master plan + its BUILD LOG (deviations, guard-caught bugs, end-gate
   results): `../justwrite-app/docs/plans/2026-08-05-family-parity-batch.md`.

@@ -4,7 +4,7 @@
    ONE shell — Design 1, ruled 2026-08-03: TitleBar over sidebar + main. */
 
 * { box-sizing: border-box; }
-html, body, #app { height: 100%; margin: 0; }
+html, body, #q-app { height: 100%; margin: 0; } /* #q-app: Quasar's mount point (the move, 2026-10-09) */
 body {
   font: 14px/1.5 var(--font-ui);
   color: var(--ink);

@@ -5,7 +5,8 @@ every string that was written, and author help docs whose front-matter becomes l
 keys — with a human review workspace where nothing ships unseen. A rewrite of
 `just-ai-help`, embedding `just-llm-runner` for everything engine-shaped. **Electron +
 a Node (Fastify) server since 2026-10-08** — the first family app off Tauri and Python
-(JustVoice's `docs/plans/2026-10-07-electron-node-plan.md` §5).
+(JustVoice's `docs/plans/2026-10-07-electron-node-plan.md` §5). **A Quasar app since
+2026-10-09** — its Electron mode is the desktop app (the kit's `docs/app-structure.md` §Q).
 
 **The family structure standard lives in `../just-llm-runner/docs/app-structure.md` —
 read it before changing layout, scripts, ports, or the shell. This app is the standard's
@@ -14,14 +15,16 @@ reference implementation.**
 ## Commands
 
 ```bash
-npm run dev            # THE APP — Vite on :1450 + the Electron window; the window starts the server
-npm run dev:vite       # browser-only dev at :1450 (start the server yourself: npm run server)
+npm run dev            # THE APP — Quasar's dev server on :1450 (HMR 1451) + the Electron window; the window starts the server
+npm run dev:spa        # the renderer alone in a browser tab at :1450 (start the server yourself: npm run server)
 npm run server         # the server alone on :8742 (server/src/serve.js on Electron's Node), UI at /
 npm run test:server    # the server's tests — vitest on Electron's own Node 24
-npm run build:vite     # the web build (dist/ is gitignored — the app embeds it)
-npm test               # e2e smoke: the REAL desktop app via Playwright's Electron driver (build:vite first)
+npm run build:spa      # the browser build (dist/spa), what the headless server serves
+npm run test:unit      # the renderer's unit tests
+npm run build:unpacked # the desktop app built, not packaged (dist/electron/UnPackaged) — what npm test drives
+npm test               # e2e smoke: the REAL desktop app via Playwright's Electron driver (build:unpacked first)
 npm run screenshots    # every surface shot from the real window → e2e/shots/
-npm run build          # the installer (electron-builder → release/)
+npm run build          # the installer (Quasar's Electron mode, electron-builder → dist/electron/Packaged)
 npm run lint           # biome
 
 # The CLI door (same service functions as the workspace — one resolver, two doors):
@@ -30,8 +33,8 @@ npm run cli -- translate|check|escalate|accept|extract <config>
 
 The dev data folder is `data/` in this checkout (gitignored) — the desktop app and
 `npm run server` read the same one (the kit's one data-folder ladder). The shell is the
-kit's `@delebash/llm-runner/shell` (`runDesktopApp`); `electron/main.js` only names this
-app's settings. The installer ships `just-ai-i18n-docgen-server` and `just-ai-i18n-docgen`
+kit's `@delebash/llm-runner/shell` (`runDesktopApp`); `src-electron/electron-main.js` only names
+this app's settings. The installer ships `just-ai-i18n-docgen-server` and `just-ai-i18n-docgen`
 (the CLI) as launchers beside `just_ai_i18n_docgen.exe` — the app's own exe run as Node.
 **A launcher is never named like the exe**: Windows resolves a bare name to the exe first.
 
@@ -83,15 +86,19 @@ app's settings. The installer ships `just-ai-i18n-docgen-server` and `just-ai-i1
 
 ## Layout
 
-Per the standard's Electron layout (decided 2026-10-08): `index.html` + `src/` (the Vue
-renderer), `electron/main.js` (the shell's settings), the server in `server/src/` — domain
-modules flat, HTTP routes one file per area under `api/` (`health_api.js`,
-`server_auth_api.js`, `setup_api.js`, `workspace_api.js`), with
+Per the standard's Quasar layout (§Q, the move 2026-10-09): `quasar.config.js`, `index.html` +
+`src/` (the Vue renderer: the boot file `src/boot/docgen.js` instead of a `main.js`, the root
+`src/App.vue` choosing the shell `AppShell.vue` or the connection-error screen,
+`router/routes.js`, `stores/index.js`), `src-electron/` (`electron-main.js` = the shell's
+settings, the preload, the icons in `electron-assets/icons/`), the server its own package in
+`server/` (`just-ai-i18n-docgen-server`, an npm workspace; the headless UI from `dist/spa`, the
+app folder when packaged) — domain modules flat, HTTP routes one file per area under `api/`
+(`health_api.js`, `server_auth_api.js`, `setup_api.js`, `workspace_api.js`), with
 `serve.js`/`app.js`/`app_state.js`/`version.js` the family server skeleton — tests in
-`server/tests/*.test.js`, `build/` (icons + the launchers), `data/` (dev data,
-gitignored). The server kit is the npm dependency `@delebash/llm-runner`
-(`file:../just-llm-runner/server`); the UI kit is consumed via the Vite alias to
-`../just-llm-runner/ui/src`. The renderer reaches the shell only through
+`server/tests/*.test.js`, `build/launcher/` (the launchers), `data/` (dev data, gitignored).
+The server kit is the npm dependency `@delebash/llm-runner` (`file:../just-llm-runner/server`);
+the UI kit is consumed via the alias to `../just-llm-runner/ui/src` in `quasar.config.js`. The
+renderer reaches the shell only through
 `src/services/native.js` (the one reader of `window.appShell`).
 Port **8742** (JW 17495 · JV 17494). Data-dir env: `JUST_AI_I18N_DOCGEN_DATA_DIR`.
 

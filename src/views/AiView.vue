@@ -3,7 +3,7 @@
 // The kit's whole AI area — providers, model catalog + downloads, routing by
 // feature (live wiring: engine.make_send reads those presets), usage, console.
 // The KIT wizard runs here since the surgery (2026-08-04) — this app's voice
-// rides main.js's quickSetupCopy, the capability hides embeddings, the family
+// rides the boot file's quickSetupCopy, the capability hides embeddings, the family
 // cache-offer lives in the kit step. It honours JW's ?quicksetup=1 deep link.
 import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -41,7 +41,7 @@ onMounted(async () => {
       <!-- No @quick-setup-closed handler: closing the wizard used to fling you to Home,
            which is disorienting when you opened the AI page on purpose. You stay here. -->
       <!-- No :wizard override since the surgery (2026-08-04): the KIT wizard runs here,
-           voiced by main.js's quickSetupCopy, embeddings hidden by the capability, the
+           voiced by the boot file's quickSetupCopy, embeddings hidden by the capability, the
            family cache-offer inside it. The 359-line fork is deleted. -->
       <AiModelsArea :auto-open-quick-setup="openWizardOnce"
         :initial-provider-scope="route.query.providers === 'online' ? 'online' : ''"
