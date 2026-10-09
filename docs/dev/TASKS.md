@@ -16,6 +16,17 @@
 > item points to — **read that doc before coding the item**. Close = delete — git
 > keeps history. A tracker line is a claim, not evidence — verify against code.
 
+## The server moves to Hono [2026-10-09]
+STATE:  DECIDED 2026-10-09, family-wide — the decision with the user's words is the kit's TASKS,
+        "The family's servers move to Hono — one server that runs in Node and in a worker".
+WHY:    one server for every platform, so docgen can run on a phone or as an offline web page
+        later with no new server code; the kit's item has the full reasons.
+NOT:    the kit's item.
+BUILT:  nothing yet — the plan: `../just-llm-runner/docs/plans/2026-10-09-hono-standard.md`.
+OPEN:   docgen's slice (plan §7, slice 5): 5 route files, 32 routes, the static UI on
+        `serveStatic` — after the kit's slice and the user's word on the plan's §3 and §5.
+GO:     given 2026-10-09 (the kit's item).
+
 ## The family moves to Electron and a Node server — docgen's step is BUILT, waiting on your use [2026-10-08]
 STATE:  DECIDED 2026-10-05, 2026-10-07 and 2026-10-08 — every ruling, as shown and approved, is in
         JustVoice's TASKS, "The family moves to Electron and a Node server; Tauri and Python go"
