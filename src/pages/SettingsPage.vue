@@ -15,7 +15,7 @@ import {
   safeRequest, serverUrl,
 } from "@delebash/llm-ui";
 import { loadDoc } from "../services/helpDocs.js";
-import { pickDirectory, storageGetRoot, storageRelocate, setKeepRunning as nativeSetKeepRunning } from "../services/native.js";
+import { desktopUpdater, pickDirectory, storageGetRoot, storageRelocate, setKeepRunning as nativeSetKeepRunning } from "../services/native.js";
 import { SETTINGS_SECTION_IDS } from "../services/settingsSections.js";
 import { useProjectStore } from "../stores/project";
 import { useUiStore } from "../stores/ui";
@@ -42,6 +42,8 @@ watch(() => props.section, (s) => { if (s) active.value = s; });
 // Updates — release notes for the kit UpdatesPanel (JW's pattern: source +
 // renderer app-side, presentation shared). Loaded lazily on first open.
 const APP_VERSION = "0.1.0";
+// The desktop app's updater (the kit shell's); docgen's shell has updates off until it has releases.
+const updater = desktopUpdater();
 const changelogHtml = ref("");
 watch(active, async (a) => {
   if (a === "updates" && !changelogHtml.value) {
@@ -360,7 +362,7 @@ onMounted(async () => {
            no auto-updater in this app yet, so the #actions slot stays empty). -->
       <template v-else-if="active === 'updates'">
         <section class="card">
-          <UpdatesPanel :app-version="APP_VERSION" :changelog-html="changelogHtml" />
+          <UpdatesPanel :app-version="APP_VERSION" :changelog-html="changelogHtml" :updater="updater" />
         </section>
       </template>
 
