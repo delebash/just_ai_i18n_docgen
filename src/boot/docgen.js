@@ -9,6 +9,7 @@ import { defineBoot } from "#q-app";
 import { bootPrefs, checkServer, configureHelp, installLlmUi, startWarmOnBoot } from "@delebash/llm-ui";
 import { hasDoc, loadDoc, titleForSlug } from "../services/helpDocs.js";
 import { openPath, openUrl } from "../services/native.js";
+import { i18n } from "../i18n/index.js";
 import { useUiStore } from "../stores/ui";
 
 async function boot({ app, router, store: pinia }) {
@@ -19,6 +20,9 @@ async function boot({ app, router, store: pinia }) {
   // falls back to window.location.origin. It also wires the desktop shell's openers for
   // external links and registers <LlmUiHosts />.
   installLlmUi(app, {
+    // The kit's words in this app's language (i18n/index.js); this app's voice on the model
+    // catalog and Quick Setup is its own `kit.catalog.*` / `kit.quickSetup.*` keys there.
+    i18n,
     devPorts: ["1450"],
     fallbackBase: "http://127.0.0.1:8742",
     // The openers, through services/native.js (the shell's one bridge) — the SAME line in
@@ -27,24 +31,6 @@ async function boot({ app, router, store: pinia }) {
     external: { open: openUrl, openPath },
     // No embedding features here, and the catalog seeds translation-measured rows only.
     capabilities: { embeddings: false },
-    // This app's voice on the shared model-catalog surface (the defaults are JW's words).
-    catalogCopy: {
-      chatSectionLabel: "Translation models",
-      chatSectionHint: "measured on real localisation runs — pick one as your model",
-      generalUse: "Translates your strings and checks its own work",
-      slotsFootnote: "One model does everything here — it loads automatically on the first run; Load now just skips that first wait.",
-    },
-    // This app's voice on the shared Quick Setup wizard (the surgery 2026-08-04: the
-    // 359-line fork died — the kit wizard + this voice + the shared cache-offer step
-    // replace it; canon words live in the labels store, never here).
-    quickSetupCopy: {
-      bandSub: "A free local translation engine in one click — the models offered here are the ones MEASURED on real localisation runs, sized to this PC.",
-      headSub: "A free local translation engine in one click — measured models, sized to this PC.",
-      confirmTitle: "Local translation AI",
-      modelHint: "Pick a model — best first: every one here was measured on real localisation runs rather than guessed at. One click installs the engine if it's missing, downloads the model, loads it, and makes it the model the Translate & Confirm presets run on.",
-      chatRole: "translates your strings and checks its own work",
-      doneBody: "Translate and Confirm run on this model — change it any time under Routing by feature.",
-    },
   });
 
   // In-app Help (kit drawer over docs/*.md) — the minimal drawer-only shape: no

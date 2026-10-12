@@ -7,11 +7,12 @@
 // Server = JW's headless/auth section over this app's /v1/server-auth;
 // Logs = kit LogsPanel; Reviewer = this app's own (tool-level, moved from Setup).
 import { computed, onMounted, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import {
-  AppearancePanel, DataManagement, FAMILY_LABELS, LogsPanel, PaneHeader, SettingsShell,
+  AppearancePanel, DataManagement, LogsPanel, PaneHeader, SettingsShell,
   UiButton, UiInput, UiToggle, UpdatesPanel, confirmDialog, fmtBytes, get,
-  openExternal, post, pushToast, put, refreshRunnerModels, renderHelpMarkdown,
+  SETTINGS_SECTION_ORDER, openExternal, post, pushToast, put, refreshRunnerModels, renderHelpMarkdown,
   safeRequest, serverUrl,
 } from "@delebash/llm-ui";
 import { loadDoc } from "../services/helpDocs.js";
@@ -32,10 +33,13 @@ const project = useProjectStore();
 // own (tool identity — no family equivalent) and interleaves before About.
 // The ORDER lives in settingsSections.js so the canon contract test asserts
 // exactly what renders (slice 11).
-const SECTIONS = SETTINGS_SECTION_IDS.map((id) => ({
+// The family's shared sections take the kit's words (`kit.settingsSections.*`); Reviewer is this app's.
+const { t } = useI18n();
+const FAMILY_SECTIONS = new Set(SETTINGS_SECTION_ORDER);
+const SECTIONS = computed(() => SETTINGS_SECTION_IDS.map((id) => ({
   id,
-  label: FAMILY_LABELS.settingsSections[id] || "Reviewer",
-}));
+  label: FAMILY_SECTIONS.has(id) ? t(`kit.settingsSections.${id}`) : "Reviewer",
+})));
 const active = ref(props.section || "appearance");
 watch(() => props.section, (s) => { if (s) active.value = s; });
 
@@ -219,7 +223,7 @@ onMounted(async () => {
            config, never under the data dir — the backup is the app database. -->
       <template v-else-if="active === 'backups'">
         <section class="card">
-          <h2>{{ FAMILY_LABELS.settingsSections.backups }}</h2>
+          <h2>{{ t("kit.settingsSections.backups") }}</h2>
           <p class="hint">
             The backup covers this tool's own data — connections, presets, models
             configuration, the reviewer name. Your locale files and accepted
@@ -268,19 +272,19 @@ onMounted(async () => {
             <div class="row">
               <span>{{ diskSize(diskUsage?.modelsCache) }}</span>
               <UiButton intent="secondary" size="small" :disabled="!!diskBusy"
-                        :label="diskBusy === 'models' ? 'Clearing…' : FAMILY_LABELS.storage.clearShort" @click="clearModelsCache" />
+                        :label="diskBusy === 'models' ? 'Clearing…' : t('kit.storage.clearShort')" @click="clearModelsCache" />
             </div>
             <span class="muted">Engine spawn logs</span>
             <div class="row">
               <span>{{ diskSize(diskUsage?.spawnLogs) }}</span>
               <UiButton intent="secondary" size="small" :disabled="!!diskBusy"
-                        :label="diskBusy === 'spawn' ? 'Clearing…' : FAMILY_LABELS.storage.clearShort" @click="clearSpawnLogs" />
+                        :label="diskBusy === 'spawn' ? 'Clearing…' : t('kit.storage.clearShort')" @click="clearSpawnLogs" />
             </div>
             <span class="muted">Engine builds</span><span>{{ diskSize(diskUsage?.engineBuilds) }}</span>
             <span class="muted">Database</span><span>{{ diskSize(diskUsage?.database) }}</span>
-            <span class="muted">{{ FAMILY_LABELS.storage.serverLogs }}</span><span>{{ diskSize(diskUsage?.appLogs) }}</span>
-            <span class="muted"><b>{{ FAMILY_LABELS.storage.total }}</b></span><span><b>{{ diskSize(diskUsage?.total) }}</b></span>
-            <span class="muted">{{ FAMILY_LABELS.storage.freeSpace }}</span><span>{{ diskSize(diskUsage?.diskFree) }}</span>
+            <span class="muted">{{ t("kit.storage.serverLogs") }}</span><span>{{ diskSize(diskUsage?.appLogs) }}</span>
+            <span class="muted"><b>{{ t("kit.storage.total") }}</b></span><span><b>{{ diskSize(diskUsage?.total) }}</b></span>
+            <span class="muted">{{ t("kit.storage.freeSpace") }}</span><span>{{ diskSize(diskUsage?.diskFree) }}</span>
           </div>
           <p v-if="diskErr" class="mono setup__error">{{ diskErr }}</p>
         </section>

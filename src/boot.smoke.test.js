@@ -8,7 +8,7 @@
 // screenshots); this is the fast per-change gate.
 //
 // The start-up is Quasar's (the kit's app-structure §Q.4): the root App.vue, Pinia from
-// stores/index.js, the router from router/index.js, the boot file awaited, then the router
+// stores/index.js, the router from router/index.js, the boot files awaited, then the router
 // installed and the app mounted — the steps Quasar's generated client entry takes, run here by
 // hand because that entry only exists inside a Quasar build.
 import { registerBootSmoke } from "@delebash/llm-ui/test/bootSmoke.js";
@@ -20,11 +20,14 @@ registerBootSmoke({
     const { default: App } = await import("./App.vue");
     const { default: createStore } = await import("./stores/index.js");
     const { default: createRouter } = await import("./router/index.js");
+    const { default: i18nBoot } = await import("./boot/i18n.js");
     const { default: docgenBoot } = await import("./boot/docgen.js");
     const app = createTestApp(App);
     const store = await createStore({});
     app.use(store);
     const router = await createRouter({ store });
+    // the boot files in quasar.config.js order: vue-i18n, then the start-up
+    await i18nBoot({ app, router, store });
     await docgenBoot({ app, router, store });
     app.use(router);
     app.mount("#app");

@@ -18,8 +18,9 @@ const kitUi = path.resolve(root, '../just-llm-runner/ui')
 
 export default defineConfig(() => {
   return {
-    // The renderer's start-up (the old src/main.js), awaited before Quasar mounts the app.
-    boot: ['docgen'],
+    // vue-i18n first (boot/i18n.js), then the renderer's start-up (the old src/main.js), awaited
+    // before Quasar mounts the app.
+    boot: ['i18n', 'docgen'],
 
     // The app's stylesheets (src/css/), in the entry stylesheet rather than the boot file's chunk:
     // the design tokens, then the app's own styles — ahead of the kit's, as they have always loaded.
@@ -45,7 +46,7 @@ export default defineConfig(() => {
         // reactivity, and Quasar's, break with two).
         viteConf.resolve.dedupe = [
           ...(viteConf.resolve.dedupe || []),
-          'vue', 'quasar', '@floating-ui/dom', 'pinia', 'vue-router', 'marked',
+          'vue', 'quasar', '@floating-ui/dom', 'pinia', 'vue-router', 'vue-i18n', 'marked',
           '@vueuse/core',
         ]
         viteConf.server = viteConf.server || {}

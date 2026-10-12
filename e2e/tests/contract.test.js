@@ -11,17 +11,15 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { FAMILY_LABELS } from "../../../just-llm-runner/ui/src/common/familyContract.js";
-
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const read = (p) => readFileSync(path.join(root, p), "utf8");
 const pageFiles = readdirSync(path.join(root, "src", "pages")).filter((f) => f.endsWith(".vue"));
 
-test("the nav trio takes its words FROM the contract (by construction)", () => {
+test("the nav trio takes the kit's words (by construction)", () => {
   const app = read("src/layouts/MainLayout.vue"); // the layout (the nav); src/App.vue is the Quasar root
-  assert.ok(app.includes("FAMILY_LABELS.nav.aiSettings"), "AI Settings label must come from the contract");
-  assert.ok(app.includes("FAMILY_LABELS.nav.appSettings"), "App Settings label must come from the contract");
-  assert.ok(app.includes("AI tasks"), `the AI-tasks row carries the canon words ("${FAMILY_LABELS.nav.aiTasks}")`);
+  for (const key of ["kit.nav.aiSettings", "kit.nav.appSettings", "kit.nav.aiTasks"]) {
+    assert.ok(app.includes(key), `the nav's ${key} words must be the kit's key`);
+  }
   // The retired inventions must not come back.
   assert.ok(!/label:\s*"AI"/.test(app), 'the nav must not say bare "AI" again');
   assert.ok(!/label:\s*"Settings"/.test(app), 'the nav must not say bare "Settings" again');
@@ -46,15 +44,15 @@ test("boot is ONE splash: the static layer is the plate, never a spinner", () =>
   assert.ok(!html.includes("app-boot__spin"), "the spinner splash must not return");
 });
 
-test("the settings sections use the contract's words for shared concepts", () => {
+test("the settings sections use the kit's words for shared concepts", () => {
   // Slice 11 moved the section ORDER into settingsSections.js (the vitest canon
   // test asserts the relative order against the kit manifest); the view maps
-  // every id through the contract's words. Assert both halves of that shape.
+  // every shared id through the kit's `kit.settingsSections.*` keys. Assert both halves.
   const settings = read("src/pages/SettingsPage.vue");
   assert.ok(
-    settings.includes("FAMILY_LABELS.settingsSections[") &&
+    settings.includes("kit.settingsSections.") &&
       settings.includes("SETTINGS_SECTION_IDS.map"),
-    "SettingsView must build its sections from settingsSections.js, labeled from the contract",
+    "SettingsView must build its sections from settingsSections.js, labeled with the kit's keys",
   );
   const ids = read("src/services/settingsSections.js");
   // backups + updates joined the canon in the family parity batch (2026-08-06).

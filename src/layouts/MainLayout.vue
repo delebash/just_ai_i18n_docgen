@@ -10,9 +10,10 @@
 // DownloadBars the engine panel uses. Continue is the universal escape: a slow
 // or failed load never traps anyone on the boot screen.
 // Family rules: height:100% chain (never 100vh), one scroller per area.
-import { onMounted } from "vue";
+import { computed, onMounted } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { AiSetupOffer, BootModelLoad, FAMILY_LABELS, HelpDrawer, Icon, LlmUiHosts, pushToast, useAiTasksNav, warmModelId } from "@delebash/llm-ui";
+import { AiSetupOffer, BootModelLoad, HelpDrawer, Icon, LlmUiHosts, pushToast, useAiTasksNav, warmModelId } from "@delebash/llm-ui";
 import TitleBar from "../components/TitleBar.vue";
 import splashPlate from "../assets/images/splash-plate.jpg";
 import { onShellEvent, setKeepRunning } from "../services/native.js";
@@ -33,13 +34,14 @@ const NAV = [
   { to: "/runs", label: "Runs", icon: "History" },
   { to: "/docs", label: "Docs", icon: "Book" },
 ];
-// The trio's words come from the FAMILY CONTRACT — canon by construction, the
-// same "App Settings / AI Settings / AI tasks" every family app shows.
-const TOOLS = [
-  { to: "/ai", label: FAMILY_LABELS.nav.aiSettings, icon: "Cpu" },
-  { to: "/settings", label: FAMILY_LABELS.nav.appSettings, icon: "Settings" },
+// The trio's words are the kit's (`kit.nav.*`) — the same "App Settings / AI Settings / AI tasks"
+// every family app shows, in the app's language.
+const { t } = useI18n();
+const TOOLS = computed(() => [
+  { to: "/ai", label: t("kit.nav.aiSettings"), icon: "Cpu" },
+  { to: "/settings", label: t("kit.nav.appSettings"), icon: "Settings" },
   { to: "/setup", label: "Setup", icon: "Folder" },
-];
+]);
 // The AI-tasks nav row (JW Sidebar parity): toggles the kit panel, badges the running
 // count — red while there are unseen errors. Behaviour AND the required
 // `data-panel-toggle` attribute come from the kit, so the row cannot be rebuilt
@@ -115,7 +117,7 @@ onMounted(async () => {
             v-bind="aiTasksNav.navAttrs" @click="aiTasksNav.toggle"
           >
             <Icon name="Sparkle" :size="17" />
-            <span class="nav-label">AI tasks</span>
+            <span class="nav-label">{{ t("kit.nav.aiTasks") }}</span>
             <span
               v-if="aiTasksNav.badge.value" class="nav-count"
               :class="{ 'nav-count--error': aiTasksNav.hasErrors.value }"
