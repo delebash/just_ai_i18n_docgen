@@ -16,6 +16,15 @@
 > item points to — **read that doc before coding the item**. Close = delete — git
 > keeps history. A tracker line is a claim, not evidence — verify against code.
 
+## Every app and the kit on vue-i18n [2026-10-12]
+STATE:  DECIDED 2026-10-12, family-wide; plan written, awaiting go — the decision with the user's
+        words is the kit's TASKS, "Every app and the kit on vue-i18n"; the plan is
+        `just-llm-runner/docs/plans/2026-10-12-i18n-standard.md`.
+WHY:    docgen translates every app's catalogs, but its own screens and the kit's are hardcoded English
+        (163 strings here, 832 in the kit) and it has no vue-i18n.
+HERE:   Task 1 (vue-i18n and the i18n boot file; take the kit's catalog) and Task 4 (its 163 strings,
+        the language picker), then Task 6 (each catalog's Spanish through docgen, the user's review).
+
 ## The server moves to Hono [2026-10-09]
 STATE:  DECIDED 2026-10-09, family-wide — the decision with the user's words is the kit's TASKS,
         "The family's servers move to Hono — one server that runs in Node and in a worker".
