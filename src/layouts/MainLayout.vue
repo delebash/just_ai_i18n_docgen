@@ -28,19 +28,19 @@ const router = useRouter();
 // SETUP-SAVE (ui.maybeOfferAiSetup — JW's donor moment), rendered here at App
 // level; the persisted flag means never again, whatever path was taken.
 
-const NAV = [
-  { to: "/", label: "Home", icon: "Home" },
-  { to: "/review", label: "Review", icon: "CheckSquare" },
-  { to: "/runs", label: "Runs", icon: "History" },
-  { to: "/docs", label: "Docs", icon: "Book" },
-];
 // The trio's words are the kit's (`kit.nav.*`) — the same "App Settings / AI Settings / AI tasks"
 // every family app shows, in the app's language.
 const { t } = useI18n();
+const NAV = computed(() => [
+  { to: "/", label: t("nav.home"), icon: "Home" },
+  { to: "/review", label: t("nav.review"), icon: "CheckSquare" },
+  { to: "/runs", label: t("nav.runs"), icon: "History" },
+  { to: "/docs", label: t("nav.docs"), icon: "Book" },
+]);
 const TOOLS = computed(() => [
   { to: "/ai", label: t("kit.nav.aiSettings"), icon: "Cpu" },
   { to: "/settings", label: t("kit.nav.appSettings"), icon: "Settings" },
-  { to: "/setup", label: "Setup", icon: "Folder" },
+  { to: "/setup", label: t("nav.setup"), icon: "Folder" },
 ]);
 // The AI-tasks nav row (JW Sidebar parity): toggles the kit panel, badges the running
 // count — red while there are unseen errors. Behaviour AND the required
@@ -73,9 +73,9 @@ onMounted(async () => {
   onShellEvent("tray:copy-url", async (url) => {
     try {
       await navigator.clipboard.writeText(String(url));
-      pushToast({ kind: "success", title: "Server URL copied", description: String(url) });
+      pushToast({ kind: "success", title: t("tray.urlCopied"), description: String(url) });
     } catch (err) {
-      pushToast({ kind: "error", title: "Copy failed", description: String(err?.message || err) });
+      pushToast({ kind: "error", title: t("tray.copyFailed"), description: String(err?.message || err) });
     }
   });
 });
@@ -93,8 +93,8 @@ onMounted(async () => {
     <q-drawer :model-value="true" side="left" behavior="desktop" :width="NAV_WIDTH">
       <aside class="shell__nav">
         <div class="shell__brand">
-          <span class="brand-mark">i18</span>
-          <span class="brand-name">i18n &amp; DocGen</span>
+          <span class="brand-mark">{{ t("app.mark") }}</span>
+          <span class="brand-name">{{ t("app.wordmark") }}</span>
         </div>
         <nav class="shell__links">
           <router-link v-for="n in NAV" :key="n.to" :to="n.to" class="navlink" :title="n.label">
@@ -125,7 +125,7 @@ onMounted(async () => {
           </button>
         </nav>
         <div class="shell__foot">
-          <span v-if="project.reviewer" class="shell__reviewer" :title="'Reviewer: ' + project.reviewer">
+          <span v-if="project.reviewer" class="shell__reviewer" :title="t('nav.reviewer', { name: project.reviewer })">
             {{ project.reviewer }}
           </span>
         </div>

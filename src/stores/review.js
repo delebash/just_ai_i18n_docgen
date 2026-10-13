@@ -12,13 +12,13 @@ import { del, get, post, put, safeRequest } from "@delebash/llm-ui";
 
 /** Bucket definitions for the queue. `match` decides which rows a bucket contains. */
 export const BUCKETS = [
-  { id: "needs", label: "Needs review", match: (r) => r.flags.some((f) => !f.advisory) },
-  { id: "unsure", label: "Unsure", match: (r) => r.flags.some((f) => f.code === "disagreement") },
-  { id: "terminology", label: "Terminology", match: (r) => r.flags.some((f) => f.code === "terminology") },
-  { id: "missing", label: "Missing", match: (r) => r.flags.some((f) => f.code === "missing") },
-  { id: "identical", label: "Came back identical", match: (r) => r.flags.some((f) => f.code === "untranslated") },
-  { id: "proposals", label: "Proposed", match: (r) => r.hasProposal },
-  { id: "all", label: "All flagged", match: () => true },
+  { id: "needs", labelKey: "review.bucket.needs", match: (r) => r.flags.some((f) => !f.advisory) },
+  { id: "unsure", labelKey: "review.bucket.unsure", match: (r) => r.flags.some((f) => f.code === "disagreement") },
+  { id: "terminology", labelKey: "review.bucket.terminology", match: (r) => r.flags.some((f) => f.code === "terminology") },
+  { id: "missing", labelKey: "review.bucket.missing", match: (r) => r.flags.some((f) => f.code === "missing") },
+  { id: "identical", labelKey: "review.bucket.identical", match: (r) => r.flags.some((f) => f.code === "untranslated") },
+  { id: "proposals", labelKey: "review.bucket.proposals", match: (r) => r.hasProposal },
+  { id: "all", labelKey: "review.bucket.all", match: () => true },
 ];
 
 export const useReviewStore = defineStore("review", {

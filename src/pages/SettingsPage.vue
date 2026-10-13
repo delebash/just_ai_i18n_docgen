@@ -10,11 +10,12 @@ import { computed, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import {
-  AppearancePanel, DataManagement, LogsPanel, PaneHeader, SettingsShell,
+  AppearancePanel, DataManagement, LanguagePicker, LogsPanel, PaneHeader, SettingsShell,
   UiButton, UiInput, UiToggle, UpdatesPanel, confirmDialog, fmtBytes, get,
   SETTINGS_SECTION_ORDER, openExternal, post, pushToast, put, refreshRunnerModels, renderHelpMarkdown,
   safeRequest, serverUrl,
 } from "@delebash/llm-ui";
+import { LOCALE_CODES } from "../i18n/index.js";
 import { loadDoc } from "../services/helpDocs.js";
 import { desktopUpdater, pickDirectory, storageGetRoot, storageRelocate, setKeepRunning as nativeSetKeepRunning } from "../services/native.js";
 import { SETTINGS_SECTION_IDS } from "../services/settingsSections.js";
@@ -38,7 +39,7 @@ const { t } = useI18n();
 const FAMILY_SECTIONS = new Set(SETTINGS_SECTION_ORDER);
 const SECTIONS = computed(() => SETTINGS_SECTION_IDS.map((id) => ({
   id,
-  label: FAMILY_SECTIONS.has(id) ? t(`kit.settingsSections.${id}`) : "Reviewer",
+  label: FAMILY_SECTIONS.has(id) ? t(`kit.settingsSections.${id}`) : t("settings.reviewer.title"),
 })));
 const active = ref(props.section || "appearance");
 watch(() => props.section, (s) => { if (s) active.value = s; });
@@ -46,6 +47,7 @@ watch(() => props.section, (s) => { if (s) active.value = s; });
 // Updates — release notes for the kit UpdatesPanel (JW's pattern: source +
 // renderer app-side, presentation shared). Loaded lazily on first open.
 const APP_VERSION = "0.1.0";
+const SOURCE_URL = "https://github.com/delebash/just_ai_i18n_docgen";
 // The desktop app's updater (the kit shell's); docgen's shell has updates off until it has releases.
 const updater = desktopUpdater();
 const changelogHtml = ref("");
@@ -85,13 +87,13 @@ function diskSize(n) {
 async function changeFolder() {
   storageErr.value = "";
   const picked = await pickDirectory({
-    title: "Choose a data folder", defaultPath: storageRoot.value?.root || "",
+    title: t("settings.storage.chooseFolder"), defaultPath: storageRoot.value?.root || "",
   });
   if (!picked) return;
   const yes = await confirmDialog({
-    title: "Move all app data?",
-    message: `Everything this tool saves — connections, presets, the AI engine and models, and logs — moves to ${picked}. The app restarts when the move finishes.`,
-    confirmLabel: "Move & restart",
+    title: t("settings.storage.moveTitle"),
+    message: t("settings.storage.moveMessage", { folder: picked }),
+    confirmLabel: t("settings.storage.moveConfirm"),
   });
   if (!yes) return;
   relocating.value = true;
@@ -99,16 +101,16 @@ async function changeFolder() {
     await storageRelocate(picked);
     window.location.reload();
   } catch (e) {
-    storageErr.value = String(e || "Move failed.");
+    storageErr.value = String(e || t("settings.storage.moveFailed"));
     relocating.value = false;
   }
 }
 async function clearModelsCache() {
   const size = fmtBytes(diskUsage.value?.modelsCache) || "0 MB";
   const yes = await confirmDialog({
-    title: "Clear downloaded models?",
-    message: `This frees ${size} of downloaded model files. Your models stay in the catalog and re-download on demand.`,
-    confirmLabel: "Clear models cache",
+    title: t("settings.storage.clearModelsTitle"),
+    message: t("settings.storage.clearModelsMessage", { size }),
+    confirmLabel: t("settings.storage.clearModelsConfirm"),
   });
   if (!yes) return;
   diskBusy.value = "models";
@@ -117,11 +119,11 @@ async function clearModelsCache() {
     const res = await post("/v1/llm-runner/models-cache/clear");
     if (res?.ok === false) {
       diskErr.value = res.detail === "unload models first"
-        ? "A model is loaded — unload it first (AI page → Unload), then try again."
-        : res.detail || "Couldn't clear the models cache.";
+        ? t("settings.storage.unloadFirst")
+        : res.detail || t("settings.storage.clearModelsFailed");
     }
   } catch {
-    diskErr.value = "Couldn't clear the models cache.";
+    diskErr.value = t("settings.storage.clearModelsFailed");
   } finally {
     diskBusy.value = "";
     await loadDiskUsage();
@@ -135,7 +137,7 @@ async function clearSpawnLogs() {
   try {
     await post("/v1/llm-runner/spawn-logs/clear");
   } catch {
-    diskErr.value = "Couldn't clear the engine logs.";
+    diskErr.value = t("settings.storage.clearLogsFailed");
   } finally {
     diskBusy.value = "";
     await loadDiskUsage();
@@ -150,9 +152,9 @@ async function saveReviewer() {
   if ((reviewerDraft.value || "").trim() === (project.reviewer || "")) return;
   try {
     await project.setReviewer(reviewerDraft.value.trim());
-    pushToast({ kind: "success", title: "Reviewer saved" });
+    pushToast({ kind: "success", title: t("settings.reviewer.saved") });
   } catch (e) {
-    pushToast({ kind: "error", title: "Could not save", description: String(e?.message || e) });
+    pushToast({ kind: "error", title: t("common.couldNotSave"), description: String(e?.message || e) });
   }
 }
 
@@ -171,17 +173,17 @@ async function saveAuth(patch) {
   try {
     auth.value = await put("/v1/server-auth", next);
   } catch (e) {
-    pushToast({ kind: "error", title: "Could not save", description: String(e?.message || e) });
+    pushToast({ kind: "error", title: t("common.couldNotSave"), description: String(e?.message || e) });
   }
 }
 function addToken() {
-  const t = tokenDraft.value.trim();
-  if (!t) return;
+  const token = tokenDraft.value.trim();
+  if (!token) return;
   tokenDraft.value = "";
-  saveAuth({ tokens: [...auth.value.tokens, t] });
+  saveAuth({ tokens: [...auth.value.tokens, token] });
 }
-function dropToken(t) {
-  saveAuth({ tokens: auth.value.tokens.filter((x) => x !== t) });
+function dropToken(token) {
+  saveAuth({ tokens: auth.value.tokens.filter((x) => x !== token) });
 }
 
 // The keep-running toggle writes the shell's flag immediately AND persists in the
@@ -201,19 +203,25 @@ onMounted(async () => {
   <q-page :style-fn="pageFlow" class="settings">
     <!-- The family Settings chrome: PaneHeader + the kit's top-tab shell (the rail
          this page invented died in the 2026-08-04 consistency pass). -->
-    <PaneHeader eyebrow="App" title="Settings" help-key="settings" />
+    <PaneHeader :eyebrow="t('settings.eyebrow')" :title="t('settings.title')" help-key="settings" />
     <SettingsShell :sections="SECTIONS" :model-value="active" @update:model-value="go">
       <!-- Appearance — the kit AppearancePanel (JV's donor rows, one shared surface) -->
       <template v-if="active === 'appearance'">
         <section class="card">
-          <h2>Appearance</h2>
-          <p class="hint">Visual preferences, applied immediately and saved on this machine.</p>
+          <h2>{{ t("kit.settingsSections.appearance") }}</h2>
+          <p class="hint">{{ t("settings.appearanceHint") }}</p>
           <AppearancePanel
             :appearance="ui.appearance"
             :accent-chroma="0.12"
-            accent-note="Default 277° = indigo."
+            :accent-note="t('settings.accentNote')"
             @patch="(p) => ui.setAppearance(p)"
           />
+        </section>
+        <!-- The language — the kit's LanguagePicker in its own card, as JustWrite shows it (the
+             AppearancePanel's own Language row waits for JustVoice's languages to be codes). -->
+        <section class="card">
+          <h2>{{ t("kit.settings.language.label") }}</h2>
+          <LanguagePicker :locales="LOCALE_CODES" @change="(code) => ui.setLocale(code)" />
         </section>
       </template>
 
@@ -224,12 +232,7 @@ onMounted(async () => {
       <template v-else-if="active === 'backups'">
         <section class="card">
           <h2>{{ t("kit.settingsSections.backups") }}</h2>
-          <p class="hint">
-            The backup covers this tool's own data — connections, presets, models
-            configuration, the reviewer name. Your locale files and accepted
-            translations live in your project folder and travel with it (git keeps
-            those safe).
-          </p>
+          <p class="hint">{{ t("settings.backupsHint") }}</p>
           <DataManagement app-name="just-ai-i18n-docgen" />
         </section>
       </template>
@@ -237,51 +240,48 @@ onMounted(async () => {
       <!-- Storage — JW's Data location + Disk usage, strings verbatim -->
       <template v-else-if="active === 'storage'">
         <section class="card">
-          <h2>Data location</h2>
-          <p class="hint">
-            One folder holds everything this tool saves — your connections, presets,
-            the AI engine and models, and logs. Delete the folder, delete it all.
-          </p>
+          <h2>{{ t("settings.storage.locationTitle") }}</h2>
+          <p class="hint">{{ t("settings.storage.locationHint") }}</p>
           <table class="ui-formgrid">
             <tbody>
               <tr>
-                <th>Folder</th>
-                <td class="mono">{{ isDesktop ? (storageRoot?.root || "—") : "headless — set by --data-dir / JUST_AI_I18N_DOCGEN_DATA_DIR" }}</td>
+                <th>{{ t("settings.storage.folder") }}</th>
+                <td class="mono">{{ isDesktop ? (storageRoot?.root || "—") : t("settings.storage.headlessFolder") }}</td>
               </tr>
               <tr v-if="isDesktop">
-                <th>Type</th>
-                <td>{{ storageRoot?.portable ? "Portable — beside the app" : "User folder" }}</td>
+                <th>{{ t("settings.storage.type") }}</th>
+                <td>{{ storageRoot?.portable ? t("settings.storage.portable") : t("settings.storage.userFolder") }}</td>
               </tr>
             </tbody>
           </table>
           <div class="row" style="margin-top: 12px" v-if="isDesktop">
             <UiButton
-              intent="secondary" :label="relocating ? 'Moving your data — the app will restart…' : 'Change folder…'"
+              intent="secondary" :label="relocating ? t('settings.storage.moving') : t('settings.storage.changeFolder')"
               :disabled="relocating" @click="changeFolder"
             />
           </div>
-          <p v-else class="hint" style="margin: 8px 0 0">Changing the folder is available in the desktop app.</p>
+          <p v-else class="hint" style="margin: 8px 0 0">{{ t("settings.storage.desktopOnly") }}</p>
           <p v-if="storageErr" class="mono setup__error">{{ storageErr }}</p>
         </section>
 
         <section class="card">
-          <h2>Disk usage</h2>
-          <p class="hint">Where the data folder's space goes — and what can be reclaimed.</p>
+          <h2>{{ t("settings.storage.diskTitle") }}</h2>
+          <p class="hint">{{ t("settings.storage.diskHint") }}</p>
           <div class="diskgrid">
-            <span class="muted">Models cache</span>
+            <span class="muted">{{ t("settings.storage.modelsCache") }}</span>
             <div class="row">
               <span>{{ diskSize(diskUsage?.modelsCache) }}</span>
               <UiButton intent="secondary" size="small" :disabled="!!diskBusy"
-                        :label="diskBusy === 'models' ? 'Clearing…' : t('kit.storage.clearShort')" @click="clearModelsCache" />
+                        :label="diskBusy === 'models' ? t('common.clearing') : t('kit.storage.clearShort')" @click="clearModelsCache" />
             </div>
-            <span class="muted">Engine spawn logs</span>
+            <span class="muted">{{ t("settings.storage.spawnLogs") }}</span>
             <div class="row">
               <span>{{ diskSize(diskUsage?.spawnLogs) }}</span>
               <UiButton intent="secondary" size="small" :disabled="!!diskBusy"
-                        :label="diskBusy === 'spawn' ? 'Clearing…' : t('kit.storage.clearShort')" @click="clearSpawnLogs" />
+                        :label="diskBusy === 'spawn' ? t('common.clearing') : t('kit.storage.clearShort')" @click="clearSpawnLogs" />
             </div>
-            <span class="muted">Engine builds</span><span>{{ diskSize(diskUsage?.engineBuilds) }}</span>
-            <span class="muted">Database</span><span>{{ diskSize(diskUsage?.database) }}</span>
+            <span class="muted">{{ t("settings.storage.engineBuilds") }}</span><span>{{ diskSize(diskUsage?.engineBuilds) }}</span>
+            <span class="muted">{{ t("settings.storage.database") }}</span><span>{{ diskSize(diskUsage?.database) }}</span>
             <span class="muted">{{ t("kit.storage.serverLogs") }}</span><span>{{ diskSize(diskUsage?.appLogs) }}</span>
             <span class="muted"><b>{{ t("kit.storage.total") }}</b></span><span><b>{{ diskSize(diskUsage?.total) }}</b></span>
             <span class="muted">{{ t("kit.storage.freeSpace") }}</span><span>{{ diskSize(diskUsage?.diskFree) }}</span>
@@ -293,14 +293,13 @@ onMounted(async () => {
       <!-- Server — headless access + bearer tokens (JW's section) -->
       <template v-else-if="active === 'server'">
         <section class="card">
-          <h2>Headless access</h2>
-          <p class="hint">
-            The server hosts the UI itself — <span class="mono">just-ai-i18n-docgen-server serve</span>
-            plus a browser gives the full app without the desktop shell.
-          </p>
+          <h2>{{ t("settings.server.headlessTitle") }}</h2>
+          <i18n-t keypath="settings.server.headlessHint" tag="p" class="hint" scope="global">
+            <template #command><code class="mono">just-ai-i18n-docgen-server serve</code></template>
+          </i18n-t>
           <table class="ui-formgrid">
             <tbody>
-              <tr><th>URL</th><td class="mono">{{ headlessUrl }}</td></tr>
+              <tr><th>{{ t("settings.server.url") }}</th><td class="mono">{{ headlessUrl }}</td></tr>
             </tbody>
           </table>
           <!-- The family headless/tray ruling (2026-08-04, JV's donor): OFF ⇒
@@ -311,41 +310,35 @@ onMounted(async () => {
               :model-value="ui.keepServerRunning"
               @update:model-value="setKeepRunning"
             />
-            <span>Keep server running after the app closes</span>
+            <span>{{ t("settings.server.keepRunning") }}</span>
           </label>
-          <p class="hint" style="margin-top: 4px">
-            With this on, closing the window hides the app to the tray and the
-            server keeps serving — use the tray to show the window again or quit
-            for real.
-          </p>
+          <p class="hint" style="margin-top: 4px">{{ t("settings.server.keepRunningHint") }}</p>
         </section>
         <section class="card">
-          <h2>Access tokens</h2>
+          <h2>{{ t("settings.server.tokensTitle") }}</h2>
           <!-- The donor's words (JW settings.server) — "loopback" was invented at
                port time; JW's user-facing label says localhost (audit 2026-08-05). -->
-          <p class="hint">
-            Off by default. Add a token to require an
-            <span class="mono">Authorization: Bearer</span> header on every
-            <span class="mono">/v1</span> API call — for when you run the server
-            exposed beyond this machine.
-          </p>
+          <i18n-t keypath="settings.server.tokensHint" tag="p" class="hint" scope="global">
+            <template #header><code class="mono">Authorization: Bearer</code></template>
+            <template #api><code class="mono">/v1</code></template>
+          </i18n-t>
           <table class="ui-formgrid" v-if="auth.tokens.length">
             <tbody>
-              <tr v-for="t in auth.tokens" :key="t">
-                <td class="mono">{{ t }}</td>
+              <tr v-for="token in auth.tokens" :key="token">
+                <td class="mono">{{ token }}</td>
                 <td style="width: 90px">
-                  <UiButton intent="ghost" size="small" label="Remove" @click="dropToken(t)" />
+                  <UiButton intent="ghost" size="small" :label="t('kit.common.remove')" @click="dropToken(token)" />
                 </td>
               </tr>
             </tbody>
           </table>
           <div class="row" style="margin-top: 10px">
-            <UiInput v-model="tokenDraft" width="name" placeholder="new token…" @keydown.enter="addToken" />
-            <UiButton intent="secondary" label="Add token" :disabled="!tokenDraft.trim()" @click="addToken" />
+            <UiInput v-model="tokenDraft" width="name" :placeholder="t('settings.server.tokenPlaceholder')" @keydown.enter="addToken" />
+            <UiButton intent="secondary" :label="t('settings.server.addToken')" :disabled="!tokenDraft.trim()" @click="addToken" />
           </div>
           <div class="row" style="margin-top: 12px">
             <UiToggle
-              :model-value="auth.requireForLoopback" label="Require a token even on localhost"
+              :model-value="auth.requireForLoopback" :label="t('settings.server.requireOnLocalhost')"
               @update:model-value="(v) => saveAuth({ requireForLoopback: v })"
             />
           </div>
@@ -355,8 +348,8 @@ onMounted(async () => {
       <!-- Logs -->
       <template v-else-if="active === 'logs'">
         <section class="card settings__logs">
-          <h2>Server logs</h2>
-          <p class="hint">The live ring + per-day files. What the engine actually did, when.</p>
+          <h2>{{ t("kit.storage.serverLogs") }}</h2>
+          <p class="hint">{{ t("settings.logsHint") }}</p>
           <LogsPanel />
         </section>
       </template>
@@ -372,16 +365,13 @@ onMounted(async () => {
 
       <template v-else-if="active === 'reviewer'">
         <section class="card">
-          <h2>Reviewer</h2>
-          <p class="hint">
-            Your name, stamped on every acceptance — so a verdict can say who made it.
-            Never taken from the OS. Tool-level: one name across every project.
-          </p>
+          <h2>{{ t("settings.reviewer.title") }}</h2>
+          <p class="hint">{{ t("settings.reviewer.hint") }}</p>
           <!-- Saved on blur/Enter, never per keystroke — typing "dana" used to PUT
                four times, and a mid-word snapshot could stamp an acceptance
                (audit 2026-08-05). -->
           <UiInput
-            v-model="reviewerDraft" width="name" placeholder="your name"
+            v-model="reviewerDraft" width="name" :placeholder="t('settings.reviewer.placeholder')"
             @blur="saveReviewer" @keydown.enter="saveReviewer"
           />
         </section>
@@ -390,14 +380,14 @@ onMounted(async () => {
       <!-- About -->
       <template v-else>
         <section class="card">
-          <h2>Just AI i18n &amp; DocGen</h2>
-          <p class="hint">Simple translation &amp; help docs for your application — translated locally or online, verified, and reviewed by you.</p>
+          <h2>{{ t("app.name") }}</h2>
+          <p class="hint">{{ t("settings.about.blurb") }}</p>
           <table class="ui-formgrid">
             <tbody>
-              <tr><th>Version</th><td class="mono">0.1.0</td></tr>
+              <tr><th>{{ t("settings.about.version") }}</th><td class="mono">{{ APP_VERSION }}</td></tr>
               <tr>
-                <th>Source</th>
-                <td><a href="https://github.com/delebash/just_ai_i18n_docgen" @click.prevent="openExternal('https://github.com/delebash/just_ai_i18n_docgen')">github.com/delebash/just_ai_i18n_docgen</a></td>
+                <th>{{ t("settings.about.source") }}</th>
+                <td><a :href="SOURCE_URL" @click.prevent="openExternal(SOURCE_URL)">{{ SOURCE_URL.replace("https://", "") }}</a></td>
               </tr>
             </tbody>
           </table>

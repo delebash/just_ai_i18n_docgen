@@ -77,7 +77,7 @@ export default defineBoot(async (ctx) => {
     document.getElementById("app-boot")?.remove();
     const el = document.getElementById("q-app");
     if (el && !el.childElementCount) {
-      el.textContent = `The app could not start: ${e?.message || e}`;
+      el.textContent = i18n.global.t("app.couldNotStart", { error: e?.message || e });
     }
     throw e;
   }

@@ -10,6 +10,7 @@
 // reviewer works a couple of hundred items, and doing that with a mouse is the
 // difference between a tool people use and one they abandon.
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import {
   EmptyState, PaneHeader, UiButton, UiCheckbox, UiInput, UiSelect, UiTag,
   UiTextarea, confirmDialog, pushToast, serverUrl,
@@ -23,6 +24,7 @@ import { pageFlow } from "@delebash/llm-ui";
 const project = useProjectStore();
 const review = useReviewStore();
 const route = useRoute();
+const { t } = useI18n();
 const draft = ref("");
 const noteDraft = ref("");
 const busy = ref(false);
@@ -30,20 +32,20 @@ const showGoogle = ref(false);
 const backBusy = ref(false);
 const scroller = ref(null);
 
-/** Plain-English for the check codes. A code alone tells a reviewer nothing. */
-const WHY = {
-  "spurious-interrogative": "the source is a statement, but the translation is a question",
-  startpunc: "this language opens questions and exclamations with a paired mark — one is missing or unpaired",
-  endpunc: "the source and the translation end with different punctuation",
-  untranslated: "the translation is identical to the English",
-  "placeholder-changed": "an interpolation like {count} was lost, changed or duplicated",
-  "plural-halves-lost": "a plural form either side of | disappeared",
-  "plural-halves-identical": "the two halves either side of | are the same, so the plural does nothing",
-  "glossary-translated": "a do-not-translate term was translated",
-  blank: "the translation is empty",
-  missing: "this key has no translation at all",
-  disagreement: "a second pass worded this differently — the model was unsure here",
-  terminology: "this uses a different word than the rest of the catalogue does for the same term",
+/** Plain words for the check codes (their keys). A code alone tells a reviewer nothing. */
+const WHY_KEYS = {
+  "spurious-interrogative": "review.why.spuriousInterrogative",
+  startpunc: "review.why.startpunc",
+  endpunc: "review.why.endpunc",
+  untranslated: "review.why.untranslated",
+  "placeholder-changed": "review.why.placeholderChanged",
+  "plural-halves-lost": "review.why.pluralHalvesLost",
+  "plural-halves-identical": "review.why.pluralHalvesIdentical",
+  "glossary-translated": "review.why.glossaryTranslated",
+  blank: "review.why.blank",
+  missing: "review.why.missing",
+  disagreement: "review.why.disagreement",
+  terminology: "review.why.terminology",
 };
 
 // The picker says which languages have work, and how much — this page IS the work, so
@@ -98,7 +100,7 @@ function onKey(e) {
     e: () => document.querySelector(".review-detail textarea")?.focus(),
     g: () => { showGoogle.value = !showGoogle.value; },
     b: () => backtranslate(),
-    "/": () => document.querySelector('input[placeholder^="key or text"]')?.focus(),
+    "/": () => document.querySelector(".review-search input")?.focus(),
   }[e.key];
   if (go) {
     e.preventDefault();
@@ -171,11 +173,11 @@ const gtSrc = computed(() => {
 });
 
 const queueEmptyMessage = computed(() => {
-  if (review.search || review.code) return "Nothing here. Try another bucket, or clear the search.";
+  if (review.search || review.code) return t("review.emptySearch");
   if (review.staged.length)
-    return `Nothing flagged — apply the ${review.staged.length} staged translation(s) above and the checks run on what gets written.`;
-  if (!review.lang) return "Nothing to review yet.";
-  return `Nothing to review — the gate is green for ${langName(review.lang)}.`;
+    return t("review.emptyStaged", { n: review.staged.length }, review.staged.length);
+  if (!review.lang) return t("review.emptyNoLang");
+  return t("review.emptyGreen", { lang: langName(review.lang) });
 });
 
 // Every mutation says when it FAILED — a server error must never read as a no-op.
@@ -188,40 +190,40 @@ async function saveDraft() {
   try {
     const out = await review.save(row, draft.value);
     pushToast(out.flags.length
-      ? { kind: "info", title: "Saved — still flagged", description: out.flags.map((f) => f.code).join(", ") }
-      : { kind: "success", title: "Saved, checks clean" });
-  } catch (e) { toastFail("Save failed")(e); }
+      ? { kind: "info", title: t("review.savedFlagged"), description: out.flags.map((f) => f.code).join(", ") }
+      : { kind: "success", title: t("review.savedClean") });
+  } catch (e) { toastFail(t("review.saveFailed"))(e); }
 }
 async function acceptActive() {
   const row = review.activeRow;
   if (!row) return;
   try {
     await review.accept(row);
-    pushToast({ kind: "success", title: "Accepted as correct", description: row.key });
-  } catch (e) { toastFail("Accept failed")(e); }
+    pushToast({ kind: "success", title: t("review.accepted"), description: row.key });
+  } catch (e) { toastFail(t("review.acceptFailed"))(e); }
 }
 async function acceptPicked() {
   try {
     const out = await review.acceptPicked();
-    pushToast({ kind: "success", title: `${out.recorded} finding(s) accepted`,
-                description: "One click, one undo." });
-  } catch (e) { toastFail("Accept failed")(e); }
+    pushToast({ kind: "success", title: t("review.acceptedN", { n: out.recorded }, out.recorded),
+                description: t("review.oneUndo") });
+  } catch (e) { toastFail(t("review.acceptFailed"))(e); }
 }
 const unacceptActive = () =>
-  review.unaccept(review.activeRow.lang, review.activeRow.key).catch(toastFail("Unaccept failed"));
+  review.unaccept(review.activeRow.lang, review.activeRow.key).catch(toastFail(t("review.unacceptFailed")));
 const unacceptEntry = (entry) =>
-  review.unaccept(review.lang, entry.key).catch(toastFail("Unaccept failed"));
+  review.unaccept(review.lang, entry.key).catch(toastFail(t("review.unacceptFailed")));
 const applyProposalActive = () =>
-  review.applyProposal(review.activeRow).catch(toastFail("Apply failed"));
+  review.applyProposal(review.activeRow).catch(toastFail(t("review.applyFailed")));
 const discardProposalActive = () =>
-  review.discardProposal(review.activeRow).catch(toastFail("Discard failed"));
-const undoLast = () => review.undo().catch(toastFail("Nothing undone"));
+  review.discardProposal(review.activeRow).catch(toastFail(t("review.discardFailed")));
+const undoLast = () => review.undo().catch(toastFail(t("review.nothingUndone")));
 async function saveNote() {
   try {
     await review.setNote(review.activeRow, noteDraft.value);
-    pushToast({ kind: "success", title: "Note saved",
-                description: "It will be sent with this key on the next translation." });
-  } catch (e) { toastFail("Note not saved")(e); }
+    pushToast({ kind: "success", title: t("review.noteSaved"),
+                description: t("review.noteSavedBody") });
+  } catch (e) { toastFail(t("review.noteFailed"))(e); }
 }
 async function backtranslate() {
   if (!review.activeRow || backBusy.value) return;
@@ -229,7 +231,7 @@ async function backtranslate() {
   try {
     await review.backtranslate(review.activeRow);
   } catch (e) {
-    toastFail("Back-translation failed")(e);
+    toastFail(t("review.backFailed"))(e);
   } finally {
     backBusy.value = false;
   }
@@ -244,32 +246,32 @@ async function applyAll() {
   const n = review.staged.length;
   if (!n || busy.value) return;
   const ok = await confirmDialog({
-    title: `Apply ${n} translation${n === 1 ? "" : "s"} to ${langName(review.lang)}?`,
-    message: `This writes ${review.lang}.json — the first time anything in this run touches your locale file. It is one Undo if it looks wrong.`,
-    confirmLabel: `Apply ${n}`,
+    title: t("review.applyTitle", { n, lang: langName(review.lang) }, n),
+    message: t("review.applyMessage", { file: `${review.lang}.json` }),
+    confirmLabel: t("review.applyConfirm", { n }),
   });
   if (!ok) return;
   busy.value = true;
   try {
     const out = await review.applyAllStaged();
-    pushToast({ kind: "success", title: `${out.applied.length} applied to ${review.lang}.json`,
-                description: "One click, one Undo — the checks re-ran on what was written." });
-  } catch (e) { toastFail("Apply failed")(e); } finally { busy.value = false; }
+    pushToast({ kind: "success", title: t("review.appliedTo", { n: out.applied.length, file: `${review.lang}.json` }),
+                description: t("review.appliedBody") });
+  } catch (e) { toastFail(t("review.applyFailed"))(e); } finally { busy.value = false; }
 }
 async function discardAll() {
   const n = review.staged.length;
   if (!n || busy.value) return;
   const ok = await confirmDialog({
-    title: `Discard ${n} staged translation${n === 1 ? "" : "s"}?`,
-    message: "The run's output is thrown away. Your locale file is untouched — nothing was written yet — and re-running translates them again. One Undo brings the pile back.",
-    confirmLabel: "Discard them",
+    title: t("review.discardTitle", { n }, n),
+    message: t("review.discardMessage"),
+    confirmLabel: t("review.discardConfirm"),
   });
   if (!ok) return;
   busy.value = true;
   try {
     await review.discardAllStaged();
-    pushToast({ kind: "info", title: `${n} staged translation(s) discarded` });
-  } catch (e) { toastFail("Discard failed")(e); } finally { busy.value = false; }
+    pushToast({ kind: "info", title: t("review.discarded", { n }, n) });
+  } catch (e) { toastFail(t("review.discardFailed"))(e); } finally { busy.value = false; }
 }
 </script>
 
@@ -277,7 +279,7 @@ async function discardAll() {
   <!-- Column wrap so the family header (kit PaneHeader — parity batch
        2026-08-06) sits above the full-height rail+detail layout. -->
   <q-page :style-fn="pageFlow" class="review-pane">
-  <PaneHeader eyebrow="Translating" title="Review" help-key="review" />
+  <PaneHeader :eyebrow="t('common.translating')" :title="t('nav.review')" help-key="review" />
   <div class="review">
     <!-- ── the queue rail: buckets · by check · search (the original's QueuePane) ── -->
     <nav class="review-rail">
@@ -285,13 +287,13 @@ async function discardAll() {
         <UiSelect v-model="review.lang" :options="langChoices" width="id"
                   @update:model-value="(l) => review.refresh(l)" />
       </div>
-      <h3>Queue</h3>
+      <h3>{{ t("review.queue") }}</h3>
       <button
         v-for="b in BUCKETS" :key="b.id" class="bucket"
         :class="{ on: review.bucket === b.id && !review.code }"
         @click="review.pickBucket(b.id)"
       >
-        {{ b.label }}
+        {{ t(b.labelKey) }}
         <span class="n">{{ review.bucketCounts[b.id] ?? 0 }}</span>
       </button>
       <!-- The Accepted surface: accepted rows never reach the queue (the acceptance
@@ -299,12 +301,12 @@ async function discardAll() {
            audit's guaranteed no-op. -->
       <button class="bucket" :class="{ on: review.bucket === 'accepted' }"
               @click="review.pickBucket('accepted')">
-        Accepted
+        {{ t("review.bucket.accepted") }}
         <span class="n">{{ review.accepted }}</span>
       </button>
 
       <template v-if="review.bucket !== 'accepted' && codesInBucket.length">
-        <h3>By check</h3>
+        <h3>{{ t("review.byCheck") }}</h3>
         <button
           v-for="[c, n] in codesInBucket" :key="c" class="bucket"
           :class="{ on: review.code === c }"
@@ -315,12 +317,12 @@ async function discardAll() {
         </button>
       </template>
 
-      <h3>Search</h3>
+      <h3>{{ t("review.search") }}</h3>
       <div style="padding: 0 6px">
-        <UiInput v-model="review.search" placeholder="key or text…" />
+        <UiInput v-model="review.search" class="review-search" :placeholder="t('review.searchPlaceholder')" />
       </div>
       <div style="padding: 6px">
-        <UiButton intent="ghost" size="small" label="Undo last (u)" @click="undoLast" />
+        <UiButton intent="ghost" size="small" :label="t('review.undoLast')" @click="undoLast" />
       </div>
     </nav>
 
@@ -329,13 +331,13 @@ async function discardAll() {
       <!-- The staged pile: what the run produced and has NOT been written yet. -->
       <div v-if="review.staged.length && review.bucket !== 'accepted'" class="staged">
         <div>
-          <b>{{ review.staged.length }} translation{{ review.staged.length === 1 ? "" : "s" }} ready</b>
-          <span class="muted"> — staged by the last run; your {{ review.lang }}.json is untouched so far.</span>
+          <b>{{ t("review.ready", { n: review.staged.length }, review.staged.length) }}</b>
+          <span class="muted">{{ t("review.readyNote", { file: `${review.lang}.json` }) }}</span>
         </div>
         <div class="row" style="margin-top: 8px">
           <UiButton intent="primary" size="small" :disabled="busy"
-                    :label="`Apply all ${review.staged.length}`" @click="applyAll" />
-          <UiButton intent="ghost" size="small" :disabled="busy" label="Discard them" @click="discardAll" />
+                    :label="t('review.applyAll', { n: review.staged.length })" @click="applyAll" />
+          <UiButton intent="ghost" size="small" :disabled="busy" :label="t('review.discardConfirm')" @click="discardAll" />
         </div>
       </div>
 
@@ -345,16 +347,16 @@ async function discardAll() {
         <UiCheckbox
           :model-value="allPicked"
           :label="review.pickedRows.length
-            ? `${review.pickedRows.length} of ${review.visible.length} ticked`
-            : `select all ${review.visible.length}`"
+            ? t('review.tickedOf', { picked: review.pickedRows.length, total: review.visible.length })
+            : t('review.selectAllN', { n: review.visible.length })"
           @update:model-value="review.pickAll($event)"
         />
         <span class="spacer" />
         <UiButton v-if="confirmedCount" intent="secondary" size="small"
-                  :label="`tick the ${confirmedCount} the engine calls correct`"
+                  :label="t('review.tickConfirmed', { n: confirmedCount })"
                   @click="review.pickConfirmed()" />
         <UiButton intent="primary" size="small" :disabled="!review.pickedRows.length"
-                  :label="`Approve ${review.pickedRows.length || ''}`" @click="acceptPicked" />
+                  :label="t('review.approve', { n: review.pickedRows.length || '' })" @click="acceptPicked" />
       </div>
 
       <!-- The Accepted list (bucket 'accepted'): every recorded verdict, revisitable. -->
@@ -363,12 +365,12 @@ async function discardAll() {
           <div>
             <span class="k mono">{{ a.key }}</span>
             <UiTag intent="success" :value="a.code" />
-            <span class="muted"> by {{ a.by }}</span>
+            <span class="muted">{{ t("review.by", { name: a.by }) }}</span>
           </div>
-          <UiButton intent="ghost" size="small" label="Un-accept" @click="unacceptEntry(a)" />
+          <UiButton intent="ghost" size="small" :label="t('review.unaccept')" @click="unacceptEntry(a)" />
         </div>
         <EmptyState v-if="!review.acceptedEntries.length" compact icon="CheckSquare"
-                    message="Nothing accepted yet for this language." />
+                    :message="t('review.nothingAccepted')" />
       </div>
 
       <div v-else ref="scroller" class="review-rows" @scroll="onScroll">
@@ -390,7 +392,7 @@ async function discardAll() {
               />
               <span class="k">{{ r.key }}</span>
               <span v-if="verdictOf(r)" class="verdict" :class="verdictOf(r)">
-                {{ verdictOf(r) === "same" ? "correct?" : "skipped?" }}
+                {{ verdictOf(r) === "same" ? t("review.verdictSame") : t("review.verdictSkipped") }}
               </span>
               <span class="dots">
                 <i v-for="(f, i) in r.flags.slice(0, 4)" :key="i" class="dot"
@@ -408,18 +410,18 @@ async function discardAll() {
         <h2 class="mono" style="font-size: 13px">{{ review.activeRow.key }}</h2>
         <p class="hint">
           {{ review.activeRow.lang }} ·
-          {{ review.activeRow.key.split('.').slice(0, -1).join(' › ') || 'root' }}
+          {{ review.activeRow.key.split('.').slice(0, -1).join(' › ') || t('review.root') }}
         </p>
         <!-- why is this flagged — the code, plus what the check looks for in plain English -->
         <div v-if="review.activeRow.flags.length" style="margin-bottom: 8px">
           <div v-for="(f, i) in hard" :key="`h${i}`" class="finding">
-            <span class="code">{{ f.code }}</span>{{ WHY[f.code] ?? f.detail }}
+            <span class="code">{{ f.code }}</span>{{ WHY_KEYS[f.code] ? t(WHY_KEYS[f.code]) : f.detail }}
           </div>
           <div v-for="(f, i) in soft" :key="`s${i}`" class="finding advisory">
             <span class="code">{{ f.code }}</span>{{ f.detail }}
             <template v-if="f.confirmed">
-              <br /><span class="muted">engine says: {{ f.confirmed === 'same' ? 'correct as-is' : 'looks skipped' }}
-              <template v-if="f.suggestion"> — suggests “{{ f.suggestion }}” (not applied)</template>
+              <br /><span class="muted">{{ t("review.engineSays", { verdict: f.confirmed === 'same' ? t('review.engineSame') : t('review.engineSkipped') }) }}
+              <template v-if="f.suggestion">{{ t("review.engineSuggests", { suggestion: f.suggestion }) }}</template>
               ({{ f.confirmedBy }})</span>
             </template>
           </div>
@@ -432,86 +434,78 @@ async function discardAll() {
         </div>
         <UiTextarea v-model="draft" class="detail-text" />
         <div class="row" style="margin-top: 8px">
-          <UiButton intent="primary" label="Save" @click="saveDraft" />
-          <UiButton intent="secondary" label="Accept as correct" title="a" @click="acceptActive" />
-          <UiButton intent="ghost" label="Unaccept" @click="unacceptActive" />
-          <UiButton intent="ghost" label="Skip" title="j" @click="review.move(1)" />
+          <UiButton intent="primary" :label="t('review.save')" @click="saveDraft" />
+          <UiButton intent="secondary" :label="t('review.acceptAsCorrect')" :title="t('review.shortcut', { key: 'a' })" @click="acceptActive" />
+          <UiButton intent="ghost" :label="t('review.unacceptButton')" @click="unacceptActive" />
+          <UiButton intent="ghost" :label="t('review.skip')" :title="t('review.shortcut', { key: 'j' })" @click="review.move(1)" />
         </div>
       </div>
 
       <!-- what a run proposed — never applied by anyone but you -->
       <div class="card" v-if="activeProposal">
-        <h2>Proposed by {{ activeProposal.engine }}</h2>
+        <h2>{{ t("review.proposedBy", { engine: activeProposal.engine }) }}</h2>
         <div class="srcbox">{{ activeProposal.value }}</div>
         <div class="row" style="margin-top: 8px">
-          <UiButton intent="secondary" size="small" label="Use this" @click="useProposal" />
-          <UiButton intent="primary" size="small" label="Apply" @click="applyProposalActive" />
-          <UiButton intent="ghost" size="small" label="Discard" @click="discardProposalActive" />
+          <UiButton intent="secondary" size="small" :label="t('review.useThis')" @click="useProposal" />
+          <UiButton intent="primary" size="small" :label="t('common.apply')" @click="applyProposalActive" />
+          <UiButton intent="ghost" size="small" :label="t('common.discard')" @click="discardProposalActive" />
         </div>
       </div>
 
       <!-- the Google second opinion (g) — an iframe over the server's /v1/gt-frame crop -->
       <div class="card">
         <div class="row">
-          <h2 style="margin: 0">Second opinion — Google Translate</h2>
+          <h2 style="margin: 0">{{ t("review.googleTitle") }}</h2>
           <span class="spacer" />
-          <UiButton intent="ghost" size="small" :label="showGoogle ? 'Hide' : 'Show'" title="g"
+          <UiButton intent="ghost" size="small" :label="showGoogle ? t('review.hide') : t('review.show')" :title="t('review.shortcut', { key: 'g' })"
                     @click="showGoogle = !showGoogle" />
         </div>
         <div v-if="showGoogle" class="gtclip">
-          <iframe :src="gtSrc" title="Google Translate" />
+          <iframe :src="gtSrc" :title="t('review.googleFrame')" />
         </div>
-        <p v-else class="hint" style="margin: 6px 0 0">
-          An independent reading. Neither source is reliably better — on one measured key the
-          local model was right and Google wrong; on another, the reverse. Copy it across only
-          if you agree.
-        </p>
+        <p v-else class="hint" style="margin: 6px 0 0">{{ t("review.googleHint") }}</p>
       </div>
 
       <!-- what it says in English (b) -->
       <div class="card">
         <div class="row">
-          <h2 style="margin: 0">What it says in English</h2>
+          <h2 style="margin: 0">{{ t("review.englishTitle") }}</h2>
           <span class="spacer" />
-          <UiButton intent="ghost" size="small" :label="review.detail?.english ? 'Again' : 'Read it back'"
-                    title="b" :disabled="backBusy" @click="backtranslate" />
+          <UiButton intent="ghost" size="small" :label="review.detail?.english ? t('review.again') : t('review.readBack')"
+                    :title="t('review.shortcut', { key: 'b' })" :disabled="backBusy" @click="backtranslate" />
         </div>
         <p :class="review.detail?.english ? '' : 'hint'" style="margin: 6px 0 0">
-          {{ review.detail?.english
-            || 'Renders your translation back into English with the local model. Catches wrong words — not every defect, since an ambiguous source round-trips unchanged.' }}
+          {{ review.detail?.english || t("review.englishHint") }}
         </p>
       </div>
 
       <div class="card" v-if="review.detail?.siblings?.length">
-        <h2>Siblings</h2>
-        <p class="hint">The same namespace — how the pattern is rendered next door.</p>
+        <h2>{{ t("review.siblings") }}</h2>
+        <p class="hint">{{ t("review.siblingsHint") }}</p>
         <div v-for="s in review.detail.siblings" :key="s.key" class="sib">
           <span>{{ s.source }}</span><span>{{ s.target }}</span>
         </div>
       </div>
 
       <div class="card">
-        <h2>Note for the next run</h2>
-        <p class="hint">
-          Sent WITH this key next time it translates — how "Why:" stops coming back as
-          "¿Por qué?". Fix it once, it stays fixed.
-        </p>
+        <h2>{{ t("review.noteTitle") }}</h2>
+        <p class="hint">{{ t("review.noteHint") }}</p>
         <div class="row">
           <UiTextarea v-model="noteDraft" class="detail-text" style="min-height: 40px"
-                      placeholder="e.g. a label above a reasoning block, not a question" />
+                      :placeholder="t('review.notePlaceholder')" />
         </div>
         <div class="row" style="margin-top: 8px">
-          <UiButton intent="secondary" label="Save note" @click="saveNote" />
+          <UiButton intent="secondary" :label="t('review.saveNote')" @click="saveNote" />
         </div>
       </div>
     </div>
     <div class="review-detail" v-else-if="review.bucket !== 'accepted'">
-      <EmptyState icon="CheckSquare" title="Nothing selected"
-                  :message="review.visible.length ? 'Pick a key, or press j to start.' : queueEmptyMessage" />
+      <EmptyState icon="CheckSquare" :title="t('review.nothingSelected')"
+                  :message="review.visible.length ? t('review.pickKey') : queueEmptyMessage" />
     </div>
     <div class="review-detail" v-else>
-      <EmptyState icon="CheckSquare" title="Accepted verdicts"
-                  message="Every entry names its check, pair of strings and reviewer. Un-accept puts a key back in the queue — a decision can always be revisited." />
+      <EmptyState icon="CheckSquare" :title="t('review.acceptedTitle')"
+                  :message="t('review.acceptedBody')" />
     </div>
   </div>
   </q-page>

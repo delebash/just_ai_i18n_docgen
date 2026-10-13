@@ -2,6 +2,10 @@
 
 ## v0.1.0
 
+- **Settings → Appearance has a Language picker.** Every word on docgen's own screens now comes
+  from its catalog (`src/i18n/locales/en.json`), so the interface can follow the language you
+  pick once its words are translated — today English is the only one
+  ([Settings](settings.md))
 - The engine's Update button works again (it had stopped appearing when llama.cpp
   changed how it labels releases). It offers llama.cpp's newest official release or the
   build the app is tested with, whichever is newer, and an update can no longer leave you

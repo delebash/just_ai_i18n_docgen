@@ -8,6 +8,7 @@
 // The run strip is the kit's AiTaskStrip over the translate task the jobs store
 // registers — same surface as the AI-tasks panel, no bespoke strip.
 import { computed, onMounted, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import {
   AiTaskStrip, Icon, PaneHeader, UiButton, UiCheckbox, UiInput, UiProgress,
@@ -23,6 +24,7 @@ const project = useProjectStore();
 const jobs = useJobsStore();
 const aiTasks = useAiTasksStore();
 const router = useRouter();
+const { t } = useI18n();
 
 const filter = ref("");
 const selected = ref([]);
@@ -77,16 +79,16 @@ const allTicked = computed(
 
 // `sortable` is the kit column key (audit 2026-08-05: `enableSorting: false` was
 // TanStack's name, silently ignored — no column sorted at all).
-const COLUMNS = [
+const columns = computed(() => [
   { id: "sel", header: "" },
-  { id: "name", header: "Language", accessorKey: "name", sortable: true },
-  { id: "progress", header: "Progress", accessorKey: "done", sortable: true },
+  { id: "name", header: t("common.language"), accessorKey: "name", sortable: true },
+  { id: "progress", header: t("home.colProgress"), accessorKey: "done", sortable: true },
   // "Status", not "Findings": the chips under it say "not yet translated" / "6 staged"
   // / "clean" as often as they say findings.
-  { id: "findings", header: "Status", accessorKey: "findings", sortable: true },
-  { id: "lastRun", header: "Last run" },
+  { id: "findings", header: t("home.colStatus"), accessorKey: "findings", sortable: true },
+  { id: "lastRun", header: t("home.colLastRun") },
   { id: "go", header: "" },
-];
+]);
 
 function toggle(code, on) {
   selected.value = on
@@ -104,7 +106,7 @@ async function translate(codes) {
   try {
     await jobs.startMany([...codes], "pending");
   } catch (e) {
-    pushToast({ kind: "error", title: "Could not start", description: String(e?.message || e) });
+    pushToast({ kind: "error", title: t("common.couldNotStart"), description: String(e?.message || e) });
   }
 }
 function lastRunLabel(l) {
@@ -118,25 +120,25 @@ function lastRunLabel(l) {
          /offline — JW's pattern): a dead server breaks every view, not just Home. -->
     <!-- CONFIRMED no project (409): the welcome — what this is, and the two ways in. -->
     <div v-if="project.noProject" class="intro">
-      <img class="intro__plate" :src="splashPlate" alt="Just AI i18n DocGen" />
+      <img class="intro__plate" :src="splashPlate" :alt="t('app.name')" />
       <div class="intro__steps">
         <div class="intro__step">
-          <b>1 · Point</b>
-          <span>at your en.json — the tool reads the locale folder and reports what it found.</span>
+          <b>{{ t("home.intro.point") }}</b>
+          <span>{{ t("home.intro.pointBody") }}</span>
         </div>
         <div class="intro__step">
-          <b>2 · Translate</b>
-          <span>locally and free with your own AI engine — or any online provider you connect.</span>
+          <b>{{ t("home.intro.translate") }}</b>
+          <span>{{ t("home.intro.translateBody") }}</span>
         </div>
         <div class="intro__step">
-          <b>3 · Review</b>
-          <span>every finding, accept what's right, and ship translations you've actually seen.</span>
+          <b>{{ t("home.intro.review") }}</b>
+          <span>{{ t("home.intro.reviewBody") }}</span>
         </div>
       </div>
       <!-- ONE door (ruling R3, 2026-08-04): the permanent "Set up local AI" button is
            retired — the once-ever kit AiSetupOffer (layouts/MainLayout.vue) owns first AI contact. -->
       <div class="row" style="justify-content: center; gap: 12px">
-        <UiButton intent="primary" label="Open Setup" @click="router.push('/setup')" />
+        <UiButton intent="primary" :label="t('home.openSetup')" @click="router.push('/setup')" />
       </div>
     </div>
 
@@ -144,42 +146,42 @@ function lastRunLabel(l) {
          keep retrying — a blank page reads as broken (audit 2026-08-05). -->
     <div v-else-if="project.serverDown" class="intro">
       <p class="muted" style="text-align: center">
-        Can't reach the server — retrying…
+        {{ t("home.serverDown") }}
       </p>
     </div>
 
     <div v-else-if="project.summary" class="dash">
       <!-- The family header shape (kit PaneHeader — parity batch 2026-08-06);
            the key-count line + status tags ride the actions slot. -->
-      <PaneHeader eyebrow="Project" :title="project.appName" help-key="getting-started">
-        <p class="page-sub head-sub">
-          {{ project.summary.keyCount.toLocaleString() }} keys · source
-          <span class="mono">{{ project.summary.source }}</span> ·
-          {{ project.summary.langs.length }} language{{ project.summary.langs.length === 1 ? "" : "s" }}
-        </p>
-        <UiTag v-if="totals.findings" intent="danger" :value="`${totals.findings} findings`" />
-        <UiTag v-if="totals.staged" intent="info" :value="`${totals.staged} staged`" />
-        <UiTag v-if="totals.accepted" intent="success" :value="`${totals.accepted} accepted`" />
+      <PaneHeader :eyebrow="t('common.project')" :title="project.appName" help-key="getting-started">
+        <i18n-t keypath="home.headSub" tag="p" class="page-sub head-sub" scope="global">
+          <template #keys>{{ project.summary.keyCount.toLocaleString() }}</template>
+          <template #source><span class="mono">{{ project.summary.source }}</span></template>
+          <template #langs>{{ t("home.langCount", { n: project.summary.langs.length }, project.summary.langs.length) }}</template>
+        </i18n-t>
+        <UiTag v-if="totals.findings" intent="danger" :value="t('home.findings', { n: totals.findings }, totals.findings)" />
+        <UiTag v-if="totals.staged" intent="info" :value="t('home.staged', { n: totals.staged })" />
+        <UiTag v-if="totals.accepted" intent="success" :value="t('home.accepted', { n: totals.accepted })" />
       </PaneHeader>
 
       <AiTaskStrip v-if="translateTask" class="dash__strip" :task="translateTask" />
 
       <div class="dash__tools">
-        <UiInput v-model="filter" placeholder="Filter languages…" width="id" />
+        <UiInput v-model="filter" :placeholder="t('home.filter')" width="id" />
         <span class="spacer" />
-        <router-link class="quiet-link" to="/runs">advanced runs ›</router-link>
+        <router-link class="quiet-link" to="/runs">{{ t("home.advancedRuns") }}</router-link>
         <UiButton
           intent="primary"
-          :label="running ? 'Running…' : `Translate${selected.length ? ` (${selected.length})` : ''}`"
+          :label="running ? t('home.running') : selected.length ? t('home.translateN', { n: selected.length }) : t('common.translate')"
           :disabled="!selected.length || running"
-          title="Missing + flagged keys for the ticked languages"
+          :title="t('home.translateHint')"
           @click="translate(selected)"
         />
       </div>
 
       <div class="dash__scroll">
         <UiTable
-          :data="rows" :columns="COLUMNS" data-key="code"
+          :data="rows" :columns="columns" data-key="code"
           :global-filter="filter" :global-filter-fields="['name', 'code']"
           row-hover
         >
@@ -188,7 +190,7 @@ function lastRunLabel(l) {
                kit's UiTable grew a head-<id> slot (2026-08-03). -->
           <template #head-sel>
             <span @click.stop>
-              <UiCheckbox :model-value="allTicked" title="Select every language"
+              <UiCheckbox :model-value="allTicked" :title="t('home.selectAll')"
                           @update:model-value="toggleAll" />
             </span>
           </template>
@@ -216,24 +218,24 @@ function lastRunLabel(l) {
                  with staged work is the first-run state, not "nothing happened"
                  ('not yet translated' beside a finished Last run read as a failed
                  run — the fr row, 2026-08-03). -->
-            <UiTag v-if="row.done === 0 && !row.staged" intent="secondary" value="not yet translated" />
+            <UiTag v-if="row.done === 0 && !row.staged" intent="secondary" :value="t('home.notYetTranslated')" />
             <template v-else>
-              <UiTag v-if="row.findings" intent="danger" :value="`${row.findings} findings`" />
-              <UiTag v-if="row.unreviewed" intent="secondary" :value="`${row.unreviewed} unreviewed`" />
-              <UiTag v-if="row.staged" intent="info" :value="`${row.staged} staged`" />
-              <UiTag v-if="!row.findings && row.done === row.total" intent="success" value="clean" />
+              <UiTag v-if="row.findings" intent="danger" :value="t('home.findings', { n: row.findings }, row.findings)" />
+              <UiTag v-if="row.unreviewed" intent="secondary" :value="t('home.unreviewed', { n: row.unreviewed })" />
+              <UiTag v-if="row.staged" intent="info" :value="t('home.staged', { n: row.staged })" />
+              <UiTag v-if="!row.findings && row.done === row.total" intent="success" :value="t('home.clean')" />
             </template>
           </template>
           <template #lastRun="{ row }">
             <span class="muted">{{ lastRunLabel(row) }}</span>
           </template>
           <template #go="{ row }">
-            <button class="iconbtn iconbtn--quiet" title="Review" @click="openReview(row.code)">
+            <button class="iconbtn iconbtn--quiet" :title="t('nav.review')" @click="openReview(row.code)">
               <Icon name="ChevRight" :size="14" />
             </button>
           </template>
           <template #empty>
-            <span class="muted">No language matches the filter.</span>
+            <span class="muted">{{ t("home.noMatch") }}</span>
           </template>
         </UiTable>
       </div>

@@ -22,7 +22,9 @@
     "test": "npm test --prefix e2e",
     "screenshots": "node e2e/capture-direct.js",
     "test:unit": "vitest run",
-    "cli": "node scripts/node24.js server/src/cli.js"
+    "cli": "node scripts/node24.js server/src/cli.js",
+    "i18n:lint": "eslint -c eslint.i18n.config.js \"src/**/*.{js,vue}\"",
+    "i18n:report": "vue-i18n-extract report --vueFiles \"src/**/*.?(js|vue)\" --languageFiles \"{src/i18n/locales,../just-llm-runner/ui/src/i18n/locales}/en.json\" --exclude kit."
   },
   "dependencies": {
     "@delebash/llm-runner": "file:../just-llm-runner/server",
@@ -31,18 +33,24 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
+    "@eslint/compat": "^2.1.1",
     "@floating-ui/dom": "^1.8.0",
+    "@intlify/eslint-plugin-vue-i18n": "^4.5.1",
     "@quasar/app-vite": "^3.10.2",
     "@vitejs/plugin-vue": "^6.0.9",
     "@vueuse/core": "^15.0.0",
     "autoprefixer": "^10.6.1",
+    "eslint": "^10.12.0",
+    "eslint-plugin-i18next": "^6.1.5",
     "jsdom": "^30.1.2",
     "marked": "^18.1.0",
     "pinia": "^4.0.3",
     "postcss": "^8.5.29",
     "vitest": "^5.0.3",
     "vue": "^3.5.43",
+    "vue-eslint-parser": "^10.4.1",
     "vue-i18n": "^11.4.14",
+    "vue-i18n-extract": "^2.0.7",
     "vue-router": "^5.4.0"
   },
   "allowScripts": {

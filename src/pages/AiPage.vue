@@ -36,7 +36,7 @@ onMounted(async () => {
   <q-page :style-fn="pageFlow" class="ai-page">
     <!-- The family header shape (kit PaneHeader) with JW's canon words for this
          page — same eyebrow, same title, every app. -->
-    <PaneHeader eyebrow="AI" title="Providers, routing &amp; usage" help-key="ai-providers" />
+    <PaneHeader :eyebrow="$t('ai.eyebrow')" :title="$t('ai.title')" help-key="ai-providers" />
     <div class="ai-area">
       <!-- No @quick-setup-closed handler: closing the wizard used to fling you to Home,
            which is disorienting when you opened the AI page on purpose. You stay here. -->
@@ -46,8 +46,8 @@ onMounted(async () => {
       <AiModelsArea :auto-open-quick-setup="openWizardOnce"
         :initial-provider-scope="route.query.providers === 'online' ? 'online' : ''"
         :data-links="[
-          { label: 'Context & glossary', href: '#/setup' },
-          { label: 'Per-key notes', href: '#/review' },
+          { label: $t('ai.linkContext'), href: '#/setup' },
+          { label: $t('ai.linkNotes'), href: '#/review' },
         ]" />
     </div>
   </q-page>

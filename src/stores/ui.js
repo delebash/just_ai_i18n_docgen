@@ -8,6 +8,7 @@
 import { defineStore } from "pinia";
 import { readPref, useModelApply, writePref } from "@delebash/llm-ui";
 import { applyAppearance, migrateAppearance } from "../services/appearance.js";
+import { i18n, LOCALE_CODES } from "../i18n/index.js";
 
 export const useUiStore = defineStore("ui", {
   state: () => ({
@@ -15,6 +16,8 @@ export const useUiStore = defineStore("ui", {
     aiOfferShown: readPref("aiOfferShown", false) === true, // the once-ever AI offer's flag (ruling R3)
     aiOfferOpen: false,
     keepServerRunning: readPref("keepServerRunning", false) === true, // the family headless ruling (2026-08-04)
+    // The interface language the user picked (Settings → Appearance); null = English, the default.
+    locale: readPref("locale", null),
   }),
   actions: {
     markAiOfferShown() {
@@ -43,6 +46,12 @@ export const useUiStore = defineStore("ui", {
     },
     boot() {
       applyAppearance(this.appearance);
+      if (this.locale && LOCALE_CODES.includes(this.locale)) i18n.global.locale.value = this.locale;
+    },
+    // The kit's LanguagePicker sets vue-i18n's locale; this keeps the choice.
+    setLocale(code) {
+      this.locale = code || null;
+      writePref("locale", this.locale);
     },
     setAppearance(patch) {
       this.appearance = { ...this.appearance, ...patch };

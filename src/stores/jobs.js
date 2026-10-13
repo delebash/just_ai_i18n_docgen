@@ -11,6 +11,7 @@
 // (JobStrip died 2026-08-03).
 import { defineStore } from "pinia";
 import { get, post, pushToast, safeRequest, serverUrl, withAiTask } from "@delebash/llm-ui";
+import { i18n } from "../i18n/index.js";
 
 const langNames = new Intl.DisplayNames(undefined, { type: "language" });
 function nameOf(code) {
@@ -56,7 +57,9 @@ export const useJobsStore = defineStore("jobs", {
       this._taskLife = settle;
       withAiTask({
         feature: "translate",
-        label: `Translating ${nameOf(lang)}${remaining ? ` · then ${this.queue.map(nameOf).join(", ")}` : ""}`,
+        label: remaining
+          ? i18n.global.t("jobs.translatingThen", { lang: nameOf(lang), queue: this.queue.map(nameOf).join(", ") })
+          : i18n.global.t("jobs.translating", { lang: nameOf(lang) }),
         meta: { lang },
       }, (handle) => {
         handle.markStreaming();

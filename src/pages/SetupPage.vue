@@ -6,6 +6,7 @@
 // A path box with server-side validation, never a file picker: a browser file input
 // hands JS a File and no path — that ruling from the Node repo still holds.
 import { computed, onMounted, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { PaneHeader, UiButton, UiCheckbox, UiInput, UiMultiSelect, UiTag, pushToast, pageFlow } from "@delebash/llm-ui";
 import { useRouter } from "vue-router";
 import { useProjectStore } from "../stores/project";
@@ -14,6 +15,7 @@ import { useUiStore } from "../stores/ui";
 const project = useProjectStore();
 const ui = useUiStore();
 const router = useRouter();
+const { t } = useI18n();
 const path = ref("");
 const context = ref("");
 const targets = ref([]);
@@ -67,14 +69,14 @@ async function save() {
       path: path.value, targets: targets.value,
       context: context.value, glossary: glossary.value,
     });
-    pushToast({ kind: "success", title: "Project saved", description: "The dashboard is live." });
+    pushToast({ kind: "success", title: t("setup.saved"), description: t("setup.savedBody") });
     // The once-ever AI offer's moment (the trigger ruling: Setup-save, JW's
     // donor semantics). Not awaited — navigation stays snappy; the App-level
     // modal pops when the provider check answers.
     ui.maybeOfferAiSetup();
     router.push("/");
   } catch (e) {
-    pushToast({ kind: "error", title: "Could not save", description: String(e?.message || e) });
+    pushToast({ kind: "error", title: t("common.couldNotSave"), description: String(e?.message || e) });
   }
 }
 </script>
@@ -83,26 +85,23 @@ async function save() {
   <q-page :style-fn="pageFlow" class="setup">
     <!-- The family header shape (kit PaneHeader — parity batch 2026-08-06);
          the loaded config path rides the actions slot. -->
-    <PaneHeader eyebrow="Project" title="Setup" help-key="project-setup">
+    <PaneHeader :eyebrow="t('common.project')" :title="t('nav.setup')" help-key="project-setup">
       <span v-if="project.loaded" class="mono muted">{{ project.configPath }}</span>
     </PaneHeader>
-    <p class="page-sub pane-lede">Point the tool at your app's i18n source file. Nothing here runs an engine.</p>
+    <p class="page-sub pane-lede">{{ t("setup.lede") }}</p>
 
     <div class="setup__grid">
       <section class="card">
-        <h2>i18n source file</h2>
-        <p class="hint">
-          The path to your source locale file (usually en.json). Its folder is the locale
-          folder and its name is the source language — one fact, nothing to disagree with.
-        </p>
+        <h2>{{ t("setup.sourceTitle") }}</h2>
+        <p class="hint">{{ t("setup.sourceHint") }}</p>
         <div class="row">
           <UiInput
             v-model="path" width="path"
-            placeholder="E:\your-app\src\i18n\locales\en.json"
+            :placeholder="t('setup.pathPlaceholder')"
             @keydown.enter="check"
           />
           <UiButton
-            intent="secondary" :label="checking ? 'Checking…' : 'Check path'"
+            intent="secondary" :label="checking ? t('common.checking') : t('setup.checkPath')"
             :disabled="checking || !path.trim()" @click="check"
           />
         </div>
@@ -111,62 +110,56 @@ async function save() {
         <table class="ui-formgrid" style="margin-top: 12px">
           <tbody>
             <tr>
-              <th>Keys</th>
+              <th>{{ t("common.keys") }}</th>
               <td>{{ project.inspect ? project.inspect.keyCount : "—" }}</td>
             </tr>
             <tr>
-              <th>Source language</th>
+              <th>{{ t("setup.sourceLanguage") }}</th>
               <td class="mono">{{ project.inspect ? project.inspect.sourceLanguage : "—" }}</td>
             </tr>
             <tr>
-              <th>Placeholders</th>
+              <th>{{ t("setup.placeholders") }}</th>
               <td class="mono">
                 {{ project.inspect
                   ? `${project.inspect.placeholder.prefix}…${project.inspect.placeholder.suffix}` : "—" }}
               </td>
             </tr>
             <tr>
-              <th>Plural separator</th>
-              <td class="mono">{{ project.inspect ? (project.inspect.pluralSeparator ?? "none") : "—" }}</td>
+              <th>{{ t("setup.pluralSeparator") }}</th>
+              <td class="mono">{{ project.inspect ? (project.inspect.pluralSeparator ?? t("setup.none")) : "—" }}</td>
             </tr>
             <tr v-for="l in project.inspect?.locales ?? []" :key="l.code">
-              <th>{{ l.code }}.json</th>
-              <td>{{ l.done }}/{{ l.total }} translated, {{ l.missing }} missing</td>
+              <th>{{ `${l.code}.json` }}</th>
+              <td>{{ t("setup.localeCounts", { done: l.done, total: l.total, missing: l.missing }) }}</td>
             </tr>
           </tbody>
         </table>
-        <p v-if="!project.inspect" class="hint" style="margin: 8px 0 0">
-          Press <b>Check path</b> and the tool reports what it found — the part that
-          catches a wrong path before an hour of engine time does.
-        </p>
+        <i18n-t v-if="!project.inspect" keypath="setup.checkHint" tag="p" class="hint" style="margin: 8px 0 0" scope="global">
+          <template #button><b>{{ t("setup.checkPath") }}</b></template>
+        </i18n-t>
       </section>
 
       <section class="card">
-        <h2>Target languages</h2>
-        <p class="hint">Which languages to translate into. Existing files are offered after a check, never pre-decided.</p>
+        <h2>{{ t("setup.targetsTitle") }}</h2>
+        <p class="hint">{{ t("setup.targetsHint") }}</p>
         <UiMultiSelect
           v-model="targets" :options="languageOptions"
-          placeholder="Pick target languages…" width="prose"
+          :placeholder="t('setup.targetsPlaceholder')" width="prose"
         />
       </section>
 
       <section class="card">
-        <h2>Context</h2>
-        <p class="hint">One sentence about the app — the one thing only you know.</p>
+        <h2>{{ t("setup.contextTitle") }}</h2>
+        <p class="hint">{{ t("setup.contextHint") }}</p>
         <UiInput
           v-model="context" width="prose"
-          placeholder="e.g. JustWrite, a desktop app for writing novels"
+          :placeholder="t('setup.contextPlaceholder')"
         />
       </section>
 
       <section class="card">
-        <h2>Glossary — never translate these</h2>
-        <p class="hint">
-          A term here is a BLANKET rule for every string. On a real project one wrong
-          term turned 48 correct translations into findings — add only true brand and
-          product names. A word that is a label in one string and prose in another
-          belongs in review acceptances, not here.
-        </p>
+        <h2>{{ t("setup.glossaryTitle") }}</h2>
+        <p class="hint">{{ t("setup.glossaryHint") }}</p>
         <div class="row" v-if="glossary.length" style="margin-bottom: 8px">
           <UiTag
             v-for="w in glossary" :key="w" intent="secondary" :value="w"
@@ -175,15 +168,13 @@ async function save() {
         </div>
         <div class="row">
           <UiInput
-            v-model="glossaryDraft" width="name" placeholder="add a term…"
+            v-model="glossaryDraft" width="name" :placeholder="t('setup.glossaryPlaceholder')"
             @keydown.enter="addGlossary()"
           />
-          <UiButton intent="ghost" label="Add" :disabled="!glossaryDraft.trim()" @click="addGlossary()" />
+          <UiButton intent="ghost" :label="t('common.add')" :disabled="!glossaryDraft.trim()" @click="addGlossary()" />
         </div>
         <template v-if="project.inspect?.candidates?.length">
-          <p class="hint" style="margin: 12px 0 6px">
-            Suggested from your strings (words recurring capitalised mid-sentence) — tick to add:
-          </p>
+          <p class="hint" style="margin: 12px 0 6px">{{ t("setup.candidatesHint") }}</p>
           <div class="row">
             <UiCheckbox
               v-for="w in project.inspect.candidates" :key="w"
@@ -192,26 +183,25 @@ async function save() {
             />
           </div>
         </template>
-        <p v-else-if="project.inspect" class="hint" style="margin: 12px 0 0">No candidates suggested.</p>
+        <p v-else-if="project.inspect" class="hint" style="margin: 12px 0 0">{{ t("setup.noCandidates") }}</p>
       </section>
 
       <section class="card">
-        <h2>Your app's .gitignore</h2>
-        <p class="hint">Workshop files a re-run rebuilds. Your decisions (config, accepted, notes) stay committed.</p>
+        <h2>{{ t("setup.gitignoreTitle") }}</h2>
+        <p class="hint">{{ t("setup.gitignoreHint") }}</p>
         <pre v-if="project.inspect" class="mono setup__pre">{{ project.inspect.gitignore.join("\n") }}</pre>
-        <p v-else class="hint" style="margin: 0">Shown after a path check.</p>
+        <p v-else class="hint" style="margin: 0">{{ t("setup.gitignoreAfterCheck") }}</p>
       </section>
     </div>
 
     <div class="setup__actions">
       <UiButton
-        intent="primary" :label="project.saving ? 'Saving…' : 'Save project'"
+        intent="primary" :label="project.saving ? t('kit.common.saving') : t('setup.save')"
         :disabled="project.saving || !path.trim() || !targets.length" @click="save"
       />
-      <span class="hint" style="margin: 0">
-        Saving writes config.json into a just-ai-i18n-docgen folder at your app's root and loads it — no restart.
-        Your reviewer name lives in <router-link to="/settings/reviewer">Settings → Reviewer</router-link>.
-      </span>
+      <i18n-t keypath="setup.saveHint" tag="span" class="hint" style="margin: 0" scope="global">
+        <template #link><router-link to="/settings/reviewer">{{ t("setup.reviewerLink") }}</router-link></template>
+      </i18n-t>
     </div>
   </q-page>
 </template>

@@ -18,3 +18,6 @@ export const i18n = createI18n({
   fallbackWarn: false,
 });
 for (const [code, msgs] of Object.entries(own)) i18n.global.mergeLocaleMessage(code, msgs);
+
+// The app's languages — the codes of its own catalogs — for the language picker.
+export const LOCALE_CODES = Object.keys(own);

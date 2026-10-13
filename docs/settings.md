@@ -3,7 +3,9 @@
 **App Settings** in the sidebar, sections across the top:
 
 - **Appearance** — light/dark/system theme, interface size, UI font, accent hue.
-  (The title-bar moon button cycles the theme from anywhere.)
+  (The title-bar moon button cycles the theme from anywhere.) Below them, **Language** — the
+  interface language, each named in itself; the choice is kept and applies at once. English is
+  the only one until other languages' words are translated and reviewed.
 - **Backups** — export a snapshot of this tool's own data (connections, presets,
   the reviewer name) as a ZIP, import one, or **Reset** the app to a fresh
   install. Your locale files and accepted translations are NOT in the backup —

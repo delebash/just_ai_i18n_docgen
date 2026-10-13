@@ -5,29 +5,27 @@
 // HONEST STATE: extraction runs from the CLI today; this page says exactly that
 // instead of hiding the feature or faking a button that does nothing.
 import { PaneHeader, pageFlow } from "@delebash/llm-ui";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 </script>
 
 <template>
   <q-page :style-fn="pageFlow">
     <!-- The family header shape (kit PaneHeader — parity batch 2026-08-06). -->
-    <PaneHeader eyebrow="Help docs" title="Docs" help-key="docs-authoring" />
-    <p class="page-sub pane-lede">Front-matter → locale keys. Author once, serve three surfaces.</p>
+    <PaneHeader :eyebrow="t('docs.eyebrow')" :title="t('nav.docs')" help-key="docs-authoring" />
+    <p class="page-sub pane-lede">{{ t("docs.lede") }}</p>
 
     <section class="card">
-      <h2>How it works</h2>
-      <p class="hint" style="margin-bottom: 0">
-        A help article's front-matter (title, lede, hints) is extracted into your locale
-        files as ordinary keys — then the translate/review pipeline on this very
-        dashboard carries them like any other string. One sentence, written once,
-        translated once, shipped to the article, the surface lede and the field hint.
-      </p>
+      <h2>{{ t("docs.howTitle") }}</h2>
+      <p class="hint" style="margin-bottom: 0">{{ t("docs.howBody") }}</p>
     </section>
 
     <section class="card">
-      <h2>Run it</h2>
-      <p class="hint">The extractor is CLI-only for now — a UI runner is planned, and this page will grow it.</p>
-      <pre class="mono setup__pre">just-ai-i18n-docgen extract config.json          # write the keys
-just-ai-i18n-docgen extract config.json --check  # drift check only, writes nothing</pre>
+      <h2>{{ t("docs.runTitle") }}</h2>
+      <p class="hint">{{ t("docs.runHint") }}</p>
+      <pre class="mono setup__pre"><code>just-ai-i18n-docgen extract config.json</code>          # {{ t("docs.cmdWrite") }}
+<code>just-ai-i18n-docgen extract config.json --check</code>  # {{ t("docs.cmdCheck") }}</pre>
     </section>
   </q-page>
 </template>

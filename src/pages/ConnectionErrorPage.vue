@@ -4,13 +4,16 @@
 // data of its own, so nothing else loads without the server; Retry reloads the window, and the boot
 // then returns to the page the user was on (the route's `from`).
 import { ConnectionError, serverUrl } from "@delebash/llm-ui";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 </script>
 
 <template>
   <ConnectionError
-    app-name="Just AI i18n & DocGen"
+    :app-name="t('app.name')"
     :server-url="serverUrl('')"
-    need="read your locale files and run translations"
-    dev-hint="Dev: it should start automatically with `npm run dev`, or run it yourself with `npm run server`, then retry."
+    :need="t('connectionError.need')"
+    :dev-hint="t('connectionError.devHint')"
   />
 </template>

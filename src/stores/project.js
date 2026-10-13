@@ -3,6 +3,7 @@
 // that is the whole point of the setup screen).
 import { defineStore } from "pinia";
 import { get, post, put, safeRequest } from "@delebash/llm-ui";
+import { i18n } from "../i18n/index.js";
 
 export const useProjectStore = defineStore("project", {
   state: () => ({
@@ -25,7 +26,7 @@ export const useProjectStore = defineStore("project", {
     // "myapp" out of …/myapp/just-ai-help/config.json — the project's human name.
     appName: (s) => {
       const parts = (s.configPath || "").split(/[\\/]/).filter(Boolean);
-      return parts.length >= 3 ? parts[parts.length - 3] : "your app";
+      return parts.length >= 3 ? parts[parts.length - 3] : i18n.global.t("app.yourApp");
     },
   },
   actions: {

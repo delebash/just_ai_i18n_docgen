@@ -22,8 +22,24 @@ STATE:  DECIDED 2026-10-12, family-wide; plan written, awaiting go — the decis
         `just-llm-runner/docs/plans/2026-10-12-i18n-standard.md`.
 WHY:    docgen translates every app's catalogs, but its own screens and the kit's are hardcoded English
         (163 strings here, 832 in the kit) and it has no vue-i18n.
-HERE:   Task 1 (vue-i18n and the i18n boot file; take the kit's catalog) and Task 4 (its 163 strings,
-        the language picker), then Task 6 (each catalog's Spanish through docgen, the user's review).
+HERE:   Task 1 done 2026-10-12. Task 4 (go 2026-10-13: "your rec think on them again go") —
+        steps 1–2 done 2026-10-13: the family's i18n lint here (`eslint.i18n.config.js`, the kit's
+        file, byte-identical; `npm run i18n:lint` at zero from 393 — both rules, so about 200
+        strings), `npm run i18n:report` (MISSING 0); every screen's words in
+        `src/i18n/locales/en.json`; the review buckets and check explanations name their keys
+        (`labelKey`, `WHY_KEYS`); the kit's LanguagePicker in Settings → Appearance in its own
+        card, the choice kept as the `locale` pref (`ui.setLocale`, applied in `ui.boot()`). The
+        AppearancePanel's own Language row stays as it is until JustVoice's languages are codes
+        (its Task 5 — JustVoice's session asked to hold it). Step 3's pseudo-locale check is D3,
+        which waits for its word. Not in Task 4's text, still the browser's language: dates
+        (Runs' "When", Home's "Last run" as sliced ISO), numbers (`toLocaleString()`), language
+        names (`services/langs.js`, `jobs.js`, SetupPage's `Intl.DisplayNames(undefined)`).
+        Next: Task 6 (each catalog's Spanish through docgen, the user's review).
+FOUND:  2026-10-13, older than this work — the e2e test "quick setup RUNS" waits for the text
+        "Ready to translate", which docgen's own wizard showed until the fork died (c67fc6d,
+        2026-08-04); the kit's wizard says "Setup applied.". With the model already resident (no
+        download bar) the test times out, and its routing restore — after that wait, not in a
+        `finally` — does not run. Seen 2026-10-13: 19 of 20 passed.
 
 ## The server moves to Hono [2026-10-09]
 STATE:  DECIDED 2026-10-09, family-wide — the decision with the user's words is the kit's TASKS,
