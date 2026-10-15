@@ -7,6 +7,7 @@
 // provider; failure is loud and names the fix; and the probe guard reads the RESOLVED preset —
 // including a user's edit — never a constant.
 import { LLMResponse } from "@delebash/llm-runner/llm";
+import { setEnsureLocalModel } from "@delebash/llm-runner/llm/dispatch";
 import { getLlmRegistry } from "@delebash/llm-runner/llm/registry";
 import * as stores from "@delebash/llm-runner/llm/stores";
 import { afterEach, beforeEach, expect, test } from "vitest";
@@ -141,4 +142,33 @@ test("the_whole_preset_reaches_the_adapter_not_just_temperature", async () => {
   expect("response_format" in extra, "the schema still rides along").toBe(true);
   // think is OFF on this preset → no reasoning key (its PRESENCE means think-on).
   expect("reasoning_effort" in extra).toBe(false);
+});
+
+test("the_built_in_engine_loads_the_preset_model_before_the_call", async () => {
+  // Found 2026-10-15: a job on an unloaded model failed every key at once ("the bundled llama.cpp
+  // engine isn't running"). The send makes the preset's model resident first, through the kit's
+  // dispatch.ensureLocalModelFor — the hook the kit's own run path uses.
+  const order = [];
+  setEnsureLocalModel(async (mid) => order.push(`ensure ${mid}`));
+  const chat = wired.chat.bind(wired);
+  wired.chat = async (...args) => {
+    order.push("chat");
+    return chat(...args);
+  };
+  try {
+    const preset = translatePreset();
+    preset.model = "gemma-4-26b-a4b-qat-xl";
+    stores.getEnginePresetStore().save(preset);
+    await makeSend("translate")("S", "U");
+    expect(order).toEqual(["ensure gemma-4-26b-a4b-qat-xl", "chat"]);
+
+    // "" means the provider's default: nothing named to load, the call goes as before.
+    preset.model = "";
+    stores.getEnginePresetStore().save(preset);
+    order.length = 0;
+    await makeSend("translate")("S", "U");
+    expect(order).toEqual(["chat"]);
+  } finally {
+    setEnsureLocalModel(null);
+  }
 });

@@ -41,7 +41,10 @@ export class JobBusyError extends RuntimeError {
 const gmtStamp = () => `${new Date().toISOString().slice(0, 19)}Z`;
 
 export class JobManager {
-  constructor({ store = null, log: logFn = () => {} } = {}) {
+  // The run's own lines ("es: 0 unchanged, 2980 to translate", "batch 3: <the engine's error>
+  // (attempt 1/3)") go to docgen's log by default — until 2026-10-15 they went nowhere, and a job
+  // that failed every key said nothing about why.
+  constructor({ store = null, log: logFn = (line) => log.info(line) } = {}) {
     this.store = store;
     this.log = logFn;
     this.current = null;

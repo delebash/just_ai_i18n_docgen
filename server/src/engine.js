@@ -18,6 +18,7 @@
 // guard reads it — same principle, new single source.
 
 import { LLMMessage } from "@delebash/llm-runner/llm";
+import * as dispatch from "@delebash/llm-runner/llm/dispatch";
 import * as presetResolve from "@delebash/llm-runner/llm/preset_resolve";
 import * as registry from "@delebash/llm-runner/llm/registry";
 import * as stores from "@delebash/llm-runner/llm/stores";
@@ -97,6 +98,9 @@ export function structuredExtra(_providerType = "") {
 export function makeSend(feature = "translate", presetId = null) {
   return async function send(system, user) {
     const [adapter, preset] = resolveEngine(feature, presetId);
+    // The built-in engine's model is made resident first, as the kit's run path does — without
+    // it a job on an unloaded model failed every key at once (found 2026-10-15).
+    await dispatch.ensureLocalModelFor(adapter, preset.model);
     const response = await adapter.chat([LLMMessage("user", user)], {
       model: preset.model || null,
       temperature: preset.temperature,
