@@ -219,59 +219,65 @@ test("quick setup RUNS: one Cancel at a time, the routing it writes is valid, no
   assert.equal(confirmStep.cancels, 1, "confirm step: exactly one Cancel");
   assert.equal(confirmStep.bars, 0, "no progress bars before the run starts");
 
+  // The wizard's done step says the kit's words, "Setup applied." (kit.quickSetup.done.applied) —
+  // docgen's own wizard said "Ready to translate" until it was retired (c67fc6d, 2026-08-04).
+  const DONE = "Setup applied\\.";
   await d.exec(`[...document.querySelectorAll('[role=dialog] button')].find(b => /^Apply setup$/.test(b.textContent.trim())).click();`);
-  // TWO honest outcomes, and the test must not assume the slow one. A model that is
-  // ALREADY RESIDENT finishes on the load channel's first poll (readLoadStatus returns
-  // terminal `done` the moment /status says the router is running), so the wizard lands
-  // on its done step and no bar ever lingers — the very case the rewrite exists to fix.
-  // Anything else shows a bar: downloading, installing, or failing.
-  await d.waitUntil(
-    `return !!document.querySelector('[role=dialog] .lu-dlbar')
-         || /Ready to translate/.test(document.querySelector('[role=dialog]')?.textContent || '')`,
-    { timeout: 25_000 },
-  );
+  // From here the test has written the routing: whatever happens, it is put back (finally).
+  try {
+    // TWO honest outcomes, and the test must not assume the slow one. A model that is
+    // ALREADY RESIDENT finishes on the load channel's first poll (readLoadStatus returns
+    // terminal `done` the moment /status says the router is running), so the wizard lands
+    // on its done step and no bar ever lingers — the very case the rewrite exists to fix.
+    // Anything else shows a bar: downloading, installing, or failing.
+    await d.waitUntil(
+      `return !!document.querySelector('[role=dialog] .lu-dlbar')
+           || /${DONE}/.test(document.querySelector('[role=dialog]')?.textContent || '')`,
+      { timeout: 25_000 },
+    );
 
-  const applyStep = await d.exec(`return (() => { ${snapshot} })();`);
-  assert.equal(applyStep.footerCancels, 0, "the footer carries NO Cancel during a run — the bar owns it");
-  // The donor defect was the FOOTER duplicate (two controls, one word, different
-  // meanings) — per-bar Cancels are the family's parallel-bar pattern. On a box
-  // where engine AND model are both fast (already installed/resident) the two
-  // task bars overlap, one Cancel each (seen 2026-08-05; the old `<= 1` assert
-  // mis-encoded the rule and only ever passed because the bars never overlapped).
-  assert.equal(applyStep.cancels <= applyStep.bars, true,
-    `every Cancel belongs to a bar — one each at most, saw ${applyStep.cancels} across ${applyStep.bars} bar(s)`);
-  if (applyStep.running) {
-    assert.equal(applyStep.closeX, 0, "the modal is un-closable while a task runs (donor rule)");
-  }
+    const applyStep = await d.exec(`return (() => { ${snapshot} })();`);
+    assert.equal(applyStep.footerCancels, 0, "the footer carries NO Cancel during a run — the bar owns it");
+    // The donor defect was the FOOTER duplicate (two controls, one word, different
+    // meanings) — per-bar Cancels are the family's parallel-bar pattern. On a box
+    // where engine AND model are both fast (already installed/resident) the two
+    // task bars overlap, one Cancel each (seen 2026-08-05; the old `<= 1` assert
+    // mis-encoded the rule and only ever passed because the bars never overlapped).
+    assert.equal(applyStep.cancels <= applyStep.bars, true,
+      `every Cancel belongs to a bar — one each at most, saw ${applyStep.cancels} across ${applyStep.bars} bar(s)`);
+    if (applyStep.running) {
+      assert.equal(applyStep.closeX, 0, "the modal is un-closable while a task runs (donor rule)");
+    }
 
-  // The routing write: provider stays the runner, model is a real model id.
-  const after = (await (await fetch(`${API}/v1/ai/engine-presets`)).json()).presets;
-  const t = after.find((p) => p.id === "p_translate");
-  assert.equal(t.providerId, "local-llamacpp", "provider must stay the built-in runner");
-  assert.equal(typeof t.model === "string" && t.model.length > 0, true,
-    `the MODEL slot must hold the model id, got ${JSON.stringify(t.model)}`);
-  assert.equal(t.model.includes("/"), false, "a model id, not a provider id or a path");
+    // The routing write: provider stays the runner, model is a real model id.
+    const after = (await (await fetch(`${API}/v1/ai/engine-presets`)).json()).presets;
+    const t = after.find((p) => p.id === "p_translate");
+    assert.equal(t.providerId, "local-llamacpp", "provider must stay the built-in runner");
+    assert.equal(typeof t.model === "string" && t.model.length > 0, true,
+      `the MODEL slot must hold the model id, got ${JSON.stringify(t.model)}`);
+    assert.equal(t.model.includes("/"), false, "a model id, not a provider id or a path");
 
-  // …and the run must reach a state the user can act on — NEVER a permanent "Working…".
-  // Cancel it if it is still going (a box without the weights downloads gigabytes), then
-  // require a terminal: either the wizard's done step, or a bar carrying its own Retry.
-  await d.exec(`[...document.querySelectorAll('[role=dialog] .lu-dlbar button')].find(b => /^Cancel$/.test(b.textContent.trim()))?.click();`);
-  await d.waitUntil(
-    `return /Cancelled|Failed|Ready/.test(document.querySelector('[role=dialog]')?.textContent || '')`,
-    { timeout: 30_000 },
-  );
-  const terminal = await d.exec(`return (() => { ${snapshot} })();`);
-  assert.equal(terminal.running, false, "a terminal task shows no Cancel");
-  assert.equal(terminal.closeX, 1, "the modal is closable again once nothing is running");
-  assert.equal(/Retry/.test(terminal.text) || /Ready to translate/.test(terminal.text), true,
-    `a finished run either succeeded or offers Retry — never a dead end. Saw: ${terminal.text.slice(0, 160)}`);
-
-  await d.exec(`document.querySelector('[role=dialog] .ui-modal__close')?.click();`);
-  // Put the user's routing back exactly as it was (this test wrote it on purpose).
-  for (const p of saved) {
-    await fetch(`${API}/v1/ai/engine-presets/${p.id}`, {
-      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p),
-    });
+    // …and the run must reach a state the user can act on — NEVER a permanent "Working…".
+    // Cancel it if it is still going (a box without the weights downloads gigabytes), then
+    // require a terminal: either the wizard's done step, or a bar carrying its own Retry.
+    await d.exec(`[...document.querySelectorAll('[role=dialog] .lu-dlbar button')].find(b => /^Cancel$/.test(b.textContent.trim()))?.click();`);
+    await d.waitUntil(
+      `return /Cancelled|Failed|${DONE}/.test(document.querySelector('[role=dialog]')?.textContent || '')`,
+      { timeout: 30_000 },
+    );
+    const terminal = await d.exec(`return (() => { ${snapshot} })();`);
+    assert.equal(terminal.running, false, "a terminal task shows no Cancel");
+    assert.equal(terminal.closeX, 1, "the modal is closable again once nothing is running");
+    assert.equal(/Retry/.test(terminal.text) || new RegExp(DONE).test(terminal.text), true,
+      `a finished run either succeeded or offers Retry — never a dead end. Saw: ${terminal.text.slice(0, 160)}`);
+  } finally {
+    await d.exec(`document.querySelector('[role=dialog] .ui-modal__close')?.click();`);
+    // Put the user's routing back exactly as it was (this test wrote it on purpose).
+    for (const p of saved) {
+      await fetch(`${API}/v1/ai/engine-presets/${p.id}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p),
+      });
+    }
   }
   const restored = (await (await fetch(`${API}/v1/ai/engine-presets`)).json()).presets
     .find((p) => p.id === "p_translate");
