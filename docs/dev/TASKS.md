@@ -34,12 +34,12 @@ HERE:   Task 1 done 2026-10-12. Task 4 (go 2026-10-13: "your rec think on them a
         which waits for its word. Not in Task 4's text, still the browser's language: dates
         (Runs' "When", Home's "Last run" as sliced ISO), numbers (`toLocaleString()`), language
         names (`services/langs.js`, `jobs.js`, SetupPage's `Intl.DisplayNames(undefined)`).
-        Next: Task 6 (each catalog's Spanish through docgen, the user's review).
-FOUND:  2026-10-13, older than this work — the e2e test "quick setup RUNS" waits for the text
-        "Ready to translate", which docgen's own wizard showed until the fork died (c67fc6d,
-        2026-08-04); the kit's wizard says "Setup applied.". With the model already resident (no
-        download bar) the test times out, and its routing restore — after that wait, not in a
-        `finally` — does not run. Seen 2026-10-13: 19 of 20 passed.
+        Step 3's gates, 2026-10-15, all but D3's check: `npm test` 20 of 20 on the unpacked build
+        against the server with JustWrite's project — "quick setup RUNS" waits for the kit wizard's
+        "Setup applied." (it waited for "Ready to translate", gone since c67fc6d) and puts the
+        routing back in a `finally` (`5a7c7a4`); the family guard clean.
+        Next: Task 6 (each catalog's Spanish through docgen, the user's review) — its context
+        sentences wait for the user's words (asked 2026-10-15).
 
 ## The server moves to Hono [2026-10-09]
 STATE:  DECIDED 2026-10-09, family-wide — the decision with the user's words is the kit's TASKS,
