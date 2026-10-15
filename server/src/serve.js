@@ -15,7 +15,7 @@
 
 import { runServer } from "@delebash/llm-runner/platform";
 import { setLevel } from "@delebash/llm-runner/platform/log";
-import { createApp, seedLlmStack } from "./app.js";
+import { createApp, defaultDataDir, seedLlmStack } from "./app.js";
 import { DEFAULT_PORT, PRODUCT } from "./version.js";
 
 /** Takes `--config X` / `--config=X` out of argv (runServer's parser knows only its own). */
@@ -38,6 +38,10 @@ const { config, rest } = splitConfigArg(process.argv.slice(2));
 await runServer({
   argv: rest,
   envPrefix: "JUST_AI_I18N_DOCGEN",
+  // One server per data folder (the kit's platform/data_lock.js, 2026-10-15): the folder — the
+  // family ladder when none is named — is locked before `build` opens it.
+  productName: PRODUCT,
+  defaultDataDir,
   build: async ({ dataDir, host, port, logLevel }) => {
     setLevel(logLevel);
     const app = await createApp(dataDir, config);
