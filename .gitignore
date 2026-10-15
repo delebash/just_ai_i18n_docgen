@@ -44,3 +44,10 @@ server/data/
 
 # electron-builder output (the installer and the unpacked app)
 release/
+
+# docgen translating its own catalog — machine state (the lines its Setup page prints,
+# server/src/init.js gitignoreLines); config.json and *.accepted.json / *.notes.json are committed.
+just-ai-i18n-docgen/*.probe.json
+just-ai-i18n-docgen/.just-ai-i18n-docgen-cache.json
+just-ai-i18n-docgen/.just-ai-i18n-docgen-probe-cache.json
+just-ai-i18n-docgen/.just-ai-i18n-docgen-state.json

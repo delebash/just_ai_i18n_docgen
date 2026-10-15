@@ -38,8 +38,21 @@ HERE:   Task 1 done 2026-10-12. Task 4 (go 2026-10-13: "your rec think on them a
         against the server with JustWrite's project — "quick setup RUNS" waits for the kit wizard's
         "Setup applied." (it waited for "Ready to translate", gone since c67fc6d) and puts the
         routing back in a `finally` (`5a7c7a4`); the family guard clean.
-        Next: Task 6 (each catalog's Spanish through docgen, the user's review) — its context
-        sentences wait for the user's words (asked 2026-10-15).
+        Task 6 ruled 2026-10-15 ("your rec on all go" — the words as shown are in JustWrite's
+        TASKS): docgen's own catalog has a project now (`just-ai-i18n-docgen/config.json`, its
+        machine state in .gitignore); its list runs after JustWrite's and the kit's, the GPU free
+        by JustVoice's word. `out/` (the stopped electron-vite session's build of 2026-10-08,
+        36 files, untracked) deleted 2026-10-15 — asked as shown: "My rec: delete it."; the user:
+        "your rec on all go".
+FOUND:  2026-10-15 — a translation job on a model that isn't loaded fails every key, silently.
+        The job's send (`engine.js` makeSend → `adapter.chat`) skips the kit's dispatch, which
+        loads the local model first (`dispatch.setEnsureLocalModel`, the kit's llm/install.js), so
+        each request meets no running engine and fails at once; and the job's log is a no-op
+        (`new JobManager()` in workspace.js passes none), so its "batch N: …" lines go nowhere.
+        Seen: JustWrite's catalog, 2,980 keys, 3,745 requests in six minutes, nothing staged, no
+        reason anywhere; with the model loaded first (one request through the kit's `/v1/ai/run`)
+        the same job ran. Not fixed — the fix is a choice (route the send through the kit's
+        dispatch, or ensure the model before a job) for the user.
 
 ## The server moves to Hono [2026-10-09]
 STATE:  DECIDED 2026-10-09, family-wide — the decision with the user's words is the kit's TASKS,
