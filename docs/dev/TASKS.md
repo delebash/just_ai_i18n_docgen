@@ -45,7 +45,9 @@ HERE:   Task 1 done 2026-10-12. Task 4 (go 2026-10-13: "your rec think on them a
         36 files, untracked) deleted 2026-10-15 — asked as shown: "My rec: delete it."; the user:
         "your rec on all go". Run 2026-10-15, as jobs (proposals only — no locale file written):
         JustWrite's 2,980 keys (none failed, 30 min), the kit's 1,453 of 1,454 (19 min), docgen's
-        278. Next: the user's review in Review, then Apply per catalog.
+        278. 2026-10-16, the same way: JustWrite's 74 keys added or changed since (none failed,
+        76 s; what to read before review is in JustWrite's TASKS, "Automated testing"). Next: the
+        user's review in Review, then Apply per catalog.
 FOUND:  2026-10-15 — an empty source string counts as a failed key: the kit's
         `kit.quickSetup.doneBody` is "" on purpose (an app sets its own), the engine has nothing to
         give back, and the retry ladder ends with it in `failed` (the kit's list: 1 of 1,454).
