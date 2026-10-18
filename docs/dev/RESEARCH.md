@@ -25,7 +25,42 @@ all go". The kit's register carries the rule in full; in short:
   · agent), then where the proof is. A fact that turns out wrong is rewritten, ending "(was: …
   until <date>)".
 
-No subject has been distilled here yet.
+## Automatic translation review: tools (2026-10-17)
+
+Asked because the user wants the Spanish review done with little human interaction ("find tools
+… or if need be we make tools but i want an agentic worflow").
+
+- **docgen already has the deterministic layer and two second opinions:**
+  - the checks (placeholders, plural halves, glossary, punctuation, numbers);
+  - the probe (CLI only);
+  - the confirmation pass for identical strings;
+  - the terminology flag;
+  - escalation to a stronger preset.
+
+  It has no score of whether a translation is good, and nothing applies a string without a
+  human. — *code and `docs/verification.md`, read 2026-10-17.*
+- **Learned quality-estimation (QE) models, reference-free:**
+  - COMETKiwi and xCOMET (Unbabel; XL 3.5B, XXL 10.7B) are under a non-commercial licence.
+  - MetricX-24 Hybrid (Google; mT5, QE mode included) is Apache-2.0.
+
+  All are trained on WMT sentence and paragraph data, a poor match for one-word UI labels, and
+  all run in Python on the GPU. — *web: huggingface.co/google/metricx-24-hybrid-large-v2p6;
+  inten.to's metric comparison; unbabel.com, read 2026-10-17.*
+- **The LLM judge is the field's standard method: GEMBA-MQM.** An LLM marks error spans with an
+  MQM category and severity. Its span precision against human annotators is low (9.0% reported).
+  MQM-APE filters it: the judge post-edits each error, and only errors whose fix improves the
+  string are kept, which raised reliability across eight LLMs. Generative judges do best on
+  frontier models; open models under 30B are "viable" (CompactQE, EAMT 2026). — *web:
+  arxiv 2310.13988, 2409.14335; aclanthology 2026.eamt-1.9, read 2026-10-17.*
+- **No maintained open-source tool runs the whole loop** (review, fix, re-check, apply).
+  - LocaleCI scores each string but is under FSL-1.1.
+  - internationalizer and Lingo.dev validate keys and interpolation.
+  - Lingoport is commercial.
+
+  — *web search 2026-10-17; repos not yet read.*
+- **Spellchecking in Node:** `nspell` 2.1.5 (MIT, wooorm; Hunspell-compatible) and
+  `dictionary-es` 4.0.0 (GPL-3.0 OR LGPL-3.0 OR MPL-1.1). They catch a non-word such as
+  "reviravones" with no model. — *npm registry, read 2026-10-17.*
 
 ---
 
