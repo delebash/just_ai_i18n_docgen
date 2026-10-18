@@ -42,9 +42,12 @@ they flag lands in the queue below.
 
 Each queued key shows its source, an editable target, and one or more flags:
 
-- `missing` / `blank` — no translation, or an empty one.
+- `missing` / `blank` — no translation, or an empty one. A string that is empty
+  in the source on purpose comes back empty from a run: there is nothing to translate.
 - `placeholder-changed` — a `{name}`-style token was lost or altered. The #1
-  ship-blocker; the app would crash or print garbage.
+  ship-blocker; the app would crash or print garbage. A translation that adds
+  plural forms its source doesn't need ("{n} encontrado | {n} encontrados" for
+  "{n} found") is checked form by form, and so are `numbers` and `brackets`.
 - `plural-halves-lost` / `plural-halves-identical` — a `one|other` plural lost a
   half, or both halves came back identical.
 - `glossary-translated` — a do-not-translate term got translated.

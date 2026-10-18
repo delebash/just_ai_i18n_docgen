@@ -23,7 +23,7 @@ import { pyJson } from "@delebash/core/platform/pyjson";
 import * as appmeta from "../appmeta.js";
 import { acceptanceEntry, acceptanceHash, loadAccepted, saveAccepted } from "../accepted.js";
 import { getState } from "../app_state.js";
-import { buildContext, checkOne } from "../checks.js";
+import { buildContext, checkOne, isTranslated } from "../checks.js";
 import { CONFIRM_CODE, confirmIdentical, makeAsk } from "../confirm.js";
 import * as engine from "../engine.js";
 import { JobBusyError } from "../jobs.js";
@@ -135,10 +135,7 @@ export function router() {
       const [, findings, accepted] = ws.findingsFor(lg);
       const statuses = reviewStatuses(p.state, lg);
       const translated = new Set();
-      for (const k of p.src.keys()) {
-        const v = targetFlat.get(k);
-        if (typeof v === "string" && v !== "") translated.add(k);
-      }
+      for (const [k, src] of p.src) if (isTranslated(src, targetFlat.get(k))) translated.add(k);
       // Findings are about TRANSLATED content — a key with no translation yet is backlog
       // (total - done), not a defect; counting it both ways made the header shout "36
       // findings" over rows saying "not yet translated".

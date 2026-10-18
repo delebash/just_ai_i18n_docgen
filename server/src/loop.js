@@ -88,6 +88,13 @@ export async function translateLanguage({
   const todo = [];
 
   for (const [key, text] of source) {
+    // Nothing to translate: a blank source comes back as itself, with no engine call. Sent, it
+    // came back empty and the key ended in `failed` — the kit's `kit.quickSetup.doneBody` is
+    // "" on purpose (an app sets its own), 2026-10-15.
+    if (!strip(text)) {
+      values.set(key, text);
+      continue;
+    }
     const ck = cacheKey({ text, lang, contextHash, glossaryHash });
     if (!force && existing.has(key) && Object.hasOwn(cache, ck)) {
       values.set(key, existing.get(key));

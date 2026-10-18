@@ -7,7 +7,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vitest";
-import { buildContext, checkOne, runChecks } from "../src/checks.js";
+import { buildContext, checkOne, isTranslated, runChecks } from "../src/checks.js";
 
 const CONVENTIONS = JSON.parse(readFileSync(join(import.meta.dirname, "..", "src", "config", "conventions.json"), "utf8"));
 
@@ -105,6 +105,28 @@ test("numbers_bites_when_a_quantity_changes", () => {
 test("brackets_bites_when_a_wrapper_is_dropped", () => {
   expect(codes("Chapter (draft)", "Capítulo (borrador")).toContain("brackets");
   expect(codes("See [docs]", "Ver docs")).toContain("brackets");
+});
+
+test("a_target_that_adds_plural_forms_is_held_to_the_source_form_by_form", () => {
+  // 2026-10-17: 17 Spanish counts like these read as placeholder-changed and brackets, their
+  // `{n}` counted across both forms; vue-i18n renders one form, picked from `n`.
+  expect(codes("{n} found", "{n} encontrado | {n} encontrados")).toEqual([]);
+  expect(codes("Top 3: {n} found", "Top 3: {n} encontrado | Top 3: {n} encontrados")).toEqual([]);
+  // ...and each form still bites on its own.
+  expect(codes("{n} found", "{n} encontrado | encontrados")).toContain("placeholder-changed");
+  expect(codes("{n} found (draft)", "{n} encontrado (borrador) | {n} encontrados")).toContain("brackets");
+  expect(codes("Top 3: {n} found", "Top 3: {n} encontrado | Top {n} encontrados")).toContain("numbers");
+  const [f] = checkOne({ key: "k", src: "{n} found", dst: "{n} encontrado | encontrados", ctx: CTX });
+  expect(f.detail, "the finding names the form").toBe("form 2: source has {n}, target has none");
+});
+
+test("a_blank_source_counts_as_translated_once_the_target_has_it", () => {
+  // The progress counters' rule (2026-10-18): the kit's `kit.quickSetup.doneBody` is "" on
+  // purpose, and read 1,480 of 1,481 done with nothing left to do.
+  expect(isTranslated("", "")).toBe(true);
+  expect(isTranslated("", undefined), "absent is still backlog").toBe(false);
+  expect(isTranslated("Save", ""), "an empty translation of words is not done").toBe(false);
+  expect(isTranslated("Save", "Guardar")).toBe(true);
 });
 
 test("blank_bites_on_a_whitespace_only_translation", () => {

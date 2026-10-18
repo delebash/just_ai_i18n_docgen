@@ -33,17 +33,37 @@ const multiset = (items) => pySorted(items).join("\x00");
 // config-derived bits: the placeholder regex, the glossary, the plural separator and the
 // target language's conventions row.
 
+/**
+ * The target's forms, each held to the whole source by the counting checks (placeholders,
+ * numbers, brackets). A target may add plural forms its source doesn't need — "{n} encontrado
+ * | {n} encontrados" for "{n} found", of which vue-i18n renders one, picked from `n` (the kit's
+ * RESEARCH §8). Counted across the whole string, that read as `placeholder-changed` and
+ * `brackets` on a correct translation: 17 Spanish counts, 2026-10-17.
+ */
+function targetForms(src, dst, ctx) {
+  const sep = ctx.plural_separator;
+  if (!truthy(sep) || src.includes(sep) || !dst.includes(sep)) return [dst];
+  return dst.split(sep);
+}
+
+/** "form 2: " when the target was split into forms, so the reader knows which one. */
+const formLabel = (forms, i) => (forms.length > 1 ? `form ${i + 1}: ` : "");
+
 /** Placeholders: the same interpolations, the same number of times. */
 export function checkPlaceholders(src, dst, ctx) {
   const a = findAll(ctx.placeholder_re, src);
-  const b = findAll(ctx.placeholder_re, dst);
-  if (multiset(a) === multiset(b)) return [];
-  return [
-    {
-      code: "placeholder-changed",
-      detail: `source has ${a.join(" ") || "none"}, target has ${b.join(" ") || "none"}`,
-    },
-  ];
+  const forms = targetForms(src, dst, ctx);
+  for (const [i, form] of forms.entries()) {
+    const b = findAll(ctx.placeholder_re, form);
+    if (multiset(a) === multiset(b)) continue;
+    return [
+      {
+        code: "placeholder-changed",
+        detail: `${formLabel(forms, i)}source has ${a.join(" ") || "none"}, target has ${b.join(" ") || "none"}`,
+      },
+    ];
+  }
+  return [];
 }
 
 /**
@@ -155,11 +175,17 @@ export function checkEndPunc(src, dst, _ctx) {
 const NUMBER_RE = new RegExp(`${D}+`, "gu");
 
 /** Every number in the source appears in the target. A translated quantity is a data bug. */
-export function checkNumbers(src, dst, _ctx) {
+export function checkNumbers(src, dst, ctx) {
   const a = findAll(NUMBER_RE, src);
-  const b = findAll(NUMBER_RE, dst);
-  if (multiset(a) === multiset(b)) return [];
-  return [{ code: "numbers", detail: `source has ${a.join(" ") || "none"}, target has ${b.join(" ") || "none"}` }];
+  const forms = targetForms(src, dst, ctx);
+  for (const [i, form] of forms.entries()) {
+    const b = findAll(NUMBER_RE, form);
+    if (multiset(a) === multiset(b)) continue;
+    return [
+      { code: "numbers", detail: `${formLabel(forms, i)}source has ${a.join(" ") || "none"}, target has ${b.join(" ") || "none"}` },
+    ];
+  }
+  return [];
 }
 
 const BRACKETS = [
@@ -174,18 +200,32 @@ const BRACKETS = [
  * "Acceso sin interfaz (headless)" is arguably good practice — which is exactly why this
  * reports rather than rejects.)
  */
-export function checkBrackets(src, dst, _ctx) {
+export function checkBrackets(src, dst, ctx) {
   const out = [];
+  const forms = targetForms(src, dst, ctx);
   for (const [open, close] of BRACKETS) {
     const so = pyCount(src, open);
     const sc = pyCount(src, close);
-    const to = pyCount(dst, open);
-    const tc = pyCount(dst, close);
-    if (so !== to || sc !== tc) {
-      out.push({ code: "brackets", detail: `source ${so}${open}/${sc}${close}, target ${to}${open}/${tc}${close}` });
+    for (const [i, form] of forms.entries()) {
+      const to = pyCount(form, open);
+      const tc = pyCount(form, close);
+      if (so !== to || sc !== tc) {
+        out.push({ code: "brackets", detail: `${formLabel(forms, i)}source ${so}${open}/${sc}${close}, target ${to}${open}/${tc}${close}` });
+        break;
+      }
     }
   }
   return out;
+}
+
+/**
+ * Whether a key counts as translated — the progress counters' one rule: the target has
+ * something in it, or the source has nothing to translate. A blank source is given back as
+ * itself (loop.js), and that is done, not backlog (the kit's `kit.quickSetup.doneBody`, "" on
+ * purpose, read 1,480 of 1,481 done with nothing left to do).
+ */
+export function isTranslated(src, dst) {
+  return typeof dst === "string" && (dst !== "" || !strip(src ?? ""));
 }
 
 /** Blank: the source says something, the target is whitespace. */

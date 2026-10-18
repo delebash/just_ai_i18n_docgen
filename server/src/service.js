@@ -28,7 +28,7 @@ import {
   saveAccepted,
   UNKNOWN_REVIEWER,
 } from "./accepted.js";
-import { buildContext, runChecks, summarise } from "./checks.js";
+import { buildContext, isTranslated, runChecks, summarise } from "./checks.js";
 import * as confirm from "./confirm.js";
 import { CONFIRM_CODE, attachConfirmations, confirmIdentical } from "./confirm.js";
 import * as engine from "./engine.js";
@@ -381,7 +381,7 @@ export function runCheck(project, { log = console.log } = {}) {
     }
     const [findings, acceptedNow] = allFindings(project, lang, dst);
     let translated = 0;
-    for (const k of project.src.keys()) if (truthy(dst.get(k))) translated += 1;
+    for (const [k, src] of project.src) if (isTranslated(src, dst.get(k))) translated += 1;
     log(`\n${lang}: ${translated}/${project.src.size} translated`);
     for (const [code, items] of summarise(findings)) {
       if (code !== "disagreement") failed += items.length;

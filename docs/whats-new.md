@@ -2,6 +2,11 @@
 
 ## v0.1.0
 
+- **Language names follow the interface.** With Spanish chosen, Home, Review and Runs name each
+  language in Spanish ("Español (es)") instead of the window's language ([Settings](settings.md))
+- **Fewer false flags on plurals.** A translation that adds plural forms its source doesn't need
+  is checked form by form, and a string that is empty in the source on purpose counts as done
+  instead of ending a run as exhausted ([Review](review.md))
 - **docgen in Spanish.** Choose **Español** in Settings → Appearance → Language and every screen
   is in Spanish, the shared AI and settings screens included ([Settings](settings.md))
 - **Settings → Appearance has a Language picker.** Every word on docgen's own screens now comes

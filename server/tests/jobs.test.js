@@ -104,15 +104,15 @@ test("done_run_hands_its_identical_proposals_to_the_confirm_pass", async () => {
   };
   jobs.start(
     startArgs(dir, {
-      subset: { same: "No", moved: "Hello" },
-      translate: controllableTranslate(gate, [{ same: "No", moved: "Hola" }]),
+      subset: { same: "No", moved: "Hello", blank: "" },
+      translate: controllableTranslate(gate, [{ same: "No", moved: "Hola", blank: "" }]),
       confirm,
     }),
   );
   gate.set();
   await jobs.settled();
   expect(jobs.status().state).toBe("done");
-  expect(seen, "only the byte-identical proposal is confirmed").toEqual([{ same: "No" }]);
+  expect(seen, "only the byte-identical proposal is confirmed — a blank has nothing to confirm").toEqual([{ same: "No" }]);
   expect(statesDuringConfirm, "the pass runs INSIDE a busy, non-terminal state").toEqual([["confirming", true]]);
 
   // A confirm that BLOWS UP is an annotation failure, not a run failure.

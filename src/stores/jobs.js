@@ -12,11 +12,7 @@
 import { defineStore } from "pinia";
 import { get, post, pushToast, safeRequest, serverUrl, withAiTask } from "@delebash/ui";
 import { i18n } from "../i18n/index.js";
-
-const langNames = new Intl.DisplayNames(undefined, { type: "language" });
-function nameOf(code) {
-  try { return langNames.of(code) || code; } catch { return code; }
-}
+import { langName } from "../services/langs.js";
 
 export const useJobsStore = defineStore("jobs", {
   state: () => ({
@@ -58,8 +54,8 @@ export const useJobsStore = defineStore("jobs", {
       withAiTask({
         feature: "translate",
         label: remaining
-          ? i18n.global.t("jobs.translatingThen", { lang: nameOf(lang), queue: this.queue.map(nameOf).join(", ") })
-          : i18n.global.t("jobs.translating", { lang: nameOf(lang) }),
+          ? i18n.global.t("jobs.translatingThen", { lang: langName(lang), queue: this.queue.map(langName).join(", ") })
+          : i18n.global.t("jobs.translating", { lang: langName(lang) }),
         meta: { lang },
       }, (handle) => {
         handle.markStreaming();

@@ -15,7 +15,7 @@ import {
   UiTable, UiTag, pushToast, useAiTasksStore, usePoll,
 } from "@delebash/ui";
 import splashPlate from "../assets/images/splash-plate.jpg";
-import { langName } from "../services/langs";
+import { langTitle } from "../services/langs";
 import { useJobsStore } from "../stores/jobs";
 import { useProjectStore } from "../stores/project";
 import { pageFill } from "@delebash/ui";
@@ -52,7 +52,7 @@ const translateTask = computed(
   () => aiTasks.runningTasks.find((t) => t.feature === "translate") || null,
 );
 const rows = computed(() =>
-  (project.summary?.langs ?? []).map((l) => ({ ...l, name: langName(l.code) })),
+  (project.summary?.langs ?? []).map((l) => ({ ...l, name: langTitle(l.code) })),
 );
 const totals = computed(() => {
   const ls = project.summary?.langs ?? [];

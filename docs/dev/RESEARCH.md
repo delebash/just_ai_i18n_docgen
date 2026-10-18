@@ -80,12 +80,23 @@ Asked because the user wants the Spanish review done with little human interacti
 - **The spellchecker is a hint, not a gate:** it flagged 189 strings at export, and nearly every
   hit was a valid word it lacks (preajuste, autoguardado, verb forms with an attached pronoun);
   "reviravones" was the one real non-word. — *measured 2026-10-17.*
-- **docgen's placeholder and bracket checks count across the whole string.** A Spanish string
-  that adds plural forms its English doesn't need ("{n} encontrado | {n} encontrados" for "{n}
-  found") reads as `placeholder-changed` and `brackets`, though vue-i18n renders one form (it
-  picks it from the named `n`: the kit's RESEARCH §8). `checkPlural` itself runs only when the
-  source has the separator (`checks.js:55`). The 17 such strings were accepted as correct. —
-  *code, and measured 2026-10-17.*
+- **A target that adds plural forms its source doesn't need is checked form by form:** each
+  form of "{n} encontrado | {n} encontrados" (for "{n} found") is held to the whole source by
+  the placeholder, number and bracket checks (`targetForms` in `checks.js`). vue-i18n renders
+  one form, picked from the named `n` (the kit's RESEARCH §8). `checkPlural` itself runs only
+  when the source has the separator. — *code and tests, 2026-10-18.* (was: the three checks
+  counted across the whole string, so such a string read as `placeholder-changed` and
+  `brackets`; the 17 of them were accepted as correct — until 2026-10-18)
+- **A blank source string is given back as itself, with no engine call** (`loop.js`), and a
+  job's confirmation pass skips it. — *code and tests, 2026-10-18.* (was: sent, it came back
+  empty and ended in `failed` — the kit's `kit.quickSetup.doneBody` — until 2026-10-18)
+- **Language names: `Intl.DisplayNames([uiLocale])` gives the CLDR name as it reads in a
+  sentence** ("español"). CLDR's Spanish capitalises a language name standing alone or in a
+  menu (`contextTransforms` → `languages`: `stand-alone` and `uiListOrMenu` are
+  `titlecase-firstword`), and `Intl` exposes no capitalisation context, so `langTitle` in
+  `src/services/langs.js` capitalises the first letter. — *web:
+  github.com/unicode-org/cldr-json, `cldr-misc-full/main/es/contextTransforms.json`; Node 24's
+  ICU, measured 2026-10-18.*
 
 ---
 

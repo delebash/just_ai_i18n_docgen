@@ -177,3 +177,23 @@ test("force_retranslates_but_never_wipes_other_cache_entries", async () => {
   await translateLanguage({ sourceFlat: { a: "Hello" }, lang: "es", cfg: CFG, cachePath: cache, send: echoSend, force: true, log: quiet });
   expect(Object.keys(JSON.parse(readFileSync(cache, "utf8"))).length).toBe(entriesBefore);
 });
+
+test("a_blank_source_comes_back_as_itself_without_the_engine", async () => {
+  // 2026-10-15: the kit's `kit.quickSetup.doneBody` is "" on purpose; sent, it came back empty
+  // and ended in `failed`. Nothing to translate counts as done.
+  const sent = [];
+  const result = await translateLanguage({
+    sourceFlat: { empty: "", spaces: "  ", a: "Hello" },
+    lang: "es",
+    cfg: CFG,
+    cachePath: join(tmpDir(), "c.json"),
+    send: (system, user) => {
+      sent.push(...itemsOf(user).map((it) => it.text));
+      return echoSend(system, user);
+    },
+    log: quiet,
+  });
+  expect(plain(result.values)).toEqual({ empty: "", spaces: "  ", a: "XX Hello" });
+  expect(result.failed).toEqual([]);
+  expect(sent, "only the string with words reached the engine").toEqual(["Hello"]);
+});

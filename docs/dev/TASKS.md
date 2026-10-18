@@ -52,22 +52,18 @@ HERE:   Task 1 done 2026-10-12. Task 4 (go 2026-10-13: "your rec think on them a
         of by hand (the decision and the run are in JustWrite's TASKS, "Automated testing"; the
         numbers in RESEARCH): through docgen's own routes on a scratch-data server, acceptances by
         the reviewer "Claude (AI review, 2026-10-17)"; JustWrite 3,052, the kit 1,480 and docgen 278
-        written, nothing left staged; `check` passes but for the FOUND below. docgen's own Spanish
-        is `src/i18n/locales/es.json` (the picker offers Español); user docs settings.md,
-        whats-new.md.
-FOUND:  2026-10-15 — an empty source string counts as a failed key: the kit's
-        `kit.quickSetup.doneBody` is "" on purpose (an app sets its own), the engine has nothing to
-        give back, and the retry ladder ends with it in `failed` (the kit's list: 1 of 1,454).
-        Nothing to translate should count as done. (2026-10-17: `check` still reports it as
-        `missing` on the kit's project, exit 1.)
-FOUND:  2026-10-17 — the placeholder and bracket checks count across the whole string, so a target
-        that adds plural forms its source doesn't need ("{n} encontrado | {n} encontrados" for
-        "{n} found", which vue-i18n renders as one form) reads as `placeholder-changed`; 17 such
-        strings were accepted as correct (RESEARCH).
-FOUND:  2026-10-17 — language names follow the window's language, not the interface's: in Spanish,
-        Home, Review and Runs show "Spanish (es)" (the Task 4 note above: `services/langs.js`).
-        The AI page's "Built-in provider — llama.cpp" stays English too: a name stored as data
-        (the kit's seed), not a catalog string.
+        written, nothing left staged. docgen's own Spanish is `src/i18n/locales/es.json` (the picker
+        offers Español); user docs settings.md, whats-new.md.
+        The three FOUNDs of that run fixed 2026-10-18, each with a test (the decision with the
+        user's words is in JustWrite's TASKS, "Automated testing"; facts in RESEARCH): a blank
+        source is given back as itself with no engine call and counts as done (`isTranslated`,
+        the check's and the summary's one rule) — the kit's `kit.quickSetup.doneBody` saved as ""
+        through Save, its `check` 1,481 of 1,481 and exit 0; a target that adds plural forms is
+        checked form by form (placeholders, numbers, brackets); language names follow the
+        interface's language ("Español (es)" — CLDR capitalises a name standing alone). User docs
+        review.md, whats-new.md.
+FOUND:  2026-10-17 — the AI page's "Built-in provider — llama.cpp" stays English in Spanish: a name
+        stored as data (the kit's seed), not a catalog string.
 
 ## The server moves to Hono [2026-10-09]
 STATE:  DECIDED 2026-10-09, family-wide — the decision with the user's words is the kit's TASKS,
