@@ -1,18 +1,14 @@
 // SPDX-License-Identifier: MIT
-// GET /v1/health — the boot-gate contract. The port of api/health_api.py.
+// GET /v1/health — the boot-gate contract, through the kit's shared router (app-structure §14).
 //
 // The kit's checkServer() pings /v1/health before the boot file (src/boot/docgen.js) lets the
 // app mount; without this route every ping 404'd and the RELEASE webview showed ConnectionError
 // forever — found 2026-08-04 by the real-webview smoke against the real project (nothing else
-// boots through the boot file, so no other gate could see it).
+// boots through the boot file, so no other gate could see it). docgen carries no extras.
 
-import { Hono } from "@delebash/core/platform";
+import { makeHealthRouter } from "@delebash/core/platform";
 import { API_VERSION, PRODUCT, VERSION } from "../version.js";
 
 export function router() {
-  const app = new Hono();
-  // The family base shape (camelCase wire): docgen carries no extras (JW adds dataDir/dbReady,
-  // JV its engine block). checkServer() reads only the HTTP status.
-  app.get("/v1/health", (c) => c.json({ status: "ok", product: PRODUCT, version: VERSION, apiVersion: API_VERSION }));
-  return app;
+  return makeHealthRouter({ product: PRODUCT, version: VERSION, apiVersion: API_VERSION });
 }

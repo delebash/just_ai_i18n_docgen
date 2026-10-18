@@ -50,7 +50,7 @@ import { sortedTables } from "@delebash/core/platform/data_api";
 import { purePath } from "@delebash/core/platform/data_paths";
 import { HttpError } from "@delebash/core/platform/errors";
 import { getLogger } from "@delebash/core/platform/log";
-import { cpSlice, errText } from "@delebash/core/platform/py";
+import { errText } from "@delebash/core/platform/py";
 import * as lifecycle from "@delebash/core/runner/lifecycle";
 import { router as healthRouter } from "./api/health_api.js";
 import { router as serverAuthRouter } from "./api/server_auth_api.js";
@@ -448,17 +448,6 @@ export function seedLlmStack() {
   loadFromConfigs(stores.getProviderStore().list());
 }
 
-/**
- * docgen's answer to an unhandled exception — the kit's FastAPI handler answers everything else
- * (HTTPException, validation, a body it refuses) and logs this one, with its stack, before
- * handing it here: a JSON 500 that still carries the CORS headers (stamped on the request), so
- * the browser sees a real error instead of a CORS block. JW parity — verified the hard way in
- * JV, 2026-06-12.
- */
-function errorEnvelope(err, c) {
-  return c.json({ title: "Internal Server Error", detail: cpSlice(errText(err), 0, 300) }, 500);
-}
-
 /** The Hono app: the kit, the data/prefs/logs/disk routers, the workspace and the UI. */
 export async function createApp(dataDir = null, configPath = null) {
   dataDir = dataDir ? purePath(String(dataDir)) : defaultDataDir();
@@ -468,10 +457,9 @@ export async function createApp(dataDir = null, configPath = null) {
   installLogRing();
   installFileLog(path.join(dataDir, "logs", "just-ai-i18n-docgen.log"));
 
-  // FastAPI's default error answers, and docgen's envelope for an unhandled exception. Hono has
-  // no encapsulated scopes: the envelope is the app's own, so every route — the kit's and
-  // docgen's — answers through it, as every route did inside the one Fastify scope before.
-  const app = createServer({ errors: "fastapi", onUnhandled: errorEnvelope });
+  // FastAPI's default error answers (a listed deviation — app-structure, Open deviations); an
+  // unhandled exception gets the kit's family envelope (§15: problem+json with the request id).
+  const app = createServer({ errors: "fastapi" });
 
   // Python's middleware order: CSRF outermost, then CORS, then auth. Hono runs middleware in
   // the order it is added and covers only the routes added after it, so the three come first,
