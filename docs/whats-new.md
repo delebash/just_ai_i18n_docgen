@@ -2,6 +2,9 @@
 
 ## v0.1.0
 
+- **Notices read properly.** A notice with a long button puts the button under its text instead of
+  squeezing the text into a narrow column, and the "Your graphics hardware changed" notice on the
+  AI page shows its title ([AI engine](ai-providers.md))
 - **The AI page's ready-made names in your language.** With Spanish chosen, the Translate, Review
   and Confirm features, their presets and the built-in providers show in Spanish — until you
   rename one, which then stays as you wrote it ([Settings](settings.md))
