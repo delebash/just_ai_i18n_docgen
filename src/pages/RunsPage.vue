@@ -6,7 +6,7 @@
 // rejoins the run it did not start.
 import { computed, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { PaneHeader, UiButton, UiProgress, UiSelect, UiTable, pushToast, pageFlow } from "@delebash/llm-ui";
+import { PaneHeader, UiButton, UiProgress, UiSelect, UiTable, pushToast, pageFlow } from "@delebash/ui";
 import { ref } from "vue";
 import { langLabel, langOptions } from "../services/langs";
 import { useJobsStore } from "../stores/jobs";

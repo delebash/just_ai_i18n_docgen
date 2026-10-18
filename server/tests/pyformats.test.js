@@ -14,8 +14,8 @@ import {
   S,
   splitWs as pySplit,
   strip as pyStrip,
-} from "@delebash/llm-runner/platform/py";
-import { jsonLoadsExact as loads, PyFloat, pyFixed as fmtFixed, pyJson as dumps } from "@delebash/llm-runner/platform/pyjson";
+} from "@delebash/core/platform/py";
+import { jsonLoadsExact as loads, PyFloat, pyFixed as fmtFixed, pyJson as dumps } from "@delebash/core/platform/pyjson";
 import { expect, test } from "vitest";
 import { ALNUM, LETTER, pyStr } from "../src/jsonio.js";
 

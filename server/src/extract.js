@@ -28,8 +28,8 @@ import {
   strip,
   truthy,
   ValueError,
-} from "@delebash/llm-runner/platform/py";
-import { pyJson } from "@delebash/llm-runner/platform/pyjson";
+} from "@delebash/core/platform/py";
+import { pyJson } from "@delebash/core/platform/pyjson";
 import { parseFrontMatter } from "./frontmatter.js";
 import { readJson, readText, writeText } from "./jsonio.js";
 import { isAbsolutePy, isDir, listNames, removeSuffix, resolvePath } from "./paths.js";

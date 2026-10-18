@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Placeholder shielding + the translation prompt — the pure heart of the loop. The port of
 // shieldlib.py (ported from just-ai-help's `server/loop.js`, minus the transport: the request
-// body belongs to llm-runner's adapters, and per-request temperature belongs to the engine
+// body belongs to the kit's adapters, and per-request temperature belongs to the engine
 // preset each feature points at).
 //
 // SHIELDING IS A SUBSTITUTION, NOT AN INSTRUCTION. Interpolations — and do-not-translate
@@ -16,8 +16,8 @@
 // string and no natural language, so a false positive is not possible.
 
 import { createHash } from "node:crypto";
-import { cpLen, cpSlice, D, digitsToInt, pyGet, pySorted, reEscape, S, truthy, ValueError } from "@delebash/llm-runner/platform/py";
-import { JSONDecodeError, jsonLoadsExact, PyFloat, pyJson } from "@delebash/llm-runner/platform/pyjson";
+import { cpLen, cpSlice, D, digitsToInt, pyGet, pySorted, reEscape, S, truthy, ValueError } from "@delebash/core/platform/py";
+import { JSONDecodeError, jsonLoadsExact, PyFloat, pyJson } from "@delebash/core/platform/pyjson";
 import { ALNUM, pyStr } from "./jsonio.js";
 
 // Tolerant of a model inserting spaces inside the brackets. Python's `\s` and `\d` are

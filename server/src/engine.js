@@ -4,7 +4,7 @@
 //
 // The Node tool owned its whole transport (`buildRequest`/`callModel`) because owning the
 // request body was the only cure for invisible request damage. Here the body is owned by
-// llm-runner's adapters — `extra` routes per-provider exactly the way `extraBody` did, and
+// the kit's adapters — `extra` routes per-provider exactly the way `extraBody` did, and
 // every knob the old engines.json carried lives in the ENGINE PRESET the feature points at
 // (one-source: the preset owns provider+model+temperature/think/samplers).
 //
@@ -17,12 +17,12 @@
 // merge rules would drift. The preset is now the one source the body is built from, so the
 // guard reads it — same principle, new single source.
 
-import { LLMMessage } from "@delebash/llm-runner/llm";
-import * as dispatch from "@delebash/llm-runner/llm/dispatch";
-import * as presetResolve from "@delebash/llm-runner/llm/preset_resolve";
-import * as registry from "@delebash/llm-runner/llm/registry";
-import * as stores from "@delebash/llm-runner/llm/stores";
-import { pyFloatParse, pyInt, RuntimeError, strip, truthy, ValueError } from "@delebash/llm-runner/platform/py";
+import { LLMMessage } from "@delebash/core/llm";
+import * as dispatch from "@delebash/core/llm/dispatch";
+import * as presetResolve from "@delebash/core/llm/preset_resolve";
+import * as registry from "@delebash/core/llm/registry";
+import * as stores from "@delebash/core/llm/stores";
+import { pyFloatParse, pyInt, RuntimeError, strip, truthy, ValueError } from "@delebash/core/platform/py";
 import { RESPONSE_SCHEMA } from "./shieldlib.js";
 
 /** Raised when a feature resolves to no usable preset/adapter — loudly, with the fix in the

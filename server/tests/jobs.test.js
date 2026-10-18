@@ -5,7 +5,7 @@
 // threading.Event gates are the kit's AsyncEvent; its busy-wait on the worker thread is
 // `until()`.
 import { join } from "node:path";
-import { AsyncEvent } from "@delebash/llm-runner/platform/asyncutil";
+import { AsyncEvent } from "@delebash/core/platform/asyncutil";
 import { expect, test } from "vitest";
 import { JobBusyError, JobManager } from "../src/jobs.js";
 import { openProject, proposalCount, runHistory } from "../src/state.js";

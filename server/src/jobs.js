@@ -19,9 +19,9 @@
 // subscriber list never spanned anything, so it is gone.
 
 import { randomUUID } from "node:crypto";
-import { AsyncEvent, background } from "@delebash/llm-runner/platform/asyncutil";
-import { getLogger } from "@delebash/llm-runner/platform/log";
-import { errText, pyGet, RuntimeError } from "@delebash/llm-runner/platform/py";
+import { AsyncEvent, background } from "@delebash/core/platform/asyncutil";
+import { getLogger } from "@delebash/core/platform/log";
+import { errText, pyGet, RuntimeError } from "@delebash/core/platform/py";
 import { asMap } from "./jsonio.js";
 import { translateLanguage } from "./loop.js";
 import { finishRun, putProposal, startRun } from "./state.js";

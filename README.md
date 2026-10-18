@@ -3,7 +3,7 @@
 Translate standard i18n JSON locale folders with a local or online AI engine, verify
 every string that was written, and author help docs whose front-matter becomes locale
 keys — with a human review workspace where nothing ships unseen. It embeds the family's
-shared LLM stack (`../just-llm-runner`) for everything engine-shaped.
+shared LLM stack (`../just-core`) for everything engine-shaped.
 
 Desktop app: a Quasar app (Vue 3) — its Electron mode is the desktop window — over a Node
 (Hono) server on port **8742**. It was the first family app to move off Tauri and Python
@@ -15,7 +15,7 @@ file is byte-identical until a human applies; the engine never signs off
 ## Run it
 
 ```bash
-npm install            # needs the kit checked out beside this repo: ../just-llm-runner;
+npm install            # needs the kit checked out beside this repo: ../just-core;
                        # once: cd src-electron && npm install (the desktop app's own packages)
 npm run dev            # THE APP — Quasar's dev server on :1450 and the desktop window; the window starts the server itself
 npm run dev:spa        # the renderer alone in a browser tab at :1450 (start the server yourself: npm run server)
@@ -56,8 +56,8 @@ as Node, so they need nothing else installed.
 
 - `CLAUDE.md` — the working rules, the "what bites" list, and all pointers.
 - `docs/dev/TASKS.md` — the live open-work tracker; `docs/dev/IDEAS.md` — the backlog.
-- `../just-llm-runner/docs/app-structure.md` — the family structure standard.
+- `../just-core/docs/app-structure.md` — the family structure standard.
 - `server/src/api/workspace_api.js` — the review workspace API routes (the Workspace class +
   write rules: `server/src/workspace.js`).
 - `src-electron/electron-main.js` — the desktop shell's settings (the shell itself is the kit's
-  `@delebash/llm-runner/shell`); `src/boot/docgen.js` — the renderer's start-up.
+  `@delebash/core/shell`); `src/boot/docgen.js` — the renderer's start-up.

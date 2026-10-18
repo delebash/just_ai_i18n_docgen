@@ -10,7 +10,7 @@
 // from the same window as model downloads — one task surface, no bespoke strip
 // (JobStrip died 2026-08-03).
 import { defineStore } from "pinia";
-import { get, post, pushToast, safeRequest, serverUrl, withAiTask } from "@delebash/llm-ui";
+import { get, post, pushToast, safeRequest, serverUrl, withAiTask } from "@delebash/ui";
 import { i18n } from "../i18n/index.js";
 
 const langNames = new Intl.DisplayNames(undefined, { type: "language" });

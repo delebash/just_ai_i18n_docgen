@@ -7,7 +7,7 @@
 // hands JS a File and no path — that ruling from the Node repo still holds.
 import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { PaneHeader, UiButton, UiCheckbox, UiInput, UiMultiSelect, UiTag, pushToast, pageFlow } from "@delebash/llm-ui";
+import { PaneHeader, UiButton, UiCheckbox, UiInput, UiMultiSelect, UiTag, pushToast, pageFlow } from "@delebash/ui";
 import { useRouter } from "vue-router";
 import { useProjectStore } from "../stores/project";
 import { useUiStore } from "../stores/ui";

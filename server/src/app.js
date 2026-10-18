@@ -27,10 +27,10 @@
 
 import { existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
-import { installLlm, router as runnerRouter } from "@delebash/llm-runner";
-import { LLM_TABLES, loadFromConfigs, seedLlm, stores } from "@delebash/llm-runner/llm";
-import * as llmDb from "@delebash/llm-runner/llm/db";
-import { FeatureCatalogEntry } from "@delebash/llm-runner/llm/routing_api";
+import { installLlm, runnerRouter } from "@delebash/core/llm";
+import { LLM_TABLES, loadFromConfigs, seedLlm, stores } from "@delebash/core/llm";
+import * as llmDb from "@delebash/core/llm/db";
+import { FeatureCatalogEntry } from "@delebash/core/llm/routing_api";
 import {
   bearerAuth,
   createServer,
@@ -45,13 +45,13 @@ import {
   resolveDataDir,
   serveStatic,
   starletteCors,
-} from "@delebash/llm-runner/platform";
-import { sortedTables } from "@delebash/llm-runner/platform/data_api";
-import { purePath } from "@delebash/llm-runner/platform/data_paths";
-import { HttpError } from "@delebash/llm-runner/platform/errors";
-import { getLogger } from "@delebash/llm-runner/platform/log";
-import { cpSlice, errText } from "@delebash/llm-runner/platform/py";
-import * as lifecycle from "@delebash/llm-runner/runner/lifecycle";
+} from "@delebash/core/platform";
+import { sortedTables } from "@delebash/core/platform/data_api";
+import { purePath } from "@delebash/core/platform/data_paths";
+import { HttpError } from "@delebash/core/platform/errors";
+import { getLogger } from "@delebash/core/platform/log";
+import { cpSlice, errText } from "@delebash/core/platform/py";
+import * as lifecycle from "@delebash/core/runner/lifecycle";
 import { router as healthRouter } from "./api/health_api.js";
 import { router as serverAuthRouter } from "./api/server_auth_api.js";
 import { router as setupRouter } from "./api/setup_api.js";

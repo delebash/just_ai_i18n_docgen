@@ -14,14 +14,14 @@ import {
   UiButton, UiInput, UiToggle, UpdatesPanel, confirmDialog, fmtBytes, get,
   SETTINGS_SECTION_ORDER, openExternal, post, pushToast, put, refreshRunnerModels, renderHelpMarkdown,
   safeRequest, serverUrl,
-} from "@delebash/llm-ui";
+} from "@delebash/ui";
 import { LOCALE_CODES } from "../i18n/index.js";
 import { loadDoc } from "../services/helpDocs.js";
 import { desktopUpdater, pickDirectory, storageGetRoot, storageRelocate, setKeepRunning as nativeSetKeepRunning } from "../services/native.js";
 import { SETTINGS_SECTION_IDS } from "../services/settingsSections.js";
 import { useProjectStore } from "../stores/project";
 import { useUiStore } from "../stores/ui";
-import { pageFlow } from "@delebash/llm-ui";
+import { pageFlow } from "@delebash/ui";
 
 const props = defineProps({ section: { type: String, default: "" } });
 const router = useRouter();

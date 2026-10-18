@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Just AI i18n & DocGen's ONE build config (Quasar CLI, the kit's app-structure §Q) — the renderer
 // and the desktop app (Electron mode on the kit's runDesktopApp). Written from the family template
-// (../just-llm-runner/template/quasar.config.js); what differs is this app's: the kit UI alias,
+// (../just-core/template/quasar.config.js); what differs is this app's: the kit UI alias,
 // the dev ports, the installer's settings. No phone app (no Capacitor mode).
 // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file
 
@@ -14,7 +14,7 @@ import { defineConfig } from '#q-app'
 delete process.env.npm_config_allow_scripts
 
 const root = import.meta.dirname
-const kitUi = path.resolve(root, '../just-llm-runner/ui')
+const kitUi = path.resolve(root, '../just-core/packages/ui')
 
 export default defineConfig(() => {
   return {
@@ -36,7 +36,7 @@ export default defineConfig(() => {
       alias: {
         '@renderer': path.join(root, 'src'),
         // The kit's UI, consumed from source (the sibling checkout) for the dev/HMR loop.
-        '@delebash/llm-ui': path.join(kitUi, 'src'),
+        '@delebash/ui': path.join(kitUi, 'src'),
       },
 
       extendViteConf (viteConf) {
@@ -124,7 +124,7 @@ export default defineConfig(() => {
           oneClick: false,
           perMachine: false,
           allowToChangeInstallationDirectory: true,
-          include: path.resolve(root, '../just-llm-runner/server/src/shell/installer.nsh')
+          include: path.resolve(root, '../just-core/packages/core/src/shell/installer.nsh')
         },
         electronFuses: {
           runAsNode: true,

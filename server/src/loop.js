@@ -2,7 +2,7 @@
 // The translate loop — Layer 1's orchestration. Owned, on purpose. The port of loop.py
 // (ported from just-ai-help's `server/loop.js` `translateLanguage`, with ONE structural
 // change: the engine call is an injected async `send(system, user) -> str` instead of a
-// transport this module owns — the body is owned by llm-runner's adapters and the
+// transport this module owns — the body is owned by the kit's adapters and the
 // per-feature engine preset, and THAT layer carries the probe's non-zero-temperature guard).
 //
 // Everything else ports faithfully, because every rule was paid for:
@@ -23,9 +23,9 @@
 // The cache is ALWAYS loaded, even under force: force means "re-translate these keys
 // anyway", not "throw away what every other key and language already learned".
 
-import { sleep } from "@delebash/llm-runner/platform/asyncutil";
-import { errText, FileNotFoundError, isDict, pyGet, strip, truthy, ValueError } from "@delebash/llm-runner/platform/py";
-import { pyJson } from "@delebash/llm-runner/platform/pyjson";
+import { sleep } from "@delebash/core/platform/asyncutil";
+import { errText, FileNotFoundError, isDict, pyGet, strip, truthy, ValueError } from "@delebash/core/platform/py";
+import { pyJson } from "@delebash/core/platform/pyjson";
 import { asMap, OSError, placeholderRe, readJson, toPlain, writeText } from "./jsonio.js";
 import { exists } from "./paths.js";
 import { buildSystemPrompt, buildUserMessage, cacheKey, parseItems, restore, sha1, shield } from "./shieldlib.js";

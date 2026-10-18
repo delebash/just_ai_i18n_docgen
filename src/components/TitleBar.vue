@@ -6,7 +6,7 @@
 // (which carries the AI-tasks panel mount).
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { AiStatusButton, Icon, TitleBar } from "@delebash/llm-ui";
+import { AiStatusButton, Icon, TitleBar } from "@delebash/ui";
 import { useProjectStore } from "../stores/project";
 import { useUiStore } from "../stores/ui";
 

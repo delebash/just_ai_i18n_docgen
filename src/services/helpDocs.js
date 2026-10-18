@@ -5,7 +5,7 @@
 // the kit's makeDocsHelpAdapter — one implementation for the family, replacing
 // this file's smaller re-implementation. What stays here is what vite resolves
 // relative to THIS file: the import.meta.glob over the corpus and the toc import.
-import { makeDocsHelpAdapter } from "@delebash/llm-ui";
+import { makeDocsHelpAdapter } from "@delebash/ui";
 import toc from "../../docs/toc.json";
 
 export const { loadDoc, hasDoc, titleForSlug } = makeDocsHelpAdapter(

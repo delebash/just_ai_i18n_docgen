@@ -35,7 +35,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@renderer": resolve(__dirname, "src"),
-      "@delebash/llm-ui": resolve(__dirname, "../just-llm-runner/ui/src"),
+      "@delebash/ui": resolve(__dirname, "../just-core/packages/ui/src"),
       // Quasar's wrappers (defineBoot / defineRouter / defineStore) — the alias Quasar's own
       // build makes for #q-app
       "#q-app": "@quasar/app-vite",

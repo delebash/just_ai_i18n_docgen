@@ -13,7 +13,7 @@
 import { computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { AiSetupOffer, BootModelLoad, HelpDrawer, Icon, LlmUiHosts, pushToast, useAiTasksNav, warmModelId } from "@delebash/llm-ui";
+import { AiSetupOffer, BootModelLoad, HelpDrawer, Icon, LlmUiHosts, pushToast, useAiTasksNav, warmModelId } from "@delebash/ui";
 import TitleBar from "../components/TitleBar.vue";
 import splashPlate from "../assets/images/splash-plate.jpg";
 import { onShellEvent, setKeepRunning } from "../services/native.js";

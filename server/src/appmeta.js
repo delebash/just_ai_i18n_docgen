@@ -16,7 +16,7 @@
 // The table's DDL is generated from Python's AppBase (appmeta_schema.js, the kit's
 // capture-schema.py) so a new database is byte-for-byte what Python creates.
 
-import { pyJson } from "@delebash/llm-runner/platform/pyjson";
+import { pyJson } from "@delebash/core/platform/pyjson";
 import { TABLES } from "./appmeta_schema.js";
 
 export { TABLES as APP_TABLES };

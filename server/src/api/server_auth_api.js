@@ -8,11 +8,11 @@
 // kit's bearerAuth leaves /v1/health and THIS route reachable from loopback — the lockout
 // escape).
 
-import { Hono, input } from "@delebash/llm-runner/platform";
-import { HttpError } from "@delebash/llm-runner/platform/errors";
-import { T } from "@delebash/llm-runner/platform/models";
-import { pyGet, strip, truthy } from "@delebash/llm-runner/platform/py";
-import { pyJson } from "@delebash/llm-runner/platform/pyjson";
+import { Hono, input } from "@delebash/core/platform";
+import { HttpError } from "@delebash/core/platform/errors";
+import { T } from "@delebash/core/platform/models";
+import { pyGet, strip, truthy } from "@delebash/core/platform/py";
+import { pyJson } from "@delebash/core/platform/pyjson";
 import * as appmeta from "../appmeta.js";
 import { readAuth } from "../auth.js";
 

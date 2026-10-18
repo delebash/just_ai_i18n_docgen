@@ -15,11 +15,11 @@
 // Python's tests patch `workspace_api.make_send`: it is this module's own export, called as
 // `self.makeSend` (build sheet rule 18).
 
-import { Hono, input, stream } from "@delebash/llm-runner/platform";
-import { HttpError } from "@delebash/llm-runner/platform/errors";
-import { T } from "@delebash/llm-runner/platform/models";
-import { errText, pyGet, pyIter, pySorted, RuntimeError, truthy, ValueError } from "@delebash/llm-runner/platform/py";
-import { pyJson } from "@delebash/llm-runner/platform/pyjson";
+import { Hono, input, stream } from "@delebash/core/platform";
+import { HttpError } from "@delebash/core/platform/errors";
+import { T } from "@delebash/core/platform/models";
+import { errText, pyGet, pyIter, pySorted, RuntimeError, truthy, ValueError } from "@delebash/core/platform/py";
+import { pyJson } from "@delebash/core/platform/pyjson";
 import * as appmeta from "../appmeta.js";
 import { acceptanceEntry, acceptanceHash, loadAccepted, saveAccepted } from "../accepted.js";
 import { getState } from "../app_state.js";

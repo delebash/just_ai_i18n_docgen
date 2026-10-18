@@ -4,12 +4,12 @@
 // The family shape (2026-08-15), same file, same job in all three apps: ordinary module
 // exports, one per shell command, so a command's NAME as a string exists in exactly ONE
 // place. Since the Electron move (2026-10-08) the shell is the kit's shared Electron main
-// module (`@delebash/llm-runner/shell`); this file is the ONLY reader of its one preload
+// module (`@delebash/core/shell`); this file is the ONLY reader of its one preload
 // object, `window.appShell` (`invoke(command, args)`, `on(event, fn)`) — the family rule that
 // replaced "no window.<app> global". Outside the desktop app (Vite dev in a browser, the
 // headless `serve` UI) every call answers the browser's way: null / a no-op.
 
-import { isDesktopShell } from "@delebash/llm-ui";
+import { isDesktopShell } from "@delebash/ui";
 
 /** Is a desktop shell there to answer? The kit owns the one test. */
 export const hasShell = () => isDesktopShell() && !!window.appShell;

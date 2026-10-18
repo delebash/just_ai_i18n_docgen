@@ -5,7 +5,7 @@
 // Holds the long-lived singletons: the data dir and the review Workspace. API modules and
 // tests reach them through `getState()`, the same seam JW and JV use.
 
-import { RuntimeError } from "@delebash/llm-runner/platform/py";
+import { RuntimeError } from "@delebash/core/platform/py";
 
 export class AppState {
   constructor(dataDir, workspace) {

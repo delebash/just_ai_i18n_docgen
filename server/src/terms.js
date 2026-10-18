@@ -24,7 +24,7 @@
 // changes from run to run. The JavaScript uses first-occurrence order — one of Python's
 // possible answers, and a stable one.
 
-import { cpLen, cpSlice, pyGet, pyRound, pySorted } from "@delebash/llm-runner/platform/py";
+import { cpLen, cpSlice, pyGet, pyRound, pySorted } from "@delebash/core/platform/py";
 import { asMap, dhas, pyStr } from "./jsonio.js";
 
 export const DOMINANCE = 0.85;

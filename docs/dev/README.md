@@ -11,10 +11,10 @@ Read in this order:
 3. **`../plans/2026-08-04-consistency-sweep.md`** — the live family-consistency
    enforcement list + the QuickSetup surgery resumption notes (the next build
    chunk). Closed history: `../plans/archive/`.
-4. **The family standard** — `../../../just-llm-runner/docs/app-structure.md`
+4. **The family standard** — `../../../just-core/docs/app-structure.md`
    (this app is its reference implementation; §11 the standard chrome, §13 the
    docs convention).
-5. **The shared stack** — `../../../just-llm-runner/docs/dev/README.md` (the kit +
+5. **The shared stack** — `../../../just-core/docs/dev/README.md` (the kit +
    server this app embeds).
 6. **The measured evidence behind the checks** — the retired Node original's
    HANDOFF (archived: https://github.com/delebash/just-ai-help).

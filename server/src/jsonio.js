@@ -23,7 +23,7 @@
 //     `mergeDicts`), the `\w`-derived classes and the locale walk.
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { jsonLoadsExact, PyFloat, pyFloat } from "@delebash/llm-runner/platform/pyjson";
+import { jsonLoadsExact, PyFloat, pyFloat } from "@delebash/core/platform/pyjson";
 import {
   AttributeError,
   cpLen,
@@ -35,7 +35,7 @@ import {
   pyGet,
   pyTypeName,
   reEscape,
-} from "@delebash/llm-runner/platform/py";
+} from "@delebash/core/platform/py";
 
 const IS_WIN = process.platform === "win32";
 

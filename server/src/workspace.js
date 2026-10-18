@@ -21,9 +21,9 @@
 // server_auth_api / health_api) — the family tree. This module keeps the domain: the
 // Workspace holder, the write rules, and the prompt-preview builders.
 
-import { HttpError } from "@delebash/llm-runner/platform/errors";
-import { cmp, isDict, pyGet, pyIter, pyMax, truthy } from "@delebash/llm-runner/platform/py";
-import { pyJson } from "@delebash/llm-runner/platform/pyjson";
+import { HttpError } from "@delebash/core/platform/errors";
+import { cmp, isDict, pyGet, pyIter, pyMax, truthy } from "@delebash/core/platform/py";
+import { pyJson } from "@delebash/core/platform/pyjson";
 import { buildConfirmPrompt } from "./confirm.js";
 import { JobManager } from "./jobs.js";
 import { flatten, placeholderRe, readJson, rebuild, writeText } from "./jsonio.js";

@@ -4,7 +4,7 @@
 // i18n/index.js because non-component code translates too. Quasar's own words (the table pager,
 // the date picker) follow the same language through Quasar's language packs.
 import { defineBoot } from "#q-app";
-import { followQuasarLang } from "@delebash/llm-ui";
+import { followQuasarLang } from "@delebash/ui";
 import { i18n } from "../i18n/index.js";
 
 export default defineBoot(({ app }) => {

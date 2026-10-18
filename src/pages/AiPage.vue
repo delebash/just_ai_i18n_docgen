@@ -7,7 +7,7 @@
 // cache-offer lives in the kit step. It honours JW's ?quicksetup=1 deep link.
 import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { AiModelsArea, PaneHeader, useModelApply, pageFlow } from "@delebash/llm-ui";
+import { AiModelsArea, PaneHeader, useModelApply, pageFlow } from "@delebash/ui";
 
 const route = useRoute();
 const router = useRouter();

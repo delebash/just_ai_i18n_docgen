@@ -4,7 +4,7 @@
 // so one sentence serves the article, the surface lede and the field hint.
 // HONEST STATE: extraction runs from the CLI today; this page says exactly that
 // instead of hiding the feature or faking a button that does nothing.
-import { PaneHeader, pageFlow } from "@delebash/llm-ui";
+import { PaneHeader, pageFlow } from "@delebash/ui";
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();

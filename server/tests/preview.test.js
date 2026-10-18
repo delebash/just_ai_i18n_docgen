@@ -5,7 +5,7 @@
 // production sends.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { HttpError } from "@delebash/llm-runner/platform/errors";
+import { HttpError } from "@delebash/core/platform/errors";
 import { expect, test } from "vitest";
 import { Project } from "../src/service.js";
 import { _pickPreviewLang, _previewConfirm, _previewTranslate } from "../src/workspace.js";

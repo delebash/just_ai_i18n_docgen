@@ -7,9 +7,9 @@
 // config — appmeta's `auth` row (`{"tokens": [...], "requireForLoopback": bool}`), read per
 // /v1 request so a change applies live.
 
-import { getLogger } from "@delebash/llm-runner/platform/log";
-import { errText, isDict, pyGet, truthy } from "@delebash/llm-runner/platform/py";
-import { jsonLoadsExact } from "@delebash/llm-runner/platform/pyjson";
+import { getLogger } from "@delebash/core/platform/log";
+import { errText, isDict, pyGet, truthy } from "@delebash/core/platform/py";
+import { jsonLoadsExact } from "@delebash/core/platform/pyjson";
 import * as appmeta from "./appmeta.js";
 import { toPlain } from "./jsonio.js";
 

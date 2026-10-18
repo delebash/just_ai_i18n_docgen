@@ -6,7 +6,7 @@
 // connection-error screen as its own app); the start-up now decides by route — the app, or the
 // connection-error page (/offline) — and the sequence below is unchanged. The stylesheets are quasar.config.js's `css`.
 import { defineBoot } from "#q-app";
-import { bootPrefs, checkServer, configureHelp, installLlmUi, startWarmOnBoot } from "@delebash/llm-ui";
+import { bootPrefs, checkServer, configureHelp, installLlmUi, startWarmOnBoot } from "@delebash/ui";
 import { hasDoc, loadDoc, titleForSlug } from "../services/helpDocs.js";
 import { openPath, openUrl } from "../services/native.js";
 import { i18n } from "../i18n/index.js";

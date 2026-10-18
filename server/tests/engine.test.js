@@ -6,10 +6,10 @@
 // reaches the adapter call verbatim; the structured-output knob is one shape for every
 // provider; failure is loud and names the fix; and the probe guard reads the RESOLVED preset —
 // including a user's edit — never a constant.
-import { LLMResponse } from "@delebash/llm-runner/llm";
-import { setEnsureLocalModel } from "@delebash/llm-runner/llm/dispatch";
-import { getLlmRegistry } from "@delebash/llm-runner/llm/registry";
-import * as stores from "@delebash/llm-runner/llm/stores";
+import { LLMResponse } from "@delebash/core/llm";
+import { setEnsureLocalModel } from "@delebash/core/llm/dispatch";
+import { getLlmRegistry } from "@delebash/core/llm/registry";
+import * as stores from "@delebash/core/llm/stores";
 import { afterEach, beforeEach, expect, test } from "vitest";
 import { createApp, seedLlmStack } from "../src/app.js";
 import {

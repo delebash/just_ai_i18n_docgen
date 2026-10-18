@@ -28,8 +28,8 @@
 
 import { readdirSync, realpathSync, statSync } from "node:fs";
 import path from "node:path";
-import { purePath } from "@delebash/llm-runner/platform/data_paths";
-import { pyGet, ValueError } from "@delebash/llm-runner/platform/py";
+import { purePath } from "@delebash/core/platform/data_paths";
+import { pyGet, ValueError } from "@delebash/core/platform/py";
 import { pyStr } from "./jsonio.js";
 
 export const CACHE_FILE = ".just-ai-i18n-docgen-cache.json";

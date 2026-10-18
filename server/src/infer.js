@@ -13,8 +13,8 @@
 // quietly — the whole complaint about this tool was invisible decisions.
 
 import { dhas } from "./jsonio.js";
-import { strip, truthy } from "@delebash/llm-runner/platform/py";
-import { pyJson } from "@delebash/llm-runner/platform/pyjson";
+import { strip, truthy } from "@delebash/core/platform/py";
+import { pyJson } from "@delebash/core/platform/pyjson";
 
 // The interpolation syntaxes worth detecting, longest delimiter first so `{{` beats `{`.
 const SYNTAXES = [

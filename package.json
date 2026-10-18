@@ -24,10 +24,10 @@
     "test:unit": "vitest run",
     "cli": "node scripts/node24.js server/src/cli.js",
     "i18n:lint": "eslint -c eslint.i18n.config.js \"src/**/*.{js,vue}\"",
-    "i18n:report": "vue-i18n-extract report --vueFiles \"src/**/*.?(js|vue)\" --languageFiles \"{src/i18n/locales,../just-llm-runner/ui/src/i18n/locales}/en.json\" --exclude kit."
+    "i18n:report": "vue-i18n-extract report --vueFiles \"src/**/*.?(js|vue)\" --languageFiles \"{src/i18n/locales,../just-core/packages/ui/src/i18n/locales}/en.json\" --exclude kit."
   },
   "dependencies": {
-    "@delebash/llm-runner": "file:../just-llm-runner/server",
+    "@delebash/core": "file:../just-core/packages/core",
     "@quasar/extras": "^2.1.0",
     "quasar": "^2.35.0"
   },

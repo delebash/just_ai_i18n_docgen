@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Port of tests/test_shieldlib.py — the loop's pure parts, tested without a model: shielding,
 // restore, the prompt, the cache key (ported from just-ai-help's `test/loop.test.js` minus the
-// buildRequest/effectiveTemperature cases — the request body belongs to llm-runner's
+// buildRequest/effectiveTemperature cases — the request body belongs to the kit's
 // adapters, and per-request temperature to the engine preset).
 import { expect, test } from "vitest";
 import { placeholderRe } from "../src/jsonio.js";

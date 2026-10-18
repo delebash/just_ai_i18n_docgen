@@ -8,9 +8,9 @@
 // `lockout_escape_…`: Python patched the kit's `_is_loopback` to say yes; the JS sends the
 // request from 127.0.0.1 instead (the kit's middleware calls isLoopback directly, so a spy can't
 // reach it — and a real loopback address is the honest version anyway).
-import { getLogger } from "@delebash/llm-runner/platform/log";
-import { pyPath } from "@delebash/llm-runner/runner/cache_registry";
-import * as lifecycle from "@delebash/llm-runner/runner/lifecycle";
+import { getLogger } from "@delebash/core/platform/log";
+import { pyPath } from "@delebash/core/runner/cache_registry";
+import * as lifecycle from "@delebash/core/runner/lifecycle";
 import { join } from "node:path";
 import { beforeEach, expect, test } from "vitest";
 import { createApp, FEATURE_CATALOG, seedLlmStack } from "../src/app.js";

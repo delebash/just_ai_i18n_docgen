@@ -19,7 +19,7 @@
 ## Every app and the kit on vue-i18n [2026-10-12]
 STATE:  DECIDED 2026-10-12, family-wide; plan written, awaiting go — the decision with the user's
         words is the kit's TASKS, "Every app and the kit on vue-i18n"; the plan is
-        `just-llm-runner/docs/plans/2026-10-12-i18n-standard.md`.
+        `just-core/docs/plans/2026-10-12-i18n-standard.md`.
 WHY:    docgen translates every app's catalogs, but its own screens and the kit's are hardcoded English
         (163 strings here, 832 in the kit) and it has no vue-i18n.
 HERE:   Task 1 done 2026-10-12. Task 4 (go 2026-10-13: "your rec think on them again go") —
@@ -62,7 +62,7 @@ WHY:    one server for every platform, so docgen can run on a phone or as an off
 NOT:    the kit's item.
 BUILT:  2026-10-09 — 4 routers, app.js (FastAPI errors + the envelope as `onUnhandled`), the SSE jobs
         stream, the static UI behind a 405 route, the test client (161/161). The plan:
-        `../just-llm-runner/docs/plans/2026-10-09-hono-standard.md` §9.
+        `../just-core/docs/plans/2026-10-09-hono-standard.md` §9.
 OPEN:   nothing.
 GO:     given 2026-10-09 (the kit's item).
 
@@ -72,7 +72,7 @@ STATE:  DECIDED 2026-10-05, 2026-10-07 and 2026-10-08 — every ruling, as shown
         (the decision lives with the plan, §5 is this repo's step). This item is a pointer only.
 BUILT:  2026-10-08, under the user's go "do it all … finsih the conversion your rec on all go!":
         the server in JavaScript (`server/src/`, one file per former Python module, mounting the
-        kit's `@delebash/llm-runner`), the shell (`electron/main.js` on the kit's
+        kit's `@delebash/core`), the shell (`electron/main.js` on the kit's
         `runDesktopApp`), `native.js` on the `window.appShell` bridge, the e2e on Playwright's
         Electron driver, the electron-builder installer (`npm run build`, output `release/`),
         the dev data root at `<repo>/data`, the docs. Python (`server/just_ai_i18n_docgen/`) and

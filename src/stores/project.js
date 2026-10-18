@@ -2,7 +2,7 @@
 // Setup + project identity. `refresh` asks /v1/setup/state (works with NO project —
 // that is the whole point of the setup screen).
 import { defineStore } from "pinia";
-import { get, post, put, safeRequest } from "@delebash/llm-ui";
+import { get, post, put, safeRequest } from "@delebash/ui";
 import { i18n } from "../i18n/index.js";
 
 export const useProjectStore = defineStore("project", {

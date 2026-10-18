@@ -13,8 +13,8 @@
 // Data seeding lives HERE, not in createApp(): the test suite's createApp(tmp) apps start
 // unseeded (the family call-site).
 
-import { runServer } from "@delebash/llm-runner/platform";
-import { setLevel } from "@delebash/llm-runner/platform/log";
+import { runServer } from "@delebash/core/platform";
+import { setLevel } from "@delebash/core/platform/log";
 import { createApp, defaultDataDir, seedLlmStack } from "./app.js";
 import { DEFAULT_PORT, PRODUCT } from "./version.js";
 

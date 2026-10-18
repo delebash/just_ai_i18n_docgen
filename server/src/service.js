@@ -17,9 +17,9 @@
 
 import { statSync } from "node:fs";
 import path from "node:path";
-import { purePath } from "@delebash/llm-runner/platform/data_paths";
-import { cpLen, FileNotFoundError, pyGet, pySorted, truthy, ValueError } from "@delebash/llm-runner/platform/py";
-import { pyJson } from "@delebash/llm-runner/platform/pyjson";
+import { purePath } from "@delebash/core/platform/data_paths";
+import { cpLen, FileNotFoundError, pyGet, pySorted, truthy, ValueError } from "@delebash/core/platform/py";
+import { pyJson } from "@delebash/core/platform/pyjson";
 import {
   acceptanceEntry,
   acceptanceHash,

@@ -9,6 +9,6 @@
     "./serve": "./src/serve.js"
   },
   "dependencies": {
-    "@delebash/llm-runner": "file:../../just-llm-runner/server"
+    "@delebash/core": "file:../../just-core/packages/core"
   }
 }

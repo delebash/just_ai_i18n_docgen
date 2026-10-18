@@ -24,8 +24,8 @@
 // WHY NOT ASK TWICE: tried, and it agreed with itself confidently on BOTH wrong answers (4
 // disagreements of 71). Single pass.
 
-import { errText, pyGet, S, strip, truthy, ValueError } from "@delebash/llm-runner/platform/py";
-import { pyJson } from "@delebash/llm-runner/platform/pyjson";
+import { errText, pyGet, S, strip, truthy, ValueError } from "@delebash/core/platform/py";
+import { pyJson } from "@delebash/core/platform/pyjson";
 import { acceptanceHash } from "./accepted.js";
 import * as engine from "./engine.js";
 import { pyStr } from "./jsonio.js";

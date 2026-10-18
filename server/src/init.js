@@ -17,8 +17,8 @@
 
 import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { cmp, FileNotFoundError, pySorted, S, strip, ValueError } from "@delebash/llm-runner/platform/py";
-import { pyJson } from "@delebash/llm-runner/platform/pyjson";
+import { cmp, FileNotFoundError, pySorted, S, strip, ValueError } from "@delebash/core/platform/py";
+import { pyJson } from "@delebash/core/platform/pyjson";
 import { inferPlaceholder, inferPluralSeparator } from "./infer.js";
 import { FileExistsError, flatten, LETTER, readJson, writeText } from "./jsonio.js";
 import { exists, isDir, listNames, removeSuffix, resolvePath } from "./paths.js";

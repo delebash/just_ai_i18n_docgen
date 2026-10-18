@@ -22,7 +22,7 @@
 // Python's text semantics throughout: `\d`/`\s`/`\w` are Unicode, strip() is Python's
 // whitespace, `s[-1:]` is the last CODE POINT (jsonio.js).
 
-import { cpSlice, D, lstrip, pyGet, pySorted, rstrip, S, strip, truthy } from "@delebash/llm-runner/platform/py";
+import { cpSlice, D, lstrip, pyGet, pySorted, rstrip, S, strip, truthy } from "@delebash/core/platform/py";
 import { ALNUM, asMap, findAll, LETTER, placeholderRe, pyCount } from "./jsonio.js";
 import { termPresent } from "./shieldlib.js";
 

@@ -21,8 +21,8 @@
 // And it is never silent: the count is always reported.
 
 import { createHash } from "node:crypto";
-import { FileNotFoundError, pyGet, ValueError } from "@delebash/llm-runner/platform/py";
-import { pyJson } from "@delebash/llm-runner/platform/pyjson";
+import { FileNotFoundError, pyGet, ValueError } from "@delebash/core/platform/py";
+import { pyJson } from "@delebash/core/platform/pyjson";
 import { asMap, dhas, OSError, readJson, toPlain, writeText } from "./jsonio.js";
 import { exists } from "./paths.js";
 

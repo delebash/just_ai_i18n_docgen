@@ -26,7 +26,7 @@
 // The data is a Map (key order as written); the patterns use Python's `\s`/`\d` and its
 // MULTILINE `^`/`$` (only "\n" ends a line — JS's `m` flag also breaks on "\r").
 
-import { D, lstrip, S, strip, ValueError } from "@delebash/llm-runner/platform/py";
+import { D, lstrip, S, strip, ValueError } from "@delebash/core/platform/py";
 
 const FENCE = /^---[ \t]*\r?\n/;
 const CLOSE = /(?:^|(?<=\n))---[ \t]*(?=\n|$)/; // re.MULTILINE `^---[ \t]*$`

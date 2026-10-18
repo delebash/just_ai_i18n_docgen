@@ -14,12 +14,12 @@ import { useI18n } from "vue-i18n";
 import {
   EmptyState, PaneHeader, UiButton, UiCheckbox, UiInput, UiSelect, UiTag,
   UiTextarea, confirmDialog, pushToast, serverUrl,
-} from "@delebash/llm-ui";
+} from "@delebash/ui";
 import { useRoute } from "vue-router";
 import { langName, langOptions } from "../services/langs";
 import { useProjectStore } from "../stores/project";
 import { BUCKETS, useReviewStore } from "../stores/review";
-import { pageFlow } from "@delebash/llm-ui";
+import { pageFlow } from "@delebash/ui";
 
 const project = useProjectStore();
 const review = useReviewStore();

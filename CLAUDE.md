@@ -3,16 +3,16 @@
 Translate standard i18n JSON locale folders with a local or online AI engine, VERIFY
 every string that was written, and author help docs whose front-matter becomes locale
 keys — with a human review workspace where nothing ships unseen. A rewrite of
-`just-ai-help`, embedding `just-llm-runner` for everything engine-shaped. **Electron +
+`just-ai-help`, embedding `just-core` for everything engine-shaped. **Electron +
 a Node (Hono) server since 2026-10-08** — the first family app off Tauri and Python
 (JustVoice's `docs/plans/2026-10-07-electron-node-plan.md` §5). **A Quasar app since
 2026-10-09** — its Electron mode is the desktop app (the kit's `docs/app-structure.md` §Q).
 
-**The family structure standard lives in `../just-llm-runner/docs/app-structure.md` —
+**The family structure standard lives in `../just-core/docs/app-structure.md` —
 read it before changing layout, scripts, ports, or the shell. Its reference app is the kit's
 `template/`.**
 
-The family rules every family repo follows: @../just-llm-runner/docs/family-rules.md
+The family rules every family repo follows: @../just-core/docs/family-rules.md
 
 ## Commands
 
@@ -28,7 +28,7 @@ npm test               # e2e smoke: the REAL desktop app via Playwright's Electr
 npm run screenshots    # every surface shot from the real window → e2e/shots/
 npm run build          # the installer (Quasar's Electron mode, electron-builder → dist/electron/Packaged)
 npm run lint           # biome
-node ../just-llm-runner/scripts/check-family.js   # the family guard — must pass before a commit
+node ../just-core/scripts/check-family.js   # the family guard — must pass before a commit
 
 # The CLI door (same service functions as the workspace — one resolver, two doors):
 npm run cli -- translate|check|escalate|accept|extract <config>
@@ -36,7 +36,7 @@ npm run cli -- translate|check|escalate|accept|extract <config>
 
 The dev data folder is `data/` in this checkout (gitignored) — the desktop app and
 `npm run server` read the same one (the kit's one data-folder ladder). The shell is the
-kit's `@delebash/llm-runner/shell` (`runDesktopApp`); `src-electron/electron-main.js` only names
+kit's `@delebash/core/shell` (`runDesktopApp`); `src-electron/electron-main.js` only names
 this app's settings. The installer ships `just-ai-i18n-docgen-server` and `just-ai-i18n-docgen`
 (the CLI) as launchers beside `just_ai_i18n_docgen.exe` — the app's own exe run as Node.
 **A launcher is never named like the exe**: Windows resolves a bare name to the exe first.
@@ -100,22 +100,22 @@ app folder when packaged) — domain modules flat, HTTP routes one file per area
 (`health_api.js`, `server_auth_api.js`, `setup_api.js`, `workspace_api.js`), with
 `serve.js`/`app.js`/`app_state.js`/`version.js` the family server skeleton — tests in
 `server/tests/*.test.js`, `build/launcher/` (the launchers), `data/` (dev data, gitignored).
-The server kit is the npm dependency `@delebash/llm-runner` (`file:../just-llm-runner/server`);
-the UI kit is consumed via the alias to `../just-llm-runner/ui/src` in `quasar.config.js`. The
+The server kit is the npm dependency `@delebash/core` (`file:../just-core/packages/core`);
+the UI kit is consumed via the alias to `../just-core/packages/ui/src` in `quasar.config.js`. The
 renderer reaches the shell only through
 `src/services/native.js` (the one reader of `window.appShell`).
 Port **8742** (JW 17495 · JV 17494). Data-dir env: `JUST_AI_I18N_DOCGEN_DATA_DIR`.
 
 ## Where to look
 
-**Before researching anything — reading code to answer a question, measuring, briefing an agent — read the subject's section of `docs/dev/RESEARCH.md`** (what is already known, with the proof; the shared stack's facts are in `../just-llm-runner/docs/dev/RESEARCH.md`; the family rule, 2026-10-04). Research isn't done until its facts land there.
+**Before researching anything — reading code to answer a question, measuring, briefing an agent — read the subject's section of `docs/dev/RESEARCH.md`** (what is already known, with the proof; the shared stack's facts are in `../just-core/docs/dev/RESEARCH.md`; the family rule, 2026-10-04). Research isn't done until its facts land there.
 
 | For | Read |
 |---|---|
 | **THE REAL PROJECT — what this tool translates** | JustWrite: source `E:\Dev\Web\justwrite-app\src\i18n\locales\en.json`, config `justwrite-app/just-ai-i18n-docgen/config.json` (the app creates it via Setup; the server loads it via `--config` or a live Setup save — nothing persists across restarts) |
 | Open work — the live tracker | `docs/dev/TASKS.md` |
-| The family structure standard (layout/scripts/shell/ports) | `../just-llm-runner/docs/app-structure.md` |
-| Adopting the shared LLM stack | `../just-llm-runner/server/README.md` "Consume it" |
+| The family structure standard (layout/scripts/shell/ports) | `../just-core/docs/app-structure.md` |
+| Adopting the shared LLM stack | `../just-core/packages/core/README.md` "Consume it" |
 | The measured evidence behind every check and rule | the retired Node original: https://github.com/delebash/just-ai-help (docs/HANDOFF.md; archived) |
 | The review workspace API surface | `server/src/api/workspace_api.js` (routes) + `server/src/workspace.js` (the Workspace class + write rules) |
 

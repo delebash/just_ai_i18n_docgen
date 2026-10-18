@@ -6,7 +6,7 @@
 // this store first initializes, pre-mount. (The design-variant switch died
 // 2026-08-03 when Design 1 was ruled.)
 import { defineStore } from "pinia";
-import { readPref, useModelApply, writePref } from "@delebash/llm-ui";
+import { readPref, useModelApply, writePref } from "@delebash/ui";
 import { applyAppearance, migrateAppearance } from "../services/appearance.js";
 import { i18n, LOCALE_CODES } from "../i18n/index.js";
 

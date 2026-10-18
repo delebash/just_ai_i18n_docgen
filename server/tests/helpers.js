@@ -16,13 +16,13 @@
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import * as seed from "@delebash/llm-runner/llm/seed";
-import { getLedger, setLedger } from "@delebash/llm-runner/llm/usage";
-import { model } from "@delebash/llm-runner/platform/models";
-import * as bandwidth from "@delebash/llm-runner/runner/bandwidth";
-import * as hardware from "@delebash/llm-runner/runner/hardware";
-import * as lifecycle from "@delebash/llm-runner/runner/lifecycle";
-import { HardwareInfo } from "@delebash/llm-runner/runner/schema";
+import * as seed from "@delebash/core/llm/seed";
+import { getLedger, setLedger } from "@delebash/core/llm/usage";
+import { model } from "@delebash/core/platform/models";
+import * as bandwidth from "@delebash/core/runner/bandwidth";
+import * as hardware from "@delebash/core/runner/hardware";
+import * as lifecycle from "@delebash/core/runner/lifecycle";
+import { HardwareInfo } from "@delebash/core/runner/schema";
 import { afterEach, beforeEach, vi } from "vitest";
 
 export const tmpDir = (prefix = "docgen-test-") => mkdtempSync(join(tmpdir(), prefix));

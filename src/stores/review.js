@@ -8,7 +8,7 @@
 // guaranteed no-op": accepted rows never reach the queue, so a surface must LIST
 // them). Detail source: just-ai-help client/src/stores/review.js.
 import { defineStore } from "pinia";
-import { del, get, post, put, safeRequest } from "@delebash/llm-ui";
+import { del, get, post, put, safeRequest } from "@delebash/ui";
 
 /** Bucket definitions for the queue. `match` decides which rows a bucket contains. */
 export const BUCKETS = [

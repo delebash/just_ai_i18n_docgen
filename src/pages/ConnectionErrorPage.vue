@@ -3,7 +3,7 @@
 // the layout (boot/docgen.js sends every route here while the server is down). The renderer has no
 // data of its own, so nothing else loads without the server; Retry reloads the window, and the boot
 // then returns to the page the user was on (the route's `from`).
-import { ConnectionError, serverUrl } from "@delebash/llm-ui";
+import { ConnectionError, serverUrl } from "@delebash/ui";
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();

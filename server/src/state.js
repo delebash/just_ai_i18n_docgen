@@ -20,8 +20,8 @@
 
 import { mkdirSync, renameSync, rmSync } from "node:fs";
 import path from "node:path";
-import { FileNotFoundError, pySorted, setdefault, truthy, ValueError } from "@delebash/llm-runner/platform/py";
-import { pyJson } from "@delebash/llm-runner/platform/pyjson";
+import { FileNotFoundError, pySorted, setdefault, truthy, ValueError } from "@delebash/core/platform/py";
+import { pyJson } from "@delebash/core/platform/pyjson";
 import { OSError, readJson, toPlain, writeText } from "./jsonio.js";
 import { exists } from "./paths.js";
 

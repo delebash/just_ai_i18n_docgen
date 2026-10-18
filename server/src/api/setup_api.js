@@ -6,9 +6,9 @@
 // can say who made it (never the OS username).
 
 import path from "node:path";
-import { Hono, input } from "@delebash/llm-runner/platform";
-import { HttpError } from "@delebash/llm-runner/platform/errors";
-import { errText, FileNotFoundError, isDict, pyGet, pyTypeName, strip, truthy, ValueError } from "@delebash/llm-runner/platform/py";
+import { Hono, input } from "@delebash/core/platform";
+import { HttpError } from "@delebash/core/platform/errors";
+import { errText, FileNotFoundError, isDict, pyGet, pyTypeName, strip, truthy, ValueError } from "@delebash/core/platform/py";
 import * as appmeta from "../appmeta.js";
 import { getState } from "../app_state.js";
 import { gitignoreLines, planInit, writeInit } from "../init.js";

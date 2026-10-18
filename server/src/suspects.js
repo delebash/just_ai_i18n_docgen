@@ -22,8 +22,8 @@
 // Findings come back in the SAME {key, code, detail} shape as every check, so the review page
 // renders them and escalation re-translates them with no new concepts anywhere.
 
-import { cpLen, cpSlice, pyGet, pySorted, S, splitWs } from "@delebash/llm-runner/platform/py";
-import { pyFixed } from "@delebash/llm-runner/platform/pyjson";
+import { cpLen, cpSlice, pyGet, pySorted, S, splitWs } from "@delebash/core/platform/py";
+import { pyFixed } from "@delebash/core/platform/pyjson";
 import { ALNUM, asMap, pyStr } from "./jsonio.js";
 
 // [^\w\s]|_ — everything but letters, digits and (Python's) whitespace; the underscore is

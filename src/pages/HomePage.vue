@@ -13,12 +13,12 @@ import { useRouter } from "vue-router";
 import {
   AiTaskStrip, Icon, PaneHeader, UiButton, UiCheckbox, UiInput, UiProgress,
   UiTable, UiTag, pushToast, useAiTasksStore, usePoll,
-} from "@delebash/llm-ui";
+} from "@delebash/ui";
 import splashPlate from "../assets/images/splash-plate.jpg";
 import { langName } from "../services/langs";
 import { useJobsStore } from "../stores/jobs";
 import { useProjectStore } from "../stores/project";
-import { pageFill } from "@delebash/llm-ui";
+import { pageFill } from "@delebash/ui";
 
 const project = useProjectStore();
 const jobs = useJobsStore();

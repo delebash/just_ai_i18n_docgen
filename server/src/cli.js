@@ -22,8 +22,8 @@ import { parseArgs } from "node:util";
 import { bootLlmStack, seedLlmStack } from "./app.js";
 import { runExtract } from "./extract.js";
 import { acceptKeys, Project, runCheck, runEscalate, runTranslate } from "./service.js";
-import { strip } from "@delebash/llm-runner/platform/py";
-import { pyFixed } from "@delebash/llm-runner/platform/pyjson";
+import { strip } from "@delebash/core/platform/py";
+import { pyFixed } from "@delebash/core/platform/pyjson";
 
 const PROG = "just-ai-i18n-docgen";
 const USAGE = `usage: ${PROG} [-h] [--data-dir DATA_DIR] {translate,check,escalate,accept,extract} ...`;

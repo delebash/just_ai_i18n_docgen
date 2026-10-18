@@ -6,7 +6,7 @@
 // forever — found 2026-08-04 by the real-webview smoke against the real project (nothing else
 // boots through the boot file, so no other gate could see it).
 
-import { Hono } from "@delebash/llm-runner/platform";
+import { Hono } from "@delebash/core/platform";
 import { API_VERSION, PRODUCT, VERSION } from "../version.js";
 
 export function router() {
