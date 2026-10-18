@@ -36,7 +36,8 @@ node scripts/review/export.js --dir <run> --lang es \
 2. **Review** — in Claude Code: the `translation-review` workflow with
    `{dir: "<run>", tool: "<docgen>/scripts/review", batches: [1, …, N]}` (N = the batches export
    printed). One agent extends the term sheet, then one reviewer per batch writes `out/review-*.json`,
-   each file checked as it goes.
+   each file checked as it goes. The Workflow tool takes a `scriptPath` only inside the session's
+   working folder: from another checkout, pass the workflow file's text as `script` instead.
 3. `node scripts/review/merge.js --dir <run> reviews` — one decision per item, and the verifiers'
    input (`verify-1.md`, `verify-2.md`). It exits 1 on a malformed entry or a required item no one
    listed; fix those first.

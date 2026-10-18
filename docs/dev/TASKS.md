@@ -71,8 +71,11 @@ HERE:   Task 1 done 2026-10-12. Task 4 (go 2026-10-13: "your rec think on them a
         checked form by form (placeholders, numbers, brackets); language names follow the
         interface's language ("Español (es)" — CLDR capitalises a name standing alone). User docs
         review.md, whats-new.md.
-FOUND:  2026-10-17 — the AI page's "Built-in provider — llama.cpp" stays English in Spanish: a name
-        stored as data (the kit's seed), not a catalog string.
+        Seeded words 2026-10-18 (the kit's `docs/plans/2026-10-18-seeded-words-in-the-users-language.md`,
+        the same go): docgen's features, their group and its presets name their keys
+        (`server/src/app.js`, `aiData.*`), shown in the app's language until renamed; the FOUND of
+        2026-10-17 ("Built-in provider — llama.cpp" English in Spanish) fixed in the kit
+        (`kit.provider.seeded.*`). User docs settings.md, whats-new.md.
 
 ## The server moves to Hono [2026-10-09]
 STATE:  DECIDED 2026-10-09, family-wide — the decision with the user's words is the kit's TASKS,

@@ -74,18 +74,29 @@ export const FEATURE_CATALOG = [
     label: "Translate",
     hint: "The batch translate loop — shield, send, restore, check.",
     group: "i18n",
+    // The catalog keys for the words (the seeded-words plan, 2026-10-18): the kit's AI page
+    // shows them in the interface's language; the English above is its fallback.
+    labelKey: "common.translate",
+    hintKey: "aiData.feature.translate.hint",
+    groupKey: "aiData.group.i18n",
   }),
   FeatureCatalogEntry({
     key: "review",
     label: "Review",
     hint: "Back-translation shown to the reviewer; never written to a catalogue.",
     group: "i18n",
+    labelKey: "aiData.feature.review.label",
+    hintKey: "aiData.feature.review.hint",
+    groupKey: "aiData.group.i18n",
   }),
   FeatureCatalogEntry({
     key: "confirm",
     label: "Confirm",
     hint: "The second opinion on byte-identical targets — annotates, never signs off.",
     group: "i18n",
+    labelKey: "aiData.feature.confirm.label",
+    hintKey: "aiData.feature.confirm.hint",
+    groupKey: "aiData.group.i18n",
   }),
   // Extract is NOT here on purpose (2026-08-04 ruling): it is pure front-matter parsing — no
   // engine call anywhere in extract.js — and a routing row for a feature that cannot route
@@ -101,10 +112,11 @@ export const FEATURE_CATALOG = [
 // so a user's Lab edits are never clobbered by a reseed. (Seed rows keep Python's snake_case
 // keys — the kit's seeders read them.)
 export const DEFAULT_ENGINE_PRESETS = [
-  { id: "p_translate", name: "Translate", provider_id: "local-llamacpp", model: "", temperature: 0.2, position: 0, think: false },
+  // nameKey: the name in the interface's language while the stored name is still this seed's.
+  { id: "p_translate", name: "Translate", nameKey: "common.translate", provider_id: "local-llamacpp", model: "", temperature: 0.2, position: 0, think: false },
   // The confirmation pass asks about byte-identical keys; same profile, its own preset so
   // escalating or re-pointing one never silently moves the other.
-  { id: "p_confirm", name: "Confirm", provider_id: "local-llamacpp", model: "", temperature: 0.2, position: 1, think: false },
+  { id: "p_confirm", name: "Confirm", nameKey: "aiData.preset.confirm", provider_id: "local-llamacpp", model: "", temperature: 0.2, position: 1, think: false },
 ];
 
 export const DEFAULT_FEATURE_PRESETS = {

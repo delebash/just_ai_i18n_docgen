@@ -2,6 +2,9 @@
 
 ## v0.1.0
 
+- **The AI page's ready-made names in your language.** With Spanish chosen, the Translate, Review
+  and Confirm features, their presets and the built-in providers show in Spanish — until you
+  rename one, which then stays as you wrote it ([Settings](settings.md))
 - **Language names follow the interface.** With Spanish chosen, Home, Review and Runs name each
   language in Spanish ("Español (es)") instead of the window's language ([Settings](settings.md))
 - **Fewer false flags on plurals.** A translation that adds plural forms its source doesn't need

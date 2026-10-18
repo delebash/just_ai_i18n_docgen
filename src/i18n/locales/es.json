@@ -328,5 +328,26 @@
     "pickKey": "Elige una clave o presiona j para comenzar.",
     "acceptedTitle": "Veredictos aceptados",
     "acceptedBody": "Cada entrada indica su comprobación, el par de cadenas y el revisor. Quitar aceptación devuelve una clave a la cola; siempre se puede reconsiderar una decisión."
+  },
+  "aiData": {
+    "feature": {
+      "translate": {
+        "hint": "El ciclo de traducción por lotes: proteger, enviar, restaurar, comprobar."
+      },
+      "review": {
+        "label": "Revisar",
+        "hint": "Retrotraducción que se muestra al revisor; nunca se escribe en un catálogo."
+      },
+      "confirm": {
+        "label": "Confirmar",
+        "hint": "La segunda opinión sobre textos de destino idénticos byte a byte: anota, nunca da el visto bueno."
+      }
+    },
+    "group": {
+      "i18n": "i18n"
+    },
+    "preset": {
+      "confirm": "Confirmar"
+    }
   }
 }

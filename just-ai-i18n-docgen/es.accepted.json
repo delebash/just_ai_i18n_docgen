@@ -71,6 +71,14 @@
     "by": "Claude (AI review, 2026-10-17)",
     "at": "2026-10-18"
   },
+  "a4c187e413b85233": {
+    "key": "aiData.feature.review.hint",
+    "code": "terminology",
+    "src": "Back-translation shown to the reviewer; never written to a catalogue.",
+    "dst": "Retrotraducción que se muestra al revisor; nunca se escribe en un catálogo.",
+    "by": "Claude (AI review, 2026-10-18)",
+    "at": "2026-10-18"
+  },
   "af396612a0984c94": {
     "key": "review.backFailed",
     "code": "terminology",
@@ -109,6 +117,14 @@
     "src": "i18n & DocGen",
     "dst": "i18n & DocGen",
     "by": "Claude (AI review, 2026-10-17)",
+    "at": "2026-10-18"
+  },
+  "e7f066111fc50e43": {
+    "key": "aiData.group.i18n",
+    "code": "untranslated",
+    "src": "i18n",
+    "dst": "i18n",
+    "by": "Claude (AI review, 2026-10-18)",
     "at": "2026-10-18"
   },
   "e8167e57458fd6ad": {

@@ -328,5 +328,26 @@
     "pickKey": "Pick a key, or press j to start.",
     "acceptedTitle": "Accepted verdicts",
     "acceptedBody": "Every entry names its check, pair of strings and reviewer. Un-accept puts a key back in the queue — a decision can always be revisited."
+  },
+  "aiData": {
+    "feature": {
+      "translate": {
+        "hint": "The batch translate loop — shield, send, restore, check."
+      },
+      "review": {
+        "label": "Review",
+        "hint": "Back-translation shown to the reviewer; never written to a catalogue."
+      },
+      "confirm": {
+        "label": "Confirm",
+        "hint": "The second opinion on byte-identical targets — annotates, never signs off."
+      }
+    },
+    "group": {
+      "i18n": "i18n"
+    },
+    "preset": {
+      "confirm": "Confirm"
+    }
   }
 }
