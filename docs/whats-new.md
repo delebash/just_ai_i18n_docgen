@@ -2,9 +2,11 @@
 
 ## v0.1.0
 
+- **docgen in Spanish.** Choose **Español** in Settings → Appearance → Language and every screen
+  is in Spanish, the shared AI and settings screens included ([Settings](settings.md))
 - **Settings → Appearance has a Language picker.** Every word on docgen's own screens now comes
   from its catalog (`src/i18n/locales/en.json`), so the interface can follow the language you
-  pick once its words are translated — today English is the only one
+  pick once its words are translated — today English and Spanish
   ([Settings](settings.md))
 - The engine's Update button works again (it had stopped appearing when llama.cpp
   changed how it labels releases). It offers llama.cpp's newest official release or the

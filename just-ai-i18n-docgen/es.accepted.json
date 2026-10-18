@@ -1,0 +1,130 @@
+{
+  "00bfc3419049327a": {
+    "key": "home.staged",
+    "code": "placeholder-changed",
+    "src": "{n} staged",
+    "dst": "{n} preparada | {n} preparadas",
+    "by": "Claude (AI review, 2026-10-17)",
+    "at": "2026-10-18"
+  },
+  "12bb39733b9c33c5": {
+    "key": "setup.checkHint",
+    "code": "terminology",
+    "src": "Press {button} and the tool reports what it found — the part that catches a wrong path before an hour of engine time does.",
+    "dst": "Presiona {button} y la herramienta informará lo que encontró; la parte que detecta una ruta incorrecta antes de que pase una hora de procesamiento.",
+    "by": "Claude (AI review, 2026-10-17)",
+    "at": "2026-10-18"
+  },
+  "361bb4ff7648ae2d": {
+    "key": "connectionError.devHint",
+    "code": "terminology",
+    "src": "Dev: it should start automatically with `npm run dev`, or run it yourself with `npm run server`, then retry.",
+    "dst": "Dev: debería iniciarse automáticamente con `npm run dev`, o ejecútalo tú mismo con `npm run server` y luego vuelve a intentarlo.",
+    "by": "Claude (AI review, 2026-10-17)",
+    "at": "2026-10-18"
+  },
+  "48680e56229fbab5": {
+    "key": "home.staged",
+    "code": "brackets",
+    "src": "{n} staged",
+    "dst": "{n} preparada | {n} preparadas",
+    "by": "Claude (AI review, 2026-10-17)",
+    "at": "2026-10-18"
+  },
+  "4dba79cd7594edd5": {
+    "key": "review.googleFrame",
+    "code": "untranslated",
+    "src": "Google Translate",
+    "dst": "Google Translate",
+    "by": "Claude (AI review, 2026-10-17)",
+    "at": "2026-10-18"
+  },
+  "628057e09592963d": {
+    "key": "app.name",
+    "code": "untranslated",
+    "src": "Just AI i18n & DocGen",
+    "dst": "Just AI i18n & DocGen",
+    "by": "Claude (AI review, 2026-10-17)",
+    "at": "2026-10-18"
+  },
+  "67492c39801fd9e0": {
+    "key": "settings.server.url",
+    "code": "untranslated",
+    "src": "URL",
+    "dst": "URL",
+    "by": "Claude (AI review, 2026-10-17)",
+    "at": "2026-10-18"
+  },
+  "6b5f750b9f117357": {
+    "key": "review.appliedTo",
+    "code": "brackets",
+    "src": "{n} applied to {file}",
+    "dst": "{n} aplicada a {file} | {n} aplicadas a {file}",
+    "by": "Claude (AI review, 2026-10-17)",
+    "at": "2026-10-18"
+  },
+  "79325e84438c685f": {
+    "key": "review.appliedTo",
+    "code": "placeholder-changed",
+    "src": "{n} applied to {file}",
+    "dst": "{n} aplicada a {file} | {n} aplicadas a {file}",
+    "by": "Claude (AI review, 2026-10-17)",
+    "at": "2026-10-18"
+  },
+  "af396612a0984c94": {
+    "key": "review.backFailed",
+    "code": "terminology",
+    "src": "Back-translation failed",
+    "dst": "Error en la retrotraducción",
+    "by": "Claude (AI review, 2026-10-17)",
+    "at": "2026-10-18"
+  },
+  "d53f1c2e03c8d850": {
+    "key": "setup.pathPlaceholder",
+    "code": "untranslated",
+    "src": "E:\\your-app\\src\\i18n\\locales\\en.json",
+    "dst": "E:\\your-app\\src\\i18n\\locales\\en.json",
+    "by": "Claude (AI review, 2026-10-17)",
+    "at": "2026-10-18"
+  },
+  "d6f4c3431bfdfcc6": {
+    "key": "review.readyNote",
+    "code": "terminology",
+    "src": " — staged by the last run; your {file} is untouched so far.",
+    "dst": " — de la última ejecución, aún sin aplicar; tu {file} sigue sin modificarse.",
+    "by": "Claude (AI review, 2026-10-17)",
+    "at": "2026-10-18"
+  },
+  "e0b592e06e56b530": {
+    "key": "app.mark",
+    "code": "untranslated",
+    "src": "i18",
+    "dst": "i18",
+    "by": "Claude (AI review, 2026-10-17)",
+    "at": "2026-10-18"
+  },
+  "e11545738d11b91b": {
+    "key": "app.wordmark",
+    "code": "untranslated",
+    "src": "i18n & DocGen",
+    "dst": "i18n & DocGen",
+    "by": "Claude (AI review, 2026-10-17)",
+    "at": "2026-10-18"
+  },
+  "e8167e57458fd6ad": {
+    "key": "home.accepted",
+    "code": "placeholder-changed",
+    "src": "{n} accepted",
+    "dst": "{n} aceptado | {n} aceptados",
+    "by": "Claude (AI review, 2026-10-17)",
+    "at": "2026-10-18"
+  },
+  "faaed7761f13e80a": {
+    "key": "home.accepted",
+    "code": "brackets",
+    "src": "{n} accepted",
+    "dst": "{n} aceptado | {n} aceptados",
+    "by": "Claude (AI review, 2026-10-17)",
+    "at": "2026-10-18"
+  }
+}

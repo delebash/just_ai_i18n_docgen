@@ -61,6 +61,31 @@ Asked because the user wants the Spanish review done with little human interacti
 - **Spellchecking in Node:** `nspell` 2.1.5 (MIT, wooorm; Hunspell-compatible) and
   `dictionary-es` 4.0.0 (GPL-3.0 OR LGPL-3.0 OR MPL-1.1). They catch a non-word such as
   "reviravones" with no model. — *npm registry, read 2026-10-17.*
+- **The agentic review, run 2026-10-17 on the three catalogs** (4,810 strings: JustWrite 3,052,
+  the kit 1,480, docgen 278), Claude agents only, no GPU:
+  - a term sheet (1 agent, 201 rows), each term decided from the catalogs' own strings;
+  - 6 reviewers (about 800 strings each) listed 1,282 decisions: 797 fixes, a pick in each of the
+    628 strings where the file's Spanish and docgen's proposal differed, and 27 new
+    translations. By category: terminology 562, accuracy 267, fluency 180, locale 63, format 7.
+    The 5 critical: "Unload model" rendered "download", a string cut off mid-sentence, two lost
+    `{'}'}` braces, and "Undismiss" rendered "Dismiss";
+  - 2 verifiers (the MQM-APE filter, prompted to refute) upheld 1,234 and rewrote 48, 42 of them
+    one capitalisation pattern ("P. ej." after a full stop); none went back to an unreviewed
+    candidate;
+  - a last agent ruled on the 430 strings docgen or the spellchecker still flagged: 2 fixed, 428
+    accepted with a reason;
+  - about 2.3 M subagent tokens and about an hour of wall time.
+
+  — *measured 2026-10-17; the scripts and outputs were in the session's scratchpad.*
+- **The spellchecker is a hint, not a gate:** it flagged 189 strings at export, and nearly every
+  hit was a valid word it lacks (preajuste, autoguardado, verb forms with an attached pronoun);
+  "reviravones" was the one real non-word. — *measured 2026-10-17.*
+- **docgen's placeholder and bracket checks count across the whole string.** A Spanish string
+  that adds plural forms its English doesn't need ("{n} encontrado | {n} encontrados" for "{n}
+  found") reads as `placeholder-changed` and `brackets`, though vue-i18n renders one form (it
+  picks it from the named `n`: the kit's RESEARCH §8). `checkPlural` itself runs only when the
+  source has the separator (`checks.js:55`). The 17 such strings were accepted as correct. —
+  *code, and measured 2026-10-17.*
 
 ---
 
