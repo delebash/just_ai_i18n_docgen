@@ -76,7 +76,15 @@ Asked because the user wants the Spanish review done with little human interacti
     accepted with a reason;
   - about 2.3 M subagent tokens and about an hour of wall time.
 
-  — *measured 2026-10-17; the scripts and outputs were in the session's scratchpad.*
+  — *measured 2026-10-17. The scripts were saved as docgen's tool 2026-10-18:
+  [`agentic-review.md`](agentic-review.md), `scripts/review/`, `.claude/workflows/translation-*.js`
+  (was: in the session's scratchpad, until 2026-10-18).*
+- **The saved tool, checked on the three catalogs (2026-10-18):** export found 4,840 strings in six
+  batches of about 807 and the guide assembled from the method, `lang/es.md` and each project's
+  context sentence; the check failed a two-form "nota | {n} notas" for a one-form source without a
+  count (placeholder-changed, brackets) and a wrong item number; a dry-run apply planned JustWrite's
+  3,082 keys; findings, with docgen's acceptances honoured and only changed strings spell-checked,
+  listed 0 — as docgen's summary does. — *measured 2026-10-18.*
 - **The spellchecker is a hint, not a gate:** it flagged 189 strings at export, and nearly every
   hit was a valid word it lacks (preajuste, autoguardado, verb forms with an attached pronoun);
   "reviravones" was the one real non-word. — *measured 2026-10-17.*

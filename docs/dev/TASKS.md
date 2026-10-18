@@ -54,6 +54,15 @@ HERE:   Task 1 done 2026-10-12. Task 4 (go 2026-10-13: "your rec think on them a
         the reviewer "Claude (AI review, 2026-10-17)"; JustWrite 3,052, the kit 1,480 and docgen 278
         written, nothing left staged. docgen's own Spanish is `src/i18n/locales/es.json` (the picker
         offers Español); user docs settings.md, whats-new.md.
+        The review saved as docgen's tool 2026-10-18 (NOT STANDARD; the user: "your rec on all go …
+        take your own rec go on all"): `docs/dev/agentic-review.md` — `scripts/review/` (export,
+        check, merge, apply, findings, apply-final; the method, `lang/es.md`, the family's Spanish
+        term sheet `terms/es.md`) and the saved workflows `.claude/workflows/translation-*.js`; a
+        `--new` run for a catalog's new strings. The second look changed: a run folder and its
+        run.json instead of fixed paths; the message compiler a dev dependency at the apps'
+        vue-i18n version (11.4.14), not borrowed from JustWrite; the guide split into the method,
+        the language's rules and each project's own context; findings honour docgen's acceptances.
+        Checked on the three catalogs (RESEARCH).
         The three FOUNDs of that run fixed 2026-10-18, each with a test (the decision with the
         user's words is in JustWrite's TASKS, "Automated testing"; facts in RESEARCH): a blank
         source is given back as itself with no engine call and counts as done (`isTranslated`,

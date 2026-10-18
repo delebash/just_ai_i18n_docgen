@@ -118,5 +118,6 @@ Port **8742** (JW 17495 · JV 17494). Data-dir env: `JUST_AI_I18N_DOCGEN_DATA_DI
 | Adopting the shared LLM stack | `../just-core/packages/core/README.md` "Consume it" |
 | The measured evidence behind every check and rule | the retired Node original: https://github.com/delebash/just-ai-help (docs/HANDOFF.md; archived) |
 | The review workspace API surface | `server/src/api/workspace_api.js` (routes) + `server/src/workspace.js` (the Workspace class + write rules) |
+| The agentic translation review (Claude Code agents review a language; docgen's routes apply it) | `docs/dev/agentic-review.md` — `scripts/review/`, `.claude/workflows/translation-*.js` |
 
 Read branch and working-tree state from git, never from a doc.
