@@ -10,13 +10,13 @@
 // DownloadBars the engine panel uses. Continue is the universal escape: a slow
 // or failed load never traps anyone on the boot screen.
 // Family rules: height:100% chain (never 100vh), one scroller per area.
-import { computed, onMounted } from "vue";
+import { computed, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { AiSetupOffer, BootModelLoad, HelpDrawer, Icon, LlmUiHosts, pushToast, useAiTasksNav, warmModelId } from "@delebash/ui";
+import { AiSetupOffer, BootModelLoad, HelpDrawer, Icon, LlmUiHosts, pushToast, shellMenuLabels, useAiTasksNav, warmModelId } from "@delebash/ui";
 import TitleBar from "../components/TitleBar.vue";
 import splashPlate from "../assets/images/splash-plate.jpg";
-import { onShellEvent, setKeepRunning } from "../services/native.js";
+import { onShellEvent, setContextMenuLabels, setKeepRunning } from "../services/native.js";
 import { useProjectStore } from "../stores/project";
 import { useUiStore } from "../stores/ui";
 
@@ -30,7 +30,7 @@ const router = useRouter();
 
 // The trio's words are the kit's (`kit.nav.*`) — the same "App Settings / AI Settings / AI tasks"
 // every family app shows, in the app's language.
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const NAV = computed(() => [
   { to: "/", label: t("nav.home"), icon: "Home" },
   { to: "/review", label: t("nav.review"), icon: "CheckSquare" },
@@ -64,6 +64,8 @@ onMounted(async () => {
   // Through services/native.js — the one place a command name is written
   // (family shape, 2026-08-15).
   if (ui.keepServerRunning) setKeepRunning(true);
+  // The shell's right-click menu in the interface's language, now and on every switch.
+  watch(locale, () => setContextMenuLabels(shellMenuLabels(t)), { immediate: true });
   await project.refresh();
   // The tray's renderer half (the full-donor ruling 2026-08-04): settings/about
   // navigate, Copy URL writes the clipboard + says so. Through services/native.js —

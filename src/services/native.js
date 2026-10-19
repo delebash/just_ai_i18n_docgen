@@ -47,6 +47,13 @@ export function setKeepRunning(keepRunning) {
   return call("setKeepRunning", { keepRunning: !!keepRunning }).catch(() => {});
 }
 
+/** The right-click menu's words (the kit's shellMenuLabels) — the menu the shell draws for spelling
+ *  suggestions and cut/copy/paste (2026-10-18); without them it speaks English. */
+export function setContextMenuLabels(labels) {
+  if (!hasShell()) return Promise.resolve();
+  return call("setContextMenuLabels", { labels }).catch(() => {});
+}
+
 // ─── Openers (handed to the kit's installLlmUi as `external`) ────────
 
 /** Open a web link in the user's browser. */
