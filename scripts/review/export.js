@@ -3,12 +3,14 @@
 // docgen projects for the review agents. Reads only.
 //
 //   node scripts/review/export.js --dir <run> --lang es --project <id>=<config.json> [--project …]
-//                                 [--batch-size 800] [--new] [--reviewer "<name>"] [--port 8743]
+//                                 [--batch-size 800] [--new] [--keys a.b,c.d] [--reviewer "<name>"] [--port 8743]
 //
 // For every key: its English, its candidates (A = docgen's staged proposal, B = the language's
 // file now), docgen's own checks and the spellchecker's hints on each, and the English at staging
 // time when it has changed since. `--new` takes only the keys with no translation and no proposal
-// (a catalog's new strings since the last run). Writes, into the run folder:
+// (a catalog's new strings since the last run); `--keys` adds the keys named — strings whose English
+// changed after they were translated, which `--new` can't see (2026-10-18), each with its present
+// translation to review against the new English. Writes, into the run folder:
 //   run.json        the manifest every later step reads
 //   data.json       every record (for the scripts)
 //   batch-N.md      the reviewers' input, about --batch-size strings each, in key order
@@ -34,6 +36,7 @@ const projects = specs.map((s) => {
 });
 const batchSize = Number(args["batch-size"] || 800);
 const onlyNew = !!args.new;
+const alsoKeys = new Set(String(args.keys || "").split(",").map((k) => k.trim()).filter(Boolean));
 const today = new Date().toISOString().slice(0, 10);
 const run = {
   lang,
@@ -91,7 +94,7 @@ for (const pr of projects) {
     const proposal = props[key]?.translate?.value ?? null;
     const cur = current.get(key);
     const file = typeof cur === "string" && cur !== "" ? cur : null;
-    if (onlyNew && (proposal !== null || file !== null)) continue;
+    if (onlyNew && (proposal !== null || file !== null) && !alsoKeys.has(key)) continue;
     const cands = {};
     if (proposal !== null) cands.A = proposal;
     if (file !== null && file !== proposal) cands.B = file;

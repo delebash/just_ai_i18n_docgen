@@ -65,6 +65,10 @@ The same steps with `--new` at export: only keys with no translation and no prop
 with `terms: false` and `batches: [1]`, and verify with `verifiers: 1` — a translator and a refuting
 verifier. Findings and apply-final as above.
 
+A string whose English changed after it was translated still has its old translation, so `--new`
+skips it: name it with `--keys a.b,c.d` (each key in any of the projects) and it comes along, its
+present translation the candidate the reviewer checks against the new English (2026-10-18).
+
 ## Cost and requirements
 
 - Claude Code with the Workflow tool; no GPU, no model in docgen (the scratch server loads none).
