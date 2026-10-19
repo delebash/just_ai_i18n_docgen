@@ -2,6 +2,8 @@
 
 ## v0.1.0
 
+- **The desktop app's menus in your language.** With Spanish chosen, the tray icon's menu and the
+  right-click menu (cut, copy, paste, spelling suggestions) are in Spanish too ([Settings](settings.md))
 - **Notices read properly.** A notice with a long button puts the button under its text instead of
   squeezing the text into a narrow column, and the "Your graphics hardware changed" notice on the
   AI page shows its title ([AI engine](ai-providers.md))
