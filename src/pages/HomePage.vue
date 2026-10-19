@@ -24,7 +24,7 @@ const project = useProjectStore();
 const jobs = useJobsStore();
 const aiTasks = useAiTasksStore();
 const router = useRouter();
-const { t } = useI18n();
+const { t, n } = useI18n();
 
 const filter = ref("");
 const selected = ref([]);
@@ -155,7 +155,7 @@ function lastRunLabel(l) {
            the key-count line + status tags ride the actions slot. -->
       <PaneHeader :eyebrow="t('common.project')" :title="project.appName" help-key="getting-started">
         <i18n-t keypath="home.headSub" tag="p" class="page-sub head-sub" scope="global">
-          <template #keys>{{ project.summary.keyCount.toLocaleString() }}</template>
+          <template #keys>{{ n(project.summary.keyCount) }}</template>
           <template #source><span class="mono">{{ project.summary.source }}</span></template>
           <template #langs>{{ t("home.langCount", { n: project.summary.langs.length }, project.summary.langs.length) }}</template>
         </i18n-t>
@@ -210,7 +210,7 @@ function lastRunLabel(l) {
           <template #progress="{ row }">
             <span class="progresscell">
               <UiProgress bare :value="row.done" :max="row.total" />
-              <span class="mono muted">{{ row.done.toLocaleString() }} / {{ row.total.toLocaleString() }}</span>
+              <span class="mono muted">{{ n(row.done) }} / {{ n(row.total) }}</span>
             </span>
           </template>
           <template #findings="{ row }">
