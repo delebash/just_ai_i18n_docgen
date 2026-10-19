@@ -8,6 +8,7 @@
 import path from "node:path";
 import { Hono, input } from "@delebash/core/platform";
 import { HttpError } from "@delebash/core/platform/errors";
+import { LANGUAGE_CODES } from "@delebash/core/platform/languages";
 import { errText, FileNotFoundError, isDict, pyGet, pyTypeName, strip, truthy, ValueError } from "@delebash/core/platform/py";
 import * as appmeta from "../appmeta.js";
 import { getState } from "../app_state.js";
@@ -32,7 +33,6 @@ function asBadRequest(e) {
 export function router() {
   const app = new Hono();
   app.get("/v1/setup/state", async (c) => {
-    const languages = toPlain(readJson(path.join(import.meta.dirname, "..", "config", "languages.json")));
     const p = getState().workspace.project;
     return c.json({
       loaded: p !== null,
@@ -49,7 +49,8 @@ export function router() {
       reviewer: appmeta.getReviewer(),
       // Codes only. The display name is derived in the browser from Intl.DisplayNames, so the
       // menu reads in the user's own language and no English name can go stale here.
-      languages,
+      // the family's languages (the kit's list since 2026-10-18; this file's config/languages.json until then)
+      languages: [...LANGUAGE_CODES],
     });
   });
 
