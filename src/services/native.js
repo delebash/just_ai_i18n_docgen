@@ -47,6 +47,13 @@ export function setKeepRunning(keepRunning) {
   return call("setKeepRunning", { keepRunning: !!keepRunning }).catch(() => {});
 }
 
+/** The tray menu's words (the kit's shellTrayLabels) — the shell holds only English until the app
+ *  sends them (2026-10-19). */
+export function setTrayLabels(labels) {
+  if (!hasShell()) return Promise.resolve();
+  return call("setTrayLabels", { labels }).catch(() => {});
+}
+
 /** The right-click menu's words (the kit's shellMenuLabels) — the menu the shell draws for spelling
  *  suggestions and cut/copy/paste (2026-10-18); without them it speaks English. */
 export function setContextMenuLabels(labels) {

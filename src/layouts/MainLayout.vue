@@ -13,10 +13,10 @@
 import { computed, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { AiSetupOffer, BootModelLoad, HelpDrawer, Icon, LlmUiHosts, pushToast, shellMenuLabels, useAiTasksNav, warmModelId } from "@delebash/ui";
+import { AiSetupOffer, BootModelLoad, HelpDrawer, Icon, LlmUiHosts, pushToast, shellMenuLabels, shellTrayLabels, useAiTasksNav, warmModelId } from "@delebash/ui";
 import TitleBar from "../components/TitleBar.vue";
 import splashPlate from "../assets/images/splash-plate.jpg";
-import { onShellEvent, setContextMenuLabels, setKeepRunning } from "../services/native.js";
+import { onShellEvent, setContextMenuLabels, setKeepRunning, setTrayLabels } from "../services/native.js";
 import { useProjectStore } from "../stores/project";
 import { useUiStore } from "../stores/ui";
 
@@ -64,8 +64,11 @@ onMounted(async () => {
   // Through services/native.js — the one place a command name is written
   // (family shape, 2026-08-15).
   if (ui.keepServerRunning) setKeepRunning(true);
-  // The shell's right-click menu in the interface's language, now and on every switch.
-  watch(locale, () => setContextMenuLabels(shellMenuLabels(t)), { immediate: true });
+  // The shell's tray and right-click menus in the interface's language, now and on every switch.
+  watch(locale, () => {
+    setTrayLabels(shellTrayLabels(t, t("app.name")));
+    setContextMenuLabels(shellMenuLabels(t));
+  }, { immediate: true });
   await project.refresh();
   // The tray's renderer half (the full-donor ruling 2026-08-04): settings/about
   // navigate, Copy URL writes the clipboard + says so. Through services/native.js —
