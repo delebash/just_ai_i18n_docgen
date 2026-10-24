@@ -45,16 +45,22 @@ law: never drive :8742 while your own dev window is open on it.
 ```bash
 npm run build          # Quasar's Electron build + electron-builder → dist/electron/Packaged
 npm run build:spa      # the browser build (dist/spa) — what `npm run server` serves at /
+npm run bump 0.2.0     # the version (package.json and server/package.json)
+npm run release        # the release: every platform's installer + the update feed, built on GitHub
+                       # (.github/workflows/release.yml — manual only; the tag and a whats-new section first)
 ```
 
 The installed app carries two command-line launchers beside its exe:
 `just-ai-i18n-docgen-server serve [--host] [--port] [--data-dir]` (the server and its UI,
 no window) and `just-ai-i18n-docgen <command> <config>` (the CLI). Both run the app's own exe
-as Node, so they need nothing else installed.
+as Node, so they need nothing else installed. On macOS and Linux the server's launcher is
+`just-ai-i18n-docgen-server` (beside the Linux executable — an AppImage's after
+`--appimage-extract`, in `squashfs-root/` — and in the Mac app's `Contents/Resources`).
 
 ## Where to look
 
-- `CLAUDE.md` — the working rules, the "what bites" list, and all pointers.
+- `AGENTS.md` — the working rules, the "what bites" list, and all pointers, for any AI (`CLAUDE.md`
+  imports it).
 - `docs/dev/TASKS.md` — the live open-work tracker; `docs/dev/IDEAS.md` — the backlog.
 - `../just-core/docs/app-structure.md` — the family structure standard.
 - `server/src/api/workspace_api.js` — the review workspace API routes (the Workspace class +

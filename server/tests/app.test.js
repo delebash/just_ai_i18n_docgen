@@ -85,6 +85,8 @@ test("health_answers_the_boot_gate", async () => {
   // The family base shape (camelCase wire).
   expect(body.status).toBe("ok");
   expect(body.product && body.version && body.apiVersion).toBeTruthy();
+  // where the data is (the release's start check compares the window's with the launcher's)
+  expect(body.dataDir).toBe(dataDir);
 });
 
 test("bearer_auth_gates_v1_only_when_tokens_exist", async () => {

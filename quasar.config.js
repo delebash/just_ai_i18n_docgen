@@ -116,6 +116,13 @@ export default defineConfig(() => {
         // https://www.electron.build/configuration — the settings the Electron + Vite build had
         appId: 'com.just-ai-i18n-docgen.app',
         productName: 'Just AI i18n & DocGen',
+        // the update feed (electron-updater — app-structure §1, `updates`): latest*.yml and the
+        // .blockmaps the release workflow attaches to the tag's GitHub release (.github/workflows/release.yml)
+        publish: { provider: 'github', owner: 'delebash', repo: 'just_ai_i18n_docgen' },
+        // file names without spaces (the package name, the version, the platform): the feed names
+        // each file as written, and GitHub turns an uploaded name's spaces into dots
+        // biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder's own macros, not JS's
+        artifactName: '${name}-${version}-${os}-${arch}.${ext}',
         files: [
           '**/*',
           '!**/node_modules/better-sqlite3/{deps,src,build/Release/obj,build/Release/obj.target,build/deps}/**',
@@ -123,9 +130,15 @@ export default defineConfig(() => {
         ],
         // native modules can't load from inside the asar archive
         asarUnpack: [ '**/*.node' ],
-        // the headless launchers (the server, the command line) beside the exe
-        extraResources: [ { from: path.join(root, 'build', 'launcher'), to: '..' } ],
-        win: { target: 'nsis', executableName: 'just_ai_i18n_docgen' },
+        // the launchers — the app's own exe run as Node on its server package (§Q.3): the .cmd files
+        // (the headless server, the command line) beside the Windows exe, the headless server's shell
+        // script beside the Linux one and in the Mac app's Resources (its bundle's root takes no file a
+        // signature doesn't seal); the exe never shares a launcher's name
+        win: {
+          target: 'nsis',
+          executableName: 'just_ai_i18n_docgen',
+          extraResources: [ { from: path.join(root, 'build', 'launcher'), to: '..', filter: [ '*.cmd' ] } ]
+        },
         nsis: {
           oneClick: false,
           perMachine: false,
@@ -141,8 +154,22 @@ export default defineConfig(() => {
           onlyLoadAppFromAsar: true,
           grantFileProtocolExtraPrivileges: false
         },
-        mac: { category: 'public.app-category.developer-tools' },
-        linux: { target: [ 'AppImage', 'deb' ], category: 'Development' }
+        mac: {
+          category: 'public.app-category.developer-tools',
+          extraResources: [ { from: path.join(root, 'build', 'launcher'), to: '.', filter: [ '!*.cmd' ] } ]
+        },
+        // the AppImage; a .deb also needs `linux.maintainer` ("name <email>", published in the package)
+        // and `homepage` in package.json (electron-builder stops on "Please specify project homepage" —
+        // JustWrite, 2026-10-20) — add both, and 'deb' to the targets, with what the app's owner wants public
+        linux: {
+          target: [ 'AppImage' ],
+          category: 'Development',
+          extraResources: [ { from: path.join(root, 'build', 'launcher'), to: '..', filter: [ '!*.cmd' ] } ]
+        },
+        // the AppImage on the AppImage project's static runtime (type2-runtime 20251108): it needs no FUSE 2
+        // library, which Ubuntu 24.04 doesn't install — the legacy toolset's AppImage stopped there with
+        // "AppImages require FUSE to run" (just-house-paint RESEARCH §13; the release's linux-user check)
+        toolsets: { appimage: '1.0.3' }
       }
     }
   }

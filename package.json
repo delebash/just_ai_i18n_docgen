@@ -23,6 +23,8 @@
     "screenshots": "node e2e/capture-direct.js",
     "test:unit": "vitest run",
     "cli": "node scripts/node24.js server/src/cli.js",
+    "bump": "node scripts/bump.js",
+    "release": "node scripts/release.js",
     "i18n:lint": "eslint -c eslint.i18n.config.js \"src/**/*.{js,vue}\"",
     "i18n:report": "vue-i18n-extract report --vueFiles \"src/**/*.?(js|vue)\" --languageFiles \"{src/i18n/locales,../just-core/packages/ui/src/i18n/locales}/en.json\" --exclude kit."
   },
