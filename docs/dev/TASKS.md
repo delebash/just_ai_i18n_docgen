@@ -29,6 +29,12 @@ BUILT:  server — CORS answers the app's own origins only (APP_ORIGINS + CAPACI
         restore or a reset keeps this server's access tokens, a backup carries none; the built UI
         through the kit's `serveUi`. Tests: `server/tests/data.test.js`, the CORS and headless-UI
         tests in `app.test.js`. User docs: settings.md (Backups).
+        Renderer — the connection page says the shell's reasons (portOtherUser, portReserved,
+        serverError; `shellServerStatus` in native.js, the template's page and its test); the tray's
+        Copy server URL through Quasar's `copyToClipboard`; boot calls the kit's
+        `installErrorReporting`; the kit's fonts listed in quasar.config.js (the SPA build carries
+        them); Home finds its translate strip's task with the kit's `useSurfaceTask("translate")`.
+        User docs: troubleshooting.md, settings.md (Logs), whats-new.md.
 OPEN:   the rest of the list (in progress, this session).
 GO:     the user, 2026-10-24 (above).
 

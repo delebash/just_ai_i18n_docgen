@@ -39,6 +39,15 @@ export function storageRelocate(newRoot) {
   return call("storageRelocate", { newRoot });
 }
 
+// ─── The server ──────────────────────────────────────────────────────
+
+/** Why the desktop app's server didn't start, when its shell knows: `{url, portTaken,
+ *  dataFolderInUse, portOtherUser, portReserved, serverError}`. Null outside the shell. */
+export function shellServerStatus() {
+  if (!hasShell()) return Promise.resolve(null);
+  return call("serverStatus").catch(() => null);
+}
+
 // ─── The shell's own switches ────────────────────────────────────────
 
 /** The family headless ruling (2026-08-04): keep the server up on window close. */

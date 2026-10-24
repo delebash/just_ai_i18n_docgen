@@ -10,6 +10,7 @@
 // DownloadBars the engine panel uses. Continue is the universal escape: a slow
 // or failed load never traps anyone on the boot screen.
 // Family rules: height:100% chain (never 100vh), one scroller per area.
+import { copyToClipboard } from "quasar";
 import { computed, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
@@ -77,7 +78,10 @@ onMounted(async () => {
   onShellEvent("tray:about", () => router.push("/settings/about"));
   onShellEvent("tray:copy-url", async (url) => {
     try {
-      await navigator.clipboard.writeText(String(url));
+      // Quasar's copyToClipboard: navigator.clipboard is missing on a page served over plain http
+      // (a browser on another computer); a focused window's write is reliable, and the shell shows
+      // the window first (§11).
+      await copyToClipboard(String(url));
       pushToast({ kind: "success", title: t("tray.urlCopied"), description: String(url) });
     } catch (err) {
       pushToast({ kind: "error", title: t("tray.copyFailed"), description: String(err?.message || err) });

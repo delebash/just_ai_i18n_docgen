@@ -1,11 +1,31 @@
 # Troubleshooting
 
-**"Can't reach the server" screen.** The app's server isn't running or its port (8742)
-is taken by another program. The desktop app starts the server itself; the tray menu's
-**Restart server** starts it again, and **Open log file** shows why it stopped. Headless,
-start it with `just-ai-i18n-docgen-server serve` (`npm run server` from a source checkout).
-The app deliberately refuses to render without it — there is no offline mode to silently
-lose work in.
+**"Can't reach the server" screen.** The app's server isn't running, or its port (8742)
+is taken — the screen says which when it knows:
+
+- **Another program is using port 8742** — close that program, then press **Retry**.
+- **Another person signed in to this computer has the app open** — one copy runs at a time on a
+  computer: they quit theirs (its tray icon, **Quit**), then press **Retry**.
+- **Windows has reserved port 8742** (Hyper-V, WSL or Docker reserve ranges of ports at start) —
+  restarting the computer usually frees it. `netsh int ipv4 show excludedportrange protocol=tcp`
+  lists the reserved ranges. To keep the port free for the app, open a Command Prompt as
+  administrator and run `net stop winnat`, then
+  `netsh int ipv4 add excludedportrange protocol=tcp startport=8742 numberofports=1 store=persistent`,
+  then `net start winnat`, and restart the computer.
+- **Its server stopped as it started** — the words after it say why; **Open log file** in the tray
+  shows the rest.
+
+The desktop app starts the server itself; the tray menu's **Restart server** starts it again,
+and **Open log file** shows why it stopped. Headless, start it with
+`just-ai-i18n-docgen-server serve` (`npm run server` from a source checkout). The app
+deliberately refuses to render without it — there is no offline mode to silently lose work in.
+
+**Another copy is already running.** One server per data folder: a second one says that
+another Just AI i18n & DocGen server is using this data folder. Quit the other copy (the
+tray's **Quit**), or give the second one its own `--data-dir`.
+
+**A message showed an error from the window.** The window's own errors land in
+**App Settings → Logs** beside the server's lines, so the details are there.
 
 **Home shows the welcome screen although I set up before.** The welcome only
 appears on a confirmed "no project loaded" answer from the server. If your

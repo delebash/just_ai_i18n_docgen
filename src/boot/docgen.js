@@ -6,7 +6,7 @@
 // connection-error screen as its own app); the start-up now decides by route — the app, or the
 // connection-error page (/offline) — and the sequence below is unchanged. The stylesheets are quasar.config.js's `css`.
 import { defineBoot } from "#q-app";
-import { bootPrefs, checkServer, configureHelp, installLlmUi, startWarmOnBoot } from "@delebash/ui";
+import { bootPrefs, checkServer, configureHelp, installErrorReporting, installLlmUi, startWarmOnBoot } from "@delebash/ui";
 import { hasDoc, loadDoc, titleForSlug } from "../services/helpDocs.js";
 import { openPath, openUrl } from "../services/native.js";
 import { i18n } from "../i18n/index.js";
@@ -32,6 +32,11 @@ async function boot({ app, router, store: pinia }) {
     // No embedding features here, and the catalog seeds translation-measured rows only.
     capabilities: { embeddings: false },
   });
+
+  // Renderer errors reach the server's log (app-structure §15): Vue's errorHandler and the window's
+  // error / unhandledrejection post each failure to POST /v1/logs/client, and tell the user once per
+  // distinct message — Settings → Logs shows them beside the server's lines.
+  installErrorReporting(app);
 
   // In-app Help (kit drawer over docs/*.md) — the minimal drawer-only shape: no
   // full-pane reader route yet, so the open-full/open-web buttons stay hidden.

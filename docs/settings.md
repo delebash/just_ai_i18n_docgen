@@ -30,7 +30,8 @@
   server, ⚙️ Open settings, 📋 Copy server URL (copies and confirms),
   📜 Open log file, ℹ️ About, and 🚪 Quit — which stops the server too. With
   the switch off, closing the window stops everything.
-- **Logs** — the server's log ring: retention, day picker, download, copy.
+- **Logs** — the server's log ring: retention, day picker, download, copy. The window's own
+  errors land here too, beside the server's lines (a message tells you once when one happens).
 - **Updates** — the version you're on and what changed in each release.
 - **Reviewer** — the name stamped on every acceptance. Set it before you review;
   an empty name records "unknown" in your committed review history.

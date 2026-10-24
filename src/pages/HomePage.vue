@@ -6,13 +6,14 @@
 // the server owns that meaning). Without a project: a real welcome, not a bare
 // button — the splash plate, the three steps, and the two ways in.
 // The run strip is the kit's AiTaskStrip over the translate task the jobs store
-// registers — same surface as the AI-tasks panel, no bespoke strip.
+// registers, found with the kit's useSurfaceTask — same surface as the AI-tasks panel, no
+// bespoke strip; while it shows here the global stack leaves the task out (app-structure §8).
 import { computed, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import {
   AiTaskStrip, Icon, PaneHeader, UiButton, UiCheckbox, UiInput, UiProgress,
-  UiTable, UiTag, pushToast, useAiTasksStore, usePoll,
+  UiTable, UiTag, pushToast, usePoll, useSurfaceTask,
 } from "@delebash/ui";
 import splashPlate from "../assets/images/splash-plate.jpg";
 import { langTitle } from "../services/langs";
@@ -22,7 +23,6 @@ import { pageFill } from "@delebash/ui";
 
 const project = useProjectStore();
 const jobs = useJobsStore();
-const aiTasks = useAiTasksStore();
 const router = useRouter();
 const { t, n } = useI18n();
 
@@ -48,9 +48,7 @@ watch(() => jobs.job?.state, async (state, prev) => {
 });
 
 const running = computed(() => jobs.job?.state === "running");
-const translateTask = computed(
-  () => aiTasks.runningTasks.find((t) => t.feature === "translate") || null,
-);
+const translateTask = useSurfaceTask("translate");
 const rows = computed(() =>
   (project.summary?.langs ?? []).map((l) => ({ ...l, name: langTitle(l.code) })),
 );

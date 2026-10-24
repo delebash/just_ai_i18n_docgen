@@ -2,6 +2,16 @@
 
 ## v0.1.0
 
+- **Every font in the Appearance picker shows.** The fonts ship with the app, so choosing one
+  changes the interface's type — offline too ([App Settings](settings.md))
+- **"Can't reach the server" says why.** When another program or another person's copy of the
+  app holds port 8742, Windows has reserved it, or the server stopped as it started, the screen
+  says so and what to do ([Troubleshooting](troubleshooting.md))
+- **The window's own errors reach the log.** A failure in the window lands in App Settings →
+  Logs beside the server's lines ([App Settings](settings.md))
+- **Backups keep the access tokens out.** A backup no longer carries the Server section's access
+  tokens, and a restore or a reset keeps the ones this computer has; a change made in another
+  window while a restore runs is refused instead of lost ([App Settings](settings.md))
 - **The desktop app's menus in your language.** With Spanish chosen, the tray icon's menu and the
   right-click menu (cut, copy, paste, spelling suggestions) are in Spanish too ([Settings](settings.md))
 - **Notices read properly.** A notice with a long button puts the button under its text instead of

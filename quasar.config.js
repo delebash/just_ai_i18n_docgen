@@ -23,8 +23,14 @@ export default defineConfig(() => {
     boot: ['i18n', 'docgen'],
 
     // The app's stylesheets (src/css/), in the entry stylesheet rather than the boot file's chunk:
-    // the design tokens, then the app's own styles — ahead of the kit's, as they have always loaded.
-    css: [ 'tokens.css', 'app.scss' ],
+    // the design tokens, every font the Appearance picker offers (the kit's Fontsource set, bundled —
+    // the template's list, app-structure §11), then the app's own styles — ahead of the kit's, as
+    // they have always loaded.
+    css: [
+      'tokens.css',
+      '~@delebash/ui/common/fonts.css',
+      'app.scss',
+    ],
 
     // No Quasar icon font or Roboto: the app's look is its own tokens; it uses no Quasar
     // component yet — the family theme and icon set come with the kit's UI on Quasar.
