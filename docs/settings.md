@@ -1,4 +1,4 @@
-# Settings
+# App Settings
 
 **App Settings** in the sidebar, sections across the top:
 
