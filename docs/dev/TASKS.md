@@ -17,8 +17,9 @@
 > keeps history. A tracker line is a claim, not evidence — verify against code.
 
 ## docgen on the template's standard — the guard's advisories [2026-10-24]
-STATE:  BUILT 2026-10-24 in a docgen session. The user (2026-10-24): "you can start a docgen session
-        in its repo if needed you can do it all just do it right think about it before you act" —
+STATE:  BUILT 2026-10-24 in a docgen session; four questions open (OPEN). The user (2026-10-24):
+        "you can start a docgen session in its repo if needed you can do it all just do it right
+        think about it before you act" —
         each fix follows the kit template's own file (`../just-core/template`), the list being the
         family guard's docgen advisories (`node scripts/check-family.js --info`); the settings
         page's title is the user's decision D5 (2026-10-24): "# App Settings", the kit's sidebar
@@ -35,7 +36,28 @@ BUILT:  server — CORS answers the app's own origins only (APP_ORIGINS + CAPACI
         `installErrorReporting`; the kit's fonts listed in quasar.config.js (the SPA build carries
         them); Home finds its translate strip's task with the kit's `useSurfaceTask("translate")`.
         User docs: troubleshooting.md, settings.md (Logs), whats-new.md.
-OPEN:   the rest of the list (in progress, this session).
+        Release and launchers — the template's `.github/workflows/release.yml` (workflow_dispatch only,
+        the kit at `inputs.core_ref`), `scripts/release.js`, `bump.js`, `start-packaged.js` (the
+        launcher named `just-ai-i18n-docgen-server`), the "bump"/"release" scripts, the builder's
+        GitHub `publish` + `artifactName`, the launchers copied per platform, the macOS/Linux shell
+        launcher (executable in git; it names the Linux executable `just_ai_i18n_docgen`), the .cmd
+        sets NODE_USE_SYSTEM_CA=1; `GET /v1/health` names `dataDir` (the release's
+        --default-data check reads it). Linux builds the AppImage only, as the template (the .deb
+        needs a maintainer and a homepage). Not run: no release, no workflow.
+        AGENTS.md in the template's shape with the family rules between the markers; CLAUDE.md
+        imports it. The help page "settings" titled "App Settings" (D5) — settings.md, toc.json,
+        whats-new.md's link text.
+CHECKED: 2026-10-24 — lint (98 files), test:server 171/171 (165 before), test:unit 11/11 (5
+        before), i18n:lint 0, i18n:report none missing, the guard: no violations and no docgen
+        advisory left; the Windows installer built with `-P never` and `start-packaged.js`
+        (window, --headless, the --default-data pair) passed. Not run: `npm test` (the e2e needs
+        the real dev data folder and JustWrite's project, and one test writes presets).
+OPEN:   questions for the user — (1) the Runs page starts translations too and keeps its own run
+        card (progress, requests, exhausted keys); the kit's strip is only on Home: add it on Runs
+        too? (2) the CLI's .cmd launcher doesn't set NODE_USE_SYSTEM_CA, and macOS/Linux have no CLI
+        launcher — the template has no CLI to follow. (3) the .deb: back when you name a maintainer
+        and a homepage. (4) es.json lacks the four new connectionError strings — Spanish shows
+        English there until docgen's own catalog run translates them.
 GO:     the user, 2026-10-24 (above).
 
 ## Every app and the kit on vue-i18n [2026-10-12]

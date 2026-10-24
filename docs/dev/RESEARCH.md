@@ -106,6 +106,39 @@ Asked because the user wants the Spanish review done with little human interacti
   github.com/unicode-org/cldr-json, `cldr-misc-full/main/es/contextTransforms.json`; Node 24's
   ICU, measured 2026-10-18.*
 
+## The template's standard: server guards, release, launchers (2026-10-24)
+
+Asked while moving docgen onto the kit template's files (TASKS, "docgen on the template's
+standard").
+
+- **docgen's Linux executable is `just_ai_i18n_docgen`** — electron-builder names it after
+  package.json's `name`, sanitized and lowercased, when `linux.executableName` is unset; the
+  template's shell launcher derives the executable from its own stem (`<stem>-server`), which
+  for docgen is `just-ai-i18n-docgen`, so docgen's script names the executable itself (as its
+  .cmd names `just_ai_i18n_docgen.exe`). — *code: app-builder-lib `linuxPackager.js` l.15–16,
+  builder-util `sanitizeFileName` run on the name, 2026-10-24; the script dry-run with a stub
+  executable.*
+- **The kit's restore hooks get a handle with no tables registered** — `beforeCopy` / `afterCopy`
+  run on the restore's own `openDatabase` connection, `scrubBackup` on the backup's copy; there
+  `h.get(table, key)` throws ("give the key as {column: value}"), so appmeta's settings take the
+  key as `{key}` and an optional handle. — *code: core `platform/sql.js` `pkOf`,
+  `platform/data_api.js` `copyTables` / backup, 2026-10-24.*
+- **The release's `--default-data` check needs `dataDir` in `GET /v1/health`** — docgen's health
+  had none, so the release would have stopped there; it now answers it, as the template's.
+  — *code: `scripts/start-packaged.js`, 2026-10-24.*
+- **The release's start checks pass on Windows** — the installer built as the workflow builds it
+  (`quasar build -m electron -T win32 -P never`: `latest.yml` and the `.blockmap` written, the
+  .cmd launchers beside the exe, no shell script there); `start-packaged.js` window answered in
+  2.4 s, `--headless` in 1.0 s with `/` and its script 200, the `--default-data` pair on one
+  folder. macOS and Linux unrun (no runner here). — *measured 2026-10-24.*
+- **The kit's fonts reach the build** — with `~@delebash/ui/common/fonts.css` in
+  `quasar.config.js > css`, `npm run build:spa` writes 242 woff/woff2 files to `dist/spa/assets`.
+  — *measured 2026-10-24.*
+- **The maintenance gate holds every write by default** — a restore waits for the writes already
+  running (an AI run's POST included) and refuses new ones with 503 and Retry-After; docgen
+  passes no `isDataWrite`, as the template. — *code: core `platform/maintenance.js`;
+  `server/tests/data.test.js`, 2026-10-24.*
+
 ---
 
 ## Records not yet distilled
