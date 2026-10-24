@@ -16,16 +16,16 @@
 // no checkout of its own). JAID_DEV_NO_SIDECAR=1 (the tests' switch) keeps the
 // shell from starting its own server — the suite talks to the one already on :8742.
 
-import { createRequire } from "node:module";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { _electron } from "playwright-core";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../..");
 const APP_ROOT = path.join(REPO_ROOT, "dist", "electron", "UnPackaged");
 // Electron is the desktop app's dependency, installed in src-electron/ (Quasar's Electron mode).
-const ELECTRON = createRequire(path.join(REPO_ROOT, "src-electron", "package.json"))("electron");
+// Its package's main export is the binary's path — an ES import by file URL (no require).
+const { default: ELECTRON } = await import(pathToFileURL(path.join(REPO_ROOT, "src-electron", "node_modules", "electron", "index.js")).href);
 
 export class Driver {
   constructor() {
