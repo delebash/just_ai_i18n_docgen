@@ -12,6 +12,10 @@
   the reviewer name) as a ZIP, import one, or **Reset** the app to a fresh
   install. Your locale files and accepted translations are NOT in the backup —
   they live in your project folder and travel with it (git keeps those safe).
+  The **Server** section's access tokens belong to this computer: a backup never
+  carries them, and a restore or a reset keeps the ones this server has. While a
+  restore or a reset runs, a change made in another window isn't saved — it says
+  so; make it again once the app shows the restored data.
 - **Storage** — where app data lives (the AI engine, downloaded models, logs) and
   a **Relocate** that moves it and restarts the app. Disk usage per category with
   **Clear models cache** (the model must be unloaded first) and **Clear engine

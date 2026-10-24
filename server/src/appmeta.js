@@ -35,17 +35,25 @@ function session() {
   return handle;
 }
 
-export function getSetting(key) {
-  const row = session().get("app_settings", key);
+// `h`: this app's database by default; a restore's own connection or a backup's copy when the data
+// router's hooks pass one (data_admin.js keepAuth) — a handle the table isn't registered on, so the
+// key is given as {key}.
+
+export function getSetting(key, h = session()) {
+  const row = h.get("app_settings", { key });
   return row ? row.value : null;
 }
 
-export function setSetting(key, value) {
-  const h = session();
+export function setSetting(key, value, h = session()) {
   h.tx(() => {
-    if (h.get("app_settings", key) === null) h.insert("app_settings", { key, value });
+    if (h.get("app_settings", { key }) === null) h.insert("app_settings", { key, value });
     else h.update("app_settings", { value }, { key });
   });
+}
+
+/** Remove a setting's row (it reads as null again). */
+export function deleteSetting(key, h = session()) {
+  h.delete("app_settings", { key });
 }
 
 export const getReviewer = () => getSetting("reviewer");

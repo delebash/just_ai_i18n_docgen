@@ -16,6 +16,22 @@
 > item points to — **read that doc before coding the item**. Close = delete — git
 > keeps history. A tracker line is a claim, not evidence — verify against code.
 
+## docgen on the template's standard — the guard's advisories [2026-10-24]
+STATE:  BUILT 2026-10-24 in a docgen session. The user (2026-10-24): "you can start a docgen session
+        in its repo if needed you can do it all just do it right think about it before you act" —
+        each fix follows the kit template's own file (`../just-core/template`), the list being the
+        family guard's docgen advisories (`node scripts/check-family.js --info`); the settings
+        page's title is the user's decision D5 (2026-10-24): "# App Settings", the kit's sidebar
+        word in every app.
+BUILT:  server — CORS answers the app's own origins only (APP_ORIGINS + CAPACITOR_ORIGINS, was every
+        origin); the kit's MaintenanceGate before the routes; Settings → Backups' router moved to
+        `server/src/data_admin.js` (the template's): the gate, `beforeReplace`, and `keepAuth` — a
+        restore or a reset keeps this server's access tokens, a backup carries none; the built UI
+        through the kit's `serveUi`. Tests: `server/tests/data.test.js`, the CORS and headless-UI
+        tests in `app.test.js`. User docs: settings.md (Backups).
+OPEN:   the rest of the list (in progress, this session).
+GO:     the user, 2026-10-24 (above).
+
 ## Every app and the kit on vue-i18n [2026-10-12]
 STATE:  DECIDED 2026-10-12, family-wide; plan written, awaiting go — the decision with the user's
         words is the kit's TASKS, "Every app and the kit on vue-i18n"; the plan is

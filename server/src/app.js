@@ -28,38 +28,36 @@
 import { existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { installLlm, runnerRouter } from "@delebash/core/llm";
-import { LLM_TABLES, loadFromConfigs, seedLlm, stores } from "@delebash/core/llm";
+import { loadFromConfigs, seedLlm, stores } from "@delebash/core/llm";
 import * as llmDb from "@delebash/core/llm/db";
 import { FeatureCatalogEntry } from "@delebash/core/llm/routing_api";
 import {
   bearerAuth,
+  CAPACITOR_ORIGINS,
   createServer,
   csrfOrigin,
   installFileLog,
   installLogRing,
-  makeDataRouter,
+  MaintenanceGate,
   makeDiskRouter,
   makeLogsRouter,
   makePrefsRouter,
   openDatabase,
   resolveDataDir,
-  serveStatic,
+  serveUi,
   starletteCors,
 } from "@delebash/core/platform";
-import { sortedTables } from "@delebash/core/platform/data_api";
 import { purePath } from "@delebash/core/platform/data_paths";
-import { HttpError } from "@delebash/core/platform/errors";
 import { getLogger } from "@delebash/core/platform/log";
 import { errText } from "@delebash/core/platform/py";
-import * as lifecycle from "@delebash/core/runner/lifecycle";
 import { router as healthRouter } from "./api/health_api.js";
 import { router as serverAuthRouter } from "./api/server_auth_api.js";
 import { router as setupRouter } from "./api/setup_api.js";
 import { router as workspaceRouter } from "./api/workspace_api.js";
 import { AppState, setState } from "./app_state.js";
 import * as appmeta from "./appmeta.js";
-import { APP_TABLES } from "./appmeta.js";
 import { readAuth } from "./auth.js";
+import { router as dataRouter } from "./data_admin.js";
 import { isDir } from "./paths.js";
 import { PRODUCT } from "./version.js";
 import { Workspace } from "./workspace.js";
@@ -295,8 +293,10 @@ export const CLASS_TUNE_IDENTITY = {
 // it — the kit uses the executable's own folder.)
 export const SOURCE_ROOT = path.resolve(import.meta.dirname, "..", "..");
 
-// The desktop window's origin (the shared Electron shell loads the UI from app://<id>):
-// without it every mutating call from the desktop app gets the CSRF 403.
+// The renderer's own origins: Quasar's dev server (its registered port, app-structure §1) and the
+// desktop window (the shared Electron shell loads the UI from app://<id>) — without them every
+// mutating call from the desktop app gets the CSRF 403, and CORS answers only these (and the
+// phone's, the kit's CAPACITOR_ORIGINS).
 export const APP_ORIGINS = ["http://localhost:1450", "http://127.0.0.1:1450", "app://just-ai-i18n-docgen"];
 
 /**
@@ -353,19 +353,6 @@ export function _retireGemma3Row() {
   }
 }
 
-async function stopRunnerBestEffort() {
-  try {
-    await lifecycle.getService().stop();
-  } catch {
-    /* best-effort by design, never boot-fatal */
-  }
-}
-
-/** `metadata.drop_all` — every table of a captured list, children first. */
-function dropTables(h, tables) {
-  for (const t of [...sortedTables(tables)].reverse()) h.exec(`DROP TABLE IF EXISTS "${t}"`);
-}
-
 /** installLlm's arguments — the same for the app and the routeless (CLI) boot. */
 const llmArgs = (h, dataDir) => ({
   db: h,
@@ -389,7 +376,8 @@ const llmArgs = (h, dataDir) => ({
  *
  * Split from createApp because the CLI needs it too: `makeSend` resolves presets through the
  * shared stores, which do not exist until storage is configured. When `app` is given, the
- * kit's routers are mounted as well (createApp's path). Returns the data dir.
+ * kit's routers are mounted as well (createApp's path; the backup/restore/reset router is
+ * createApp's own, data_admin.js, behind the app's maintenance gate). Returns the data dir.
  */
 export async function bootLlmStack(dataDir = null, app = null) {
   dataDir = dataDir ? purePath(String(dataDir)) : defaultDataDir();
@@ -403,30 +391,8 @@ export async function bootLlmStack(dataDir = null, app = null) {
     // The standard: the host mounts the runner's process API, installLlm mounts the rest —
     // JW's exact order.
     app.route("/", runnerRouter());
-    // The shared /v1/data backup/restore/reset. One DB, two table sets; no asset dirs —
-    // per-project text lives in the USER'S project, anchored to the config file, never under
-    // the data dir. Reset = drop both schemas + recreate + reseed (the family true-drop rule:
-    // schema drift resets too); restore/reset tear the runner down first (clean slate).
-    const reset = async () => {
-      await stopRunnerBestEffort();
-      dropTables(h, APP_TABLES);
-      dropTables(h, LLM_TABLES);
-      h.createTables(APP_TABLES);
-      h.createTables(LLM_TABLES);
-      seedLlm();
-    };
-    app.route(
-      "/",
-      makeDataRouter({
-        getDbPath: () => path.join(dataDir, "app.db"),
-        metadata: [APP_TABLES, LLM_TABLES],
-        runReset: reset,
-        assetDirs: () => ({}),
-        onReplaced: stopRunnerBestEffort,
-      }),
-    );
     // The family /v1/prefs door: the renderer's prefs are `pref.*` rows in app_settings —
-    // same DB, so the backup/restore/reset above covers them.
+    // same DB, so the backup/restore/reset (data_admin.js) covers them.
     app.route(
       "/",
       makePrefsRouter({
@@ -479,20 +445,28 @@ export async function createApp(dataDir = null, configPath = null) {
   // preflights before auth sees them and stamps auth's 401/403.
   //
   // CSRF: reject cross-site browser mutations to /v1 (no token — can never lock anyone out).
-  // With allow-all CORS, this is what stops a foreign web page from WRITING to :8742 while the
-  // app runs.
   app.use("*", csrfOrigin({ appOrigins: APP_ORIGINS, typeBase: TYPE_BASE }));
-  // CORS — allow-all: the kit's origin-aware resolver hits :8742 DIRECTLY from Vite dev
-  // (:1450) and from the desktop window, so without this every request dies as a silent CORS
-  // block (found live 2026-08-02 — no same-origin test can see it). The kit's Starlette 1.3.1
-  // port; docgen's Python ran an older Starlette that also mirrored the origin to a request
-  // carrying a cookie — this app sends none.
-  app.use("*", starletteCors({ allowOrigins: ["*"], allowMethods: ["*"], allowHeaders: ["*"] }));
+  // CORS answers the app's own origins only — the desktop window (app://), Quasar's dev server
+  // (:1450), the phone's webview origins (the kit's CAPACITOR_ORIGINS) — which call :8742 DIRECTLY
+  // (the kit's origin-aware resolver), so without them every request dies as a silent CORS block
+  // (found live 2026-08-02 — no same-origin test can see it). The UI this server hosts is its own
+  // origin and needs none. Never every origin: any web page the user opened could then read this
+  // computer's server, backups and keys included (the template's app.js; the kit's security
+  // review, 2026-10-19). The kit's Starlette 1.3.1 port.
+  app.use("*", starletteCors({ allowOrigins: [...APP_ORIGINS, ...CAPACITOR_ORIGINS], allowMethods: ["*"], allowHeaders: ["*"] }));
   // Bearer auth — OFF unless tokens are configured (Settings → Server). Gates /v1/* only.
   app.use("*", bearerAuth({ readAuth, typeBase: TYPE_BASE }));
+  // While a restore or a reset replaces the data, every other window's write is refused (503,
+  // Retry-After) and the ones already running finish first — never a save that lands half-way or
+  // answers 200 and is lost (the kit's MaintenanceGate; the data router closes it). This app's
+  // shell sends no shutdown request, so nothing is exempt but the data router's own routes.
+  const gate = new MaintenanceGate();
+  app.use("*", gate.middleware());
 
   // Awaited, so the stack is booted when createApp returns.
   await bootLlmStack(dataDir, app);
+  // Settings → Backups: backup / restore / reset (data_admin.js), behind the gate above.
+  app.route("/", dataRouter(dataDir, { gate }));
 
   // Shared platform surfaces: the log ring's API and the read-only disk-usage route the
   // Settings → Storage panel reads.
@@ -509,19 +483,17 @@ export async function createApp(dataDir = null, configPath = null) {
   app.route("/", setupRouter());
   app.route("/", workspaceRouter());
 
-  // Headless UI — serve the built UI (Quasar's dist/spa; the app folder when packaged) so the server + a browser gives the full app
-  // without the desktop shell (the kit's origin-aware serverApi targets
-  // window.location.origin). Every /v1/* route wins first (Hono runs the routes in the order
-  // they were added, and these come last). Starlette's StaticFiles(html=True) semantics: "/" is
-  // index.html; a missing file answers FastAPI's {"detail": "Not Found"}; any method but
-  // GET/HEAD on an unrouted path answers 405 — added before the files, which would otherwise
-  // answer any method.
-  const dist = locateUiDir();
-  if (dist !== null) {
-    app.on(["POST", "PUT", "PATCH", "DELETE", "OPTIONS"], "/*", () => {
-      throw new HttpError(405, "Method Not Allowed");
-    });
-    app.use("/*", serveStatic({ root: dist }));
+  // Headless UI — the built UI (Quasar's dist/spa; the app folder when packaged), so the server +
+  // a browser gives the full app without the desktop shell (the kit's origin-aware serverApi
+  // targets window.location.origin). The kit's serveUi: a write to the UI's address 405 with
+  // Allow, an unknown /v1 write the API's 404, ETags, Vite's hashed files kept, the rest
+  // revalidated. Every /v1/* route above wins first (Hono runs routes in the order added).
+  const uiDir = locateUiDir();
+  if (uiDir !== null) {
+    serveUi(app, uiDir);
+    log.info(`UI served from ${uiDir}`);
+  } else {
+    log.warning("no built UI found — the headless UI is off. `npm run build:spa` makes dist/spa/, or set JUST_AI_I18N_DOCGEN_UI_DIR.");
   }
 
   return app;

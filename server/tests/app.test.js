@@ -11,8 +11,9 @@
 import { getLogger } from "@delebash/core/platform/log";
 import { pyPath } from "@delebash/core/runner/cache_registry";
 import * as lifecycle from "@delebash/core/runner/lifecycle";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { beforeEach, expect, test } from "vitest";
+import { beforeEach, expect, test, vi } from "vitest";
 import { createApp, FEATURE_CATALOG, seedLlmStack } from "../src/app.js";
 import { testClient, tmpDir, useHermeticKit } from "./helpers.js";
 
@@ -126,10 +127,37 @@ test("lockout_escape_health_and_auth_door_stay_open_from_loopback", async () => 
 });
 
 test("a_browser_origin_gets_cors_headers", async () => {
-  // Vite dev (:1450) hits :8742 DIRECTLY (the kit's origin-aware resolver), so without CORS
-  // every browser dev request dies as a silent block. Found live 2026-08-02 — only an explicit
-  // Origin header can make a test see it.
-  const r = await client.get("/v1/setup/state", { headers: { origin: "http://localhost:1450" } });
-  expect(r.statusCode).toBe(200);
-  expect(r.headers["access-control-allow-origin"]).toBe("*");
+  // Vite dev (:1450) and the desktop window hit :8742 DIRECTLY (the kit's origin-aware
+  // resolver), so without CORS every browser request dies as a silent block. Found live
+  // 2026-08-02 — only an explicit Origin header can make a test see it.
+  for (const origin of ["http://localhost:1450", "app://just-ai-i18n-docgen"]) {
+    const r = await client.get("/v1/setup/state", { headers: { origin } });
+    expect(r.statusCode).toBe(200);
+    expect(r.headers["access-control-allow-origin"]).toBe(origin); // its own origin, never every origin
+  }
+  // any other web page the user opened can't read this computer's server (the template's app.js)
+  const evil = await client.get("/v1/data/backup", { headers: { origin: "https://evil.example" } });
+  expect(evil.headers["access-control-allow-origin"]).toBeUndefined();
+});
+
+test("the_headless_ui_is_the_kits_serveUi", async () => {
+  // The built UI for a browser at this address (the kit's serveUi): the page with a validator,
+  // Vite's hashed files kept, a write to the UI's address 405 naming what it takes, and an unknown
+  // /v1 write the API's own 404 — not the UI's 405.
+  const ui = tmpDir();
+  mkdirSync(join(ui, "assets"));
+  writeFileSync(join(ui, "index.html"), "<!doctype html><title>docgen</title>");
+  writeFileSync(join(ui, "assets", "index-abc123.js"), "export {};");
+  vi.stubEnv("JUST_AI_I18N_DOCGEN_UI_DIR", ui);
+  const c = testClient(await createApp(tmpDir()));
+  const page = await c.get("/");
+  expect(page.statusCode).toBe(200);
+  expect(page.headers["content-type"]).toMatch(/text\/html/);
+  expect(page.headers.etag).toBeTruthy();
+  expect(page.headers["cache-control"]).toBe("no-cache");
+  expect((await c.get("/assets/index-abc123.js")).headers["cache-control"]).toMatch(/immutable/);
+  const write = await c.post("/index.html", { json: {} });
+  expect(write.statusCode).toBe(405);
+  expect(write.headers.allow).toBe("GET, HEAD");
+  expect((await c.post("/v1/nothing-here", { json: {} })).statusCode).toBe(404);
 });
