@@ -2,7 +2,7 @@
 
 Read in this order:
 
-1. **`../../CLAUDE.md`** — the working rules, the "what bites" list (proposals-only
+1. **`../../AGENTS.md`** (which `CLAUDE.md` imports) — the working rules, the "what bites" list (proposals-only
    writes, the engine never signs off, shielding is a substitution, one resolver,
    config-anchored paths), and every pointer.
 2. **`TASKS.md`** — the live tracker. **`IDEAS.md`** — the backlog. **`RESEARCH.md`** —
