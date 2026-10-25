@@ -16,6 +16,21 @@
 > item points to — **read that doc before coding the item**. Close = delete — git
 > keeps history. A tracker line is a claim, not evidence — verify against code.
 
+## The kit's page looks, the window counter and the settings upgrade — adopt them [2026-10-24]
+OPEN:   the kit grew three standards on 2026-10-24 (its plan `../just-core/docs/plans/2026-10-24-engines-the-llama-way.md`,
+        round A2 — under the user's go there, "fix it all your rec do it right like a professional go"); the template
+        and just-house-paint are on them, docgen isn't yet:
+        F6 — the family's page looks are the kit's `@delebash/ui/common/app.css` (the template's app.scss classes:
+        the base, the shell, pages, cards, hints, forms, Settings, the AI page, the splash). docgen's app.scss copies
+        23 of them (the guard's advisory, `node ../just-core/scripts/check-family.js --info`) with its own sizes
+        (.card h2 14.5 px, .hint 12.5 px): list `~@delebash/ui/common/app.css` right before `app.scss` in
+        quasar.config.js and keep only docgen's own looks — the screens then take the template's sizes, so
+        screenshot before and after (`npm run screenshots`). Once it lists the sheet, the guard fails a copy.
+        F1 — several windows on one server: the kit's `ChangeCounter` + `makeSyncRevRouter` and the UI kit's
+        `watchOtherWindows` (the template's app.js, data_admin.js, boot file and NotesPage are the reference).
+        F2 — a better default reaching an install: the kit's `upgradeSettings` + a test holding every
+        default's fingerprint (the template's database/seed.js PREVIOUS_DEFAULTS, tests/settings_upgrade.test.js).
+
 ## docgen on the template's standard — the guard's advisories [2026-10-24]
 STATE:  BUILT 2026-10-24 in a docgen session; four questions open (OPEN). The user (2026-10-24):
         "you can start a docgen session in its repo if needed you can do it all just do it right
