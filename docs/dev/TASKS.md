@@ -180,7 +180,7 @@ STATE:  DECIDED 2026-10-08 — every family app moves to Quasar (the kit's TASKS
         the merge the held tree goes into a named stash (kept, recoverable), as their biome.json
         leftover did." The order of work: the kit's `docs/plans/2026-10-08-sync-and-quasar-program.md`,
         step Q6; the layout: the kit's `docs/app-structure.md` §Q.
-BUILT:  2026-10-09, on branch `quasar` (worktree `../docgen-quasar`, from f3ed692): `quasar.config.js`
+BUILT:  2026-10-09, on branch `quasar` (in a worktree from f3ed692, since merged and removed 2026-10-26): `quasar.config.js`
         (the kit UI alias; dev ports 1450 / HMR 1451; electron-builder with the old installer's
         settings — NSIS, the fuses, the launchers, appId `com.just-ai-i18n-docgen.app`; no
         Capacitor mode); `src-electron/` (the kit's `runDesktopApp`, the same settings as
