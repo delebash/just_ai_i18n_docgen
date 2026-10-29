@@ -53,11 +53,18 @@
   },
   "connectionError": {
     "need": "leer tus archivos de idioma y ejecutar las traducciones",
-    "devHint": "Dev: debería iniciarse automáticamente con `npm run dev`, o ejecútalo tú mismo con `npm run server` y luego vuelve a intentarlo."
+    "devHint": "Dev: debería iniciarse automáticamente con `npm run dev`, o ejecútalo tú mismo con `npm run server` y luego vuelve a intentarlo.",
+    "portTaken": "Otro programa está usando el puerto {port}. Ciérralo y luego presiona {retry}.",
+    "portOtherUser": "Otra persona que inició sesión en esta computadora tiene la aplicación abierta, en el puerto {port}. Solo se ejecuta una copia a la vez: esa persona puede cerrar la suya (desde su icono en la bandeja); luego presiona {retry}.",
+    "portReserved": "Windows reservó el puerto {port} para otro uso (Hyper-V, WSL o Docker), así que la aplicación no puede usarlo. Reiniciar la computadora suele liberarlo; la página Troubleshooting de la ayuda explica cómo mantenerlo libre.",
+    "serverError": "El servidor de la aplicación se detuvo al iniciarse: {error}"
   },
   "jobs": {
     "translating": "Traduciendo {lang}",
-    "translatingThen": "Traduciendo {lang} · luego {queue}"
+    "translatingThen": "Traduciendo {lang} · luego {queue}",
+    "confirming": "Confirmando {n} clave idéntica — aparecerá ya marcada cuando termine. | Confirmando {n} claves idénticas — aparecerán ya marcadas cuando termine.",
+    "confirmFailed": "Error en la pasada de confirmación",
+    "confirmFailedBody": "{message} — las traducciones de la ejecución están preparadas; lo único que no se hizo fue marcarlas de antemano."
   },
   "ai": {
     "eyebrow": "IA",
@@ -174,33 +181,7 @@
     "accentNote": "Predeterminado 277° = índigo.",
     "backupsHint": "La copia de seguridad cubre los datos de esta herramienta: conexiones, preajustes, configuración de modelos y el nombre del revisor. Tus archivos de idioma y las traducciones aceptadas se guardan en la carpeta de tu proyecto y se mueven con él (git los mantiene seguros).",
     "storage": {
-      "locationTitle": "Ubicación de datos",
-      "locationHint": "Una carpeta contiene todo lo que esta herramienta guarda: tus conexiones, preajustes, el motor de IA y los modelos, y los registros. Si eliminas la carpeta, lo eliminas todo.",
-      "folder": "Carpeta",
-      "headlessFolder": "sin interfaz — establecido por --data-dir / JUST_AI_I18N_DOCGEN_DATA_DIR",
-      "type": "Tipo",
-      "portable": "Portable — junto a la aplicación",
-      "userFolder": "Carpeta de usuario",
-      "moving": "Moviendo tus datos — la aplicación se reiniciará…",
-      "changeFolder": "Cambiar carpeta…",
-      "desktopOnly": "Cambiar la carpeta está disponible en la aplicación de escritorio.",
-      "chooseFolder": "Elige una carpeta de datos",
-      "moveTitle": "¿Mover todos los datos de la aplicación?",
-      "moveMessage": "Todo lo que esta herramienta guarda —conexiones, preajustes, el motor de IA y los modelos, y los registros— se mueve a {folder}. La aplicación se reiniciará cuando termine el traslado.",
-      "moveConfirm": "Mover y reiniciar",
-      "moveFailed": "Error al mover.",
-      "diskTitle": "Uso de disco",
-      "diskHint": "A dónde va el espacio de la carpeta de datos — y qué se puede recuperar.",
-      "modelsCache": "Caché de modelos",
-      "spawnLogs": "Registros de inicio del motor",
-      "engineBuilds": "Compilaciones del motor",
-      "database": "Base de datos",
-      "clearModelsTitle": "¿Borrar los modelos descargados?",
-      "clearModelsMessage": "Esto libera {size} de archivos de modelos descargados. Tus modelos permanecen en el catálogo y se vuelven a descargar según sea necesario.",
-      "clearModelsConfirm": "Borrar caché de modelos",
-      "unloadFirst": "Un modelo está cargado — quítalo de la memoria primero (página de IA → Quitar de la memoria), luego inténtalo de nuevo.",
-      "clearModelsFailed": "No se pudo borrar la caché de modelos.",
-      "clearLogsFailed": "No se pudieron borrar los registros del motor."
+      "saves": "tus conexiones, preajustes"
     },
     "server": {
       "headlessTitle": "Acceso sin interfaz",

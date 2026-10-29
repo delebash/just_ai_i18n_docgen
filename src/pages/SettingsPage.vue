@@ -1,8 +1,9 @@
 <script setup>
 // SPDX-License-Identifier: MIT
 // Settings — JW's section pattern (/settings/:section?). Every panel names its
-// donor (the 2026-08-03 rule): Storage = JW's Data location + Disk usage panels,
-// strings verbatim (app name swapped); Appearance = the kit AppearancePanel
+// donor (the 2026-08-03 rule): Storage = the kit's StoragePanel (this page's own panel, promoted
+// to the kit 2026-10-19 — the old copies a move leaves, removed from here), the shell's folder
+// calls; Appearance = the kit AppearancePanel
 // (JV's donor rows, ONE shared surface — the 2026-08-04 shared-panel ruling);
 // Server = JW's headless/auth section over this app's /v1/server-auth;
 // Logs = kit LogsPanel; Reviewer = this app's own (tool-level, moved from Setup).
@@ -10,14 +11,17 @@ import { computed, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import {
-  AppearancePanel, DataManagement, LanguagePicker, LogsPanel, PaneHeader, SettingsShell,
-  UiButton, UiInput, UiToggle, UpdatesPanel, confirmDialog, fmtBytes, get,
-  SETTINGS_SECTION_ORDER, openExternal, post, pushToast, put, refreshRunnerModels, renderHelpMarkdown,
+  AppearancePanel, DataManagement, LanguagePicker, LogsPanel, PaneHeader, SettingsShell, StoragePanel,
+  UiButton, UiInput, UiToggle, UpdatesPanel,
+  SETTINGS_SECTION_ORDER, openExternal, pushToast, put, renderHelpMarkdown,
   safeRequest, serverUrl,
 } from "@delebash/ui";
 import { LOCALE_CODES } from "../i18n/index.js";
 import { loadDoc } from "../services/helpDocs.js";
-import { desktopUpdater, pickDirectory, storageGetRoot, storageRelocate, setKeepRunning as nativeSetKeepRunning } from "../services/native.js";
+import {
+  desktopUpdater, pickDirectory, setKeepRunning as nativeSetKeepRunning, storageForgetOldCopy, storageGetRoot,
+  storageOldCopies, storageRelocate, storageRemoveOldCopy, storageUseDefault,
+} from "../services/native.js";
 import { SETTINGS_SECTION_IDS } from "../services/settingsSections.js";
 import { useProjectStore } from "../stores/project";
 import { useUiStore } from "../stores/ui";
@@ -61,88 +65,18 @@ function go(id) {
   router.replace(`/settings/${id}`);
 }
 
-// ── storage (JW's panels) ─────────────────────────────────────────────────
-const storageRoot = ref(null); // { root, default, portable } from the shell
-const isDesktop = ref(false);
-const relocating = ref(false);
-const storageErr = ref("");
-const diskUsage = ref(null);
-const diskBusy = ref("");
-const diskErr = ref("");
-
-async function loadStorageRoot() {
-  // services/native.js — the one place a command name is written.
-  storageRoot.value = await storageGetRoot();
-  isDesktop.value = !!storageRoot.value;
-}
-async function loadDiskUsage() {
-  diskUsage.value = await safeRequest("/v1/disk/usage", null);
-}
-// Loading state = an em-dash per row; a real 0 formats as "0 MB" (the kit's
-// fmtBytes returns "" for 0). fmtBytes stays the ONE source for the number.
-function diskSize(n) {
-  if (diskUsage.value == null) return "—";
-  return fmtBytes(n) || "0 MB";
-}
-async function changeFolder() {
-  storageErr.value = "";
-  const picked = await pickDirectory({
-    title: t("settings.storage.chooseFolder"), defaultPath: storageRoot.value?.root || "",
-  });
-  if (!picked) return;
-  const yes = await confirmDialog({
-    title: t("settings.storage.moveTitle"),
-    message: t("settings.storage.moveMessage", { folder: picked }),
-    confirmLabel: t("settings.storage.moveConfirm"),
-  });
-  if (!yes) return;
-  relocating.value = true;
-  try {
-    await storageRelocate(picked);
-    window.location.reload();
-  } catch (e) {
-    storageErr.value = String(e || t("settings.storage.moveFailed"));
-    relocating.value = false;
-  }
-}
-async function clearModelsCache() {
-  const size = fmtBytes(diskUsage.value?.modelsCache) || "0 MB";
-  const yes = await confirmDialog({
-    title: t("settings.storage.clearModelsTitle"),
-    message: t("settings.storage.clearModelsMessage", { size }),
-    confirmLabel: t("settings.storage.clearModelsConfirm"),
-  });
-  if (!yes) return;
-  diskBusy.value = "models";
-  diskErr.value = "";
-  try {
-    const res = await post("/v1/llm-runner/models-cache/clear");
-    if (res?.ok === false) {
-      diskErr.value = res.detail === "unload models first"
-        ? t("settings.storage.unloadFirst")
-        : res.detail || t("settings.storage.clearModelsFailed");
-    }
-  } catch {
-    diskErr.value = t("settings.storage.clearModelsFailed");
-  } finally {
-    diskBusy.value = "";
-    await loadDiskUsage();
-    // Re-stat the shared catalog so cleared models flip to "Download" (JW's rule).
-    refreshRunnerModels();
-  }
-}
-async function clearSpawnLogs() {
-  diskBusy.value = "spawn";
-  diskErr.value = "";
-  try {
-    await post("/v1/llm-runner/spawn-logs/clear");
-  } catch {
-    diskErr.value = t("settings.storage.clearLogsFailed");
-  } finally {
-    diskBusy.value = "";
-    await loadDiskUsage();
-  }
-}
+// ── storage: the kit's StoragePanel over the shell's folder calls (each answers null outside the
+// desktop app), as the template wires it; the data folder from the server (GET /v1/health) ──────
+const health = ref(null);
+const storageShell = {
+  getRoot: storageGetRoot,
+  pickDirectory,
+  relocate: storageRelocate,
+  oldCopies: storageOldCopies,
+  removeOldCopy: storageRemoveOldCopy,
+  forgetOldCopy: storageForgetOldCopy,
+  useDefault: storageUseDefault,
+};
 
 // ── reviewer: saved on blur/Enter, never per keystroke (audit 2026-08-05) ──
 const reviewerDraft = ref("");
@@ -195,7 +129,8 @@ async function setKeepRunning(v) {
 }
 
 onMounted(async () => {
-  await Promise.all([project.refresh(), loadStorageRoot(), loadDiskUsage(), loadAuth()]);
+  const [h] = await Promise.all([safeRequest("/v1/health", null), project.refresh(), loadAuth()]);
+  health.value = h;
 });
 </script>
 
@@ -237,58 +172,9 @@ onMounted(async () => {
         </section>
       </template>
 
-      <!-- Storage — JW's Data location + Disk usage, strings verbatim -->
-      <template v-else-if="active === 'storage'">
-        <section class="card">
-          <h2>{{ t("settings.storage.locationTitle") }}</h2>
-          <p class="hint">{{ t("settings.storage.locationHint") }}</p>
-          <table class="ui-formgrid">
-            <tbody>
-              <tr>
-                <th>{{ t("settings.storage.folder") }}</th>
-                <td class="mono">{{ isDesktop ? (storageRoot?.root || "—") : t("settings.storage.headlessFolder") }}</td>
-              </tr>
-              <tr v-if="isDesktop">
-                <th>{{ t("settings.storage.type") }}</th>
-                <td>{{ storageRoot?.portable ? t("settings.storage.portable") : t("settings.storage.userFolder") }}</td>
-              </tr>
-            </tbody>
-          </table>
-          <div class="row" style="margin-top: 12px" v-if="isDesktop">
-            <UiButton
-              intent="secondary" :label="relocating ? t('settings.storage.moving') : t('settings.storage.changeFolder')"
-              :disabled="relocating" @click="changeFolder"
-            />
-          </div>
-          <p v-else class="hint" style="margin: 8px 0 0">{{ t("settings.storage.desktopOnly") }}</p>
-          <p v-if="storageErr" class="mono setup__error">{{ storageErr }}</p>
-        </section>
-
-        <section class="card">
-          <h2>{{ t("settings.storage.diskTitle") }}</h2>
-          <p class="hint">{{ t("settings.storage.diskHint") }}</p>
-          <div class="diskgrid">
-            <span class="muted">{{ t("settings.storage.modelsCache") }}</span>
-            <div class="row">
-              <span>{{ diskSize(diskUsage?.modelsCache) }}</span>
-              <UiButton intent="secondary" size="small" :disabled="!!diskBusy"
-                        :label="diskBusy === 'models' ? t('common.clearing') : t('kit.storage.clearShort')" @click="clearModelsCache" />
-            </div>
-            <span class="muted">{{ t("settings.storage.spawnLogs") }}</span>
-            <div class="row">
-              <span>{{ diskSize(diskUsage?.spawnLogs) }}</span>
-              <UiButton intent="secondary" size="small" :disabled="!!diskBusy"
-                        :label="diskBusy === 'spawn' ? t('common.clearing') : t('kit.storage.clearShort')" @click="clearSpawnLogs" />
-            </div>
-            <span class="muted">{{ t("settings.storage.engineBuilds") }}</span><span>{{ diskSize(diskUsage?.engineBuilds) }}</span>
-            <span class="muted">{{ t("settings.storage.database") }}</span><span>{{ diskSize(diskUsage?.database) }}</span>
-            <span class="muted">{{ t("kit.storage.serverLogs") }}</span><span>{{ diskSize(diskUsage?.appLogs) }}</span>
-            <span class="muted"><b>{{ t("kit.storage.total") }}</b></span><span><b>{{ diskSize(diskUsage?.total) }}</b></span>
-            <span class="muted">{{ t("kit.storage.freeSpace") }}</span><span>{{ diskSize(diskUsage?.diskFree) }}</span>
-          </div>
-          <p v-if="diskErr" class="mono setup__error">{{ diskErr }}</p>
-        </section>
-      </template>
+      <!-- Storage — the kit's StoragePanel: the data folder, Change folder…, the old copies a move
+           leaves (Remove the old copy), the disk usage and what can be cleared -->
+      <StoragePanel v-else-if="active === 'storage'" :data-dir="health?.dataDir || ''" :shell="storageShell" :saves="t('settings.storage.saves')" />
 
       <!-- Server — headless access + bearer tokens (JW's section) -->
       <template v-else-if="active === 'server'">

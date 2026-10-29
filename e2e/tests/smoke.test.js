@@ -406,11 +406,13 @@ test("settings renders its sections and the logs panel", async () => {
     "appearance persists on the server as the {appearance:{...}} wrapper the migrator reads");
   await d.navigate("#/settings/logs");
   await d.waitUntil(`return /server logs/i.test(document.body.textContent)`);
-  // The storage panel is JW's, strings verbatim — assert the donor's wording so a
-  // hand-rolled lookalike can never silently return (2026-08-03).
+  // The storage panel is the kit's StoragePanel (JW's donor words) — assert its wording so a
+  // hand-rolled lookalike can never silently return (2026-08-03). Under this suite the data
+  // folder is set by JUST_AI_I18N_DOCGEN_DATA_DIR (the driver's), so the panel says so instead of
+  // offering Change folder (its `setBy`).
   await d.navigate("#/settings/storage");
   await d.waitUntil(`return /Data location/.test(document.body.textContent)
-                        && /Change folder|desktop app/.test(document.body.textContent)
+                        && /Change folder|desktop app|set by JUST_AI_I18N_DOCGEN_DATA_DIR/.test(document.body.textContent)
                         && /Disk usage/.test(document.body.textContent)`);
 });
 

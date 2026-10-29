@@ -2,6 +2,9 @@
 
 ## v0.1.0
 
+- **Change folder keeps the old copy until you remove it.** Settings → Storage shows the copy a
+  move left behind, with its size and **Remove the old copy**, and a **Move back to the default
+  folder** while the data is elsewhere ([App Settings](settings.md))
 - **A run's card survives a reload.** The Runs page shows the last run after a reload or
   a restart — how it ended, why it failed, and the keys it couldn't deliver — and a window
   opened mid-run picks the run up with its progress and Cancel ([Running a translation](translate.md))

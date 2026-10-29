@@ -70,10 +70,9 @@ CHECKED: 2026-10-24 — lint (98 files), test:server 171/171 (165 before), test:
 OPEN:   questions for the user — (1) the Runs page starts translations too and keeps its own run
         card (progress, requests, exhausted keys); the kit's strip is only on Home: add it on Runs
         too? (2) the CLI's .cmd launcher doesn't set NODE_USE_SYSTEM_CA, and macOS/Linux have no CLI
-        launcher — the template has no CLI to follow. (3) the .deb: back when you name a maintainer
-        and a homepage. (4) es.json lacks the four new connectionError strings and round D2's three
-        confirmation-toast words (`jobs.confirming`, `jobs.confirmFailed`, `jobs.confirmFailedBody`,
-        2026-10-28) — Spanish shows English there until docgen's own catalog run translates them.
+        launcher — the template has no CLI to follow. (3) and (4) closed 2026-10-28 (the user: "your rec on
+        the rest go"): Linux stays AppImage-only, as the template (a .deb needs a maintainer, still unnamed);
+        es.json has the eight strings it lacked, by the agentic review's --new run (RESEARCH).
 GO:     the user, 2026-10-24 (above).
 
 ## Every app and the kit on vue-i18n [2026-10-12]

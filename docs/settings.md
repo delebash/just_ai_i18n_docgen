@@ -18,10 +18,13 @@
   so; make it again once the app shows the restored data. A translation that is
   running is cancelled first (what it staged stays staged): the restore replaces
   the AI settings it runs on, and a reset deletes them.
-- **Storage** — where app data lives (the AI engine, downloaded models, logs) and
-  a **Relocate** that moves it and restarts the app. Disk usage per category with
-  **Clear models cache** (the model must be unloaded first) and **Clear engine
-  spawn logs**. Your PROJECT files are not here — they live in your app's repo
+- **Storage** — where app data lives (your connections, presets, the AI engine,
+  downloaded models, logs) and **Change folder…**, which copies it all to the new
+  folder and restarts the app. The old folder keeps its copy until you press
+  **Remove the old copy** here (only what the move copied goes); **Move back to the
+  default folder** while the data is elsewhere. Disk usage per category, with
+  **Clear…** for the downloaded models (the model must be unloaded first) and for
+  the engine's logs. Your PROJECT files are not here — they live in your app's repo
   (see [Your files](files-and-git.md)).
 - **Server** — for headless use: the URL to open in a browser, bearer tokens
   (auth is off while the token list is empty), and "require for loopback" if

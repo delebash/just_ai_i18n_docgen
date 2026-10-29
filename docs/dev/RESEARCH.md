@@ -173,6 +173,20 @@ kit's plan `docs/plans/2026-10-24-engines-the-llama-way.md`, round D2; TASKS).
   with no red badge, Home counting "7 staged", the record `state: done`, `total: 7`, no
   `failedKeys`. The 7 proposals were discarded after (the approved check), es.json untouched. —
   *measured 2026-10-28, the unpacked build, kit 0384b39.*
+- **docgen lacked three of the kit's UI peers** — `@internationalized/number`, `dom-accessibility-api`
+  and `qrcode` (the kit ui package's `peerDependencies`); builds resolved them from the kit's own
+  `node_modules` beside it. Installed at the template's ranges, in devDependencies with the
+  renderer's other bundled libraries (Quasar alone sits in dependencies). — *code: ui
+  `package.json`, 2026-10-28.*
+- **The kit's StoragePanel offers no move while the data-dir variable names the folder** (`setBy`):
+  under the e2e driver (which sets `JUST_AI_I18N_DOCGEN_DATA_DIR`) it says "This data folder is set
+  by JUST_AI_I18N_DOCGEN_DATA_DIR — change it there" in place of Change folder… — docgen's own panel
+  offered the move anyway. — *measured 2026-10-28, the unpacked build.*
+- **docgen's eight new Spanish strings by the agentic review's `--new` run** — export 8 (all
+  NO CANDIDATE), the translator's entries clean but one spelling hint (`preajustes`, the term
+  sheet's word), one refuting verifier overturned 0 of 8, apply 8 saves, docgen's check 266/266.
+  The Workflow steps were done as a translator (this session) and one independent verifier agent,
+  the workflows not being opted into. — *2026-10-28.*
 - **A capture while the app loads its model shows the start-up load over every page** — the
   window's boot warm-loads the routed model (BootModelLoad, "Loading it into your graphics card"),
   and `npm run screenshots` saved that screen as home, setup, review and runs (~1.57 MB each).
