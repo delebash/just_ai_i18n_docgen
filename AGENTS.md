@@ -44,7 +44,8 @@ this app's settings. The installer ships `just-ai-i18n-docgen-server` and `just-
 
 **Must pass before a commit:** `npm run lint && npm run test:server && npm run test:unit` and the
 family guard, `node ../just-core/scripts/check-family.js`. A change a user can see also passes
-`npm run i18n:lint`, updates `docs/*.md`, and `npm run build:unpacked && npm test`.
+`npm run i18n:lint`, updates `docs/*.md`, and `npm run build:unpacked && npm test` (hermetic) — and the
+acceptance start on your real data, `npm run build && node scripts/start-packaged.js --data-dir data` (`e2e/README.md`).
 
 ## What bites
 

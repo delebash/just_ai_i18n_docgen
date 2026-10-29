@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 // The e2e driver: the REAL desktop app (Electron) launched and driven through Playwright's Electron
 // driver (`playwright-core`'s `_electron` — no browser download, no driver binary; app-structure
-// §10). The template's e2e/lib/driver.js (docgen's own was its donor; docgen took it back, hermetic, 2026-10-29) —
-// only this app's constants differ. It is hermetic (§18):
+// §10). docgen's e2e/lib/driver.js is the donor; this one is hermetic (§18):
 //
 //   - a temp folder per run holds the data folder, and JUST_AI_HOME points there, so nothing reads
 //     or writes your real data or the family's cache registry;
@@ -34,9 +33,9 @@ const APP_ROOT = path.join(REPO_ROOT, "dist", "electron", "UnPackaged");
 // Its package's main export is the binary's path — an ES import by file URL (no require).
 const { default: ELECTRON } = await import(pathToFileURL(path.join(REPO_ROOT, "src-electron", "node_modules", "electron", "index.js")).href);
 
-/** The shell's id (src-electron/electron-main.js) — its switch is <ID>_DEV_NO_SERVER, the id's dashes as
- *  underscores (the kit's shell/main.js reads it so). */
+/** The shell's id (src-electron/electron-main.js) — its switch is <ID>_DEV_NO_SERVER. */
 const ID = "just-ai-i18n-docgen";
+// the shell reads `<ID>_DEV_NO_SERVER` with a dash as "_" (shell/main.js) — docgen's id has dashes
 const NO_SERVER = `${ID.toUpperCase().replace(/-/g, "_")}_DEV_NO_SERVER`;
 
 /** The registered server port (app-structure §1) — where the window looks for its server. */

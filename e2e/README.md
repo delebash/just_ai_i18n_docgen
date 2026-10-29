@@ -40,10 +40,19 @@ fuses forbid this driver (`enableNodeCliInspectArguments: false`) — the same i
 
 **Cadence** (user ruling 2026-10-28): the change's own test while building; this suite once, when the work is done.
 
-## Your real project — the acceptance walk
+## Your real data — the acceptance start, and the walk
 
-The suite never touches your real project. Before a change ships, the real app is walked on your real data and
-**THE real project, JustWrite** (source `justwrite-app/src/i18n/locales/en.json`, config
+The suite never touches your real data or your real project. Before a commit, the packaged app starts on your real
+data folder — the template's `scripts/start-packaged.js --data-dir` (app-structure §19): its window must load and its
+server answer with its version; it writes no test data and never removes the folder. Stop your own copy of the app
+first (one server per data folder):
+
+```bash
+npm run build
+node scripts/start-packaged.js --data-dir data
+```
+
+A change you can see is also walked in the real window on **THE real project, JustWrite** (source `justwrite-app/src/i18n/locales/en.json`, config
 `justwrite-app/just-ai-i18n-docgen/config.json`): `npm run dev`, or the server alone with the project loaded —
 
 ```bash

@@ -409,6 +409,12 @@ confirm / review moving onto the kit's prompt rows.
 - **A git hook is persistence to Claude Code's permission check**: installing Husky's pre-commit hook (`prepare: husky`,
   which sets `core.hooksPath`) was refused. The family has no commit hooks: the user dropped them ("remove hook",
   JustWrite's session, 2026-10-29) and the template's went (just-core 5ff893d); the guard never requires one. — *2026-10-29.*
+- **The acceptance start on real data, its first run on a build:**
+  `npm run build && node scripts/start-packaged.js --data-dir data` (the template's, just-core ab484f0) started the
+  packaged app from its temp copy on the checkout's `data/`: the server listening, the window loaded, "it answered in
+  2.9 s: Just AI i18n & DocGen 0.1.0". The database before and after the same (`user_version` 1, the same app_settings
+  keys, no broken link) and the port free after. The forced stop leaves `data/server.lock` (a folder — proper-lockfile's);
+  it goes stale in 10 s and the next server takes it over (`platform/data_lock.js`). — *measured 2026-10-29.*
 
 ---
 
