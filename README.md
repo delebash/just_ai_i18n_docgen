@@ -4,7 +4,7 @@ A desktop app that translates your app's standard i18n JSON locale files with an
 
 Built with **Quasar (Vue 3) in Electron mode**, over a local **Node (Hono) server** on port 8742 that owns all the data, with the family's shared kit (`../just-core`) for everything engine-shaped — plain JavaScript end to end (since 2026-10-08; it was Tauri + Python before).
 
-User docs live in `docs/` (the in-app Help). The website at <https://delebash.github.io/just-ai-i18n-docgen-website/> mirrors them for each release.
+User docs live in `docs/` (the in-app Help). The website at <https://delebash.github.io/just-ai-i18n-docgen-website/> shows them; it is published from its own repo with `npm run deploy` there.
 
 ---
 
@@ -177,12 +177,11 @@ npm run release -- --platform windows
 1. Builds the Windows installer (NSIS), the macOS .dmg and .zip, and the Linux AppImage on per-platform runners, each with the kit checked out beside the app at that commit.
 2. Starts each packaged app as a user would, its server on its own through the launcher, and checks both use one data folder; opens the AppImage on Ubuntu 24.04.
 3. Only when every check passed: creates the GitHub release `v<version>` (a draft until every file is attached) with the installers and electron-updater's feed (`latest*.yml`, the `.blockmap`s).
-4. Packs the user docs (`docs/*.md`, `docs/toc.json`) into `docs.tar.gz` and attaches it while the release is still a draft.
-5. Dispatches `docs-updated` to the website repo (`WEBSITE_REPO` at the top of the workflow: `delebash/just-ai-i18n-docgen-website`), which rebuilds from those docs.
+4. Packs the user docs (`docs/*.md`, `docs/toc.json`) into `docs.tar.gz` and attaches it while the release is still a draft — what the website takes when it next builds.
 
 `gh workflow run release.yml -f tag=main -f publish=false` is a dry run: the same builds, kept on the run instead of released.
 
-> The **`WEBSITE_DISPATCH_TOKEN`** secret (a fine-grained token on the website repo with Contents read and write) drives step 5. Without it the step logs a skip, and the site picks the docs up on its next build. The workflow is the kit template's, as it is (`../just-core/template/.github/workflows/release.yml`) — only `WEBSITE_REPO` is docgen's.
+> The workflow is the kit template's, as it is (`../just-core/template/.github/workflows/release.yml`), with `WEBSITE_REPO` empty: a release never starts the website's workflow — nothing builds unless you start it (the user, 2026-10-28). After a release, publish the site from its repo: `cd ../just-ai-i18n-docgen-website && npm run deploy`.
 
 ---
 
@@ -253,7 +252,7 @@ This repo is developed with [Claude Code](https://claude.com/claude-code), Anthr
 
 - **`AGENTS.md`** (which `CLAUDE.md` imports) is the brief: the commands and gates, the "what bites" list — a job writes only proposals, the engine never signs off, shielding is a substitution, one resolver, every path anchored to the config file — the layout, and the family rules.
 - **`docs/dev/`** — `README.md` (the reading order), `TASKS.md` (the live tracker), `IDEAS.md` (the backlog), `RESEARCH.md` (what is already known, with the proof — read its section before researching).
-- **`docs/`** is the user-facing reference, mirrored to the website. A change a user can see updates it in the same commit.
+- **`docs/`** is the user-facing reference, also shown on the website (published by hand from its repo, `npm run deploy`). A change a user can see updates it in the same commit.
 - **The real project** this tool translates is JustWrite's catalog (`justwrite-app/src/i18n/locales/en.json`, config `justwrite-app/just-ai-i18n-docgen/config.json`) — test against it, not a sandbox.
 
 ### The agentic translation review

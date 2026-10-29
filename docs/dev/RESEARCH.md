@@ -141,8 +141,11 @@ standard").
   every non-.cmd launcher on both. macOS's branch unrun (no runner here). — *measured 2026-10-28.*
 - **JustWrite's website rebuilds on a release through a secret** — its repo holds
   `WEBSITE_DISPATCH_TOKEN` (set 2026-06-04), and its v2.0.0 release run (01:20 UTC 2026-10-29) was
-  followed by justwrite-website's `repository_dispatch` deploy at 01:28. docgen's repo has none:
-  its release's notify-website says so and passes. — *`gh secret list`, `gh run list`, 2026-10-28.*
+  followed by justwrite-website's `repository_dispatch` deploy at 01:28. Not the way: the user,
+  2026-10-28 — "each app website should run its own via something like npm run deploy other github
+  workflows shouldnt be running other workflows jw is wrong". docgen's release leaves `WEBSITE_REPO`
+  empty and its site's deploy.yml runs only by hand (`npm run deploy` in the site's repo). —
+  *`gh secret list`, `gh run list`, 2026-10-28.*
 - **npm audit, 2026-10-28** — docgen's root lock: jsdom's `undici` 8.11.2 → 8.12.3 and Quasar's
   `serialize-javascript` 7.1.2 → 7.1.4 (`npm audit fix`, no --force); `src-electron/`'s lock:
   `fast-uri` and `@electron/get`'s `undici`. Left, the kit's to move: the kit core's own `undici`
