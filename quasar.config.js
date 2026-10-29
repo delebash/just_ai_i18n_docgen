@@ -168,6 +168,10 @@ export default defineConfig(() => {
         linux: {
           target: [ 'AppImage' ],
           category: 'Development',
+          // the Windows exe's name, and the launchers' `$here/just_ai_i18n_docgen`: without it the AppImage's file name
+          // is the product name, and electron-builder refuses its "&" ("productFilename contains characters that cannot
+          // be safely used in file paths" — the release's dry run 40826540251, 2026-10-29); the menu still shows the name
+          executableName: 'just_ai_i18n_docgen',
           extraResources: [ { from: path.join(root, 'build', 'launcher'), to: '..', filter: [ '!*.cmd' ] } ]
         },
         // the AppImage on the AppImage project's static runtime (type2-runtime 20251108): it needs no FUSE 2
