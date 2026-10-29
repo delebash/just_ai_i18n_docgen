@@ -17,8 +17,9 @@ fix it here — a wrong placeholder inference would flag every translated string
 
 - **Target languages** — pick from the list; each becomes a row on Home.
 - **Context** — ONE sentence about your app ("A desktop writing app for
-  novelists."). It rides every translation prompt. Changing it later re-translates
-  from scratch — the translation cache is keyed on it.
+  novelists."). It rides every translation prompt. Changing it later changes the
+  strings translated from then on; what's already translated stays as you reviewed it
+  (run a language with scope **all** to translate everything again with the new one).
 - **Glossary — handle with care.** A glossary term is a *blanket rule*: "never
   translate this word, anywhere." That's exactly right for brand names and exactly
   wrong for common words — one wrong term once turned 48 correct translations into
