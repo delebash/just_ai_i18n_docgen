@@ -12,9 +12,10 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import {
-  EmptyState, PaneHeader, UiButton, UiCheckbox, UiInput, UiSelect, UiTag,
-  UiTextarea, confirmDialog, otherWindows, pushToast, serverUrl,
+  EmptyState, PaneHeader, UiBanner, UiButton, UiCheckbox, UiInput, UiSelect, UiTag,
+  UiTextarea, confirmDialog, errorMessage, fieldErrors, otherWindows, pushToast, reportError, schemaRules, serverUrl,
 } from "@delebash/ui";
+import { NoteIn, Text } from "just-ai-i18n-docgen-server/schemas/workspace.js";
 import { useRoute } from "vue-router";
 import { langName, langOptions } from "../services/langs";
 import { useProjectStore } from "../stores/project";
@@ -27,6 +28,19 @@ const route = useRoute();
 const { t } = useI18n();
 const draft = ref("");
 const noteDraft = ref("");
+// the §15 boxes: their rules are the routes' own schemas; a refusal lands under its box, anything else is the kit's toast
+// (the translation box: its field's own schema, never "required" — an empty box saves a blank translation, as the
+// server takes it and the checks then flag it; POST /v1/save's SaveIn)
+const draftRules = schemaRules({ properties: { value: Text } }).value;
+const noteRules = schemaRules(NoteIn).note;
+const draftError = ref("");
+const noteError = ref("");
+// the queue's failed load, in words (app-structure §17)
+const failedReason = computed(() => {
+  if (!review.loadFailed) return "";
+  const { title, detail } = errorMessage(review.loadFailed);
+  return [title, detail].filter(Boolean).join(" — ");
+});
 const busy = ref(false);
 const showGoogle = ref(false);
 const backBusy = ref(false);
@@ -185,19 +199,22 @@ const queueEmptyMessage = computed(() => {
   return t("review.emptyGreen", { lang: langName(review.lang) });
 });
 
-// Every mutation says when it FAILED — a server error must never read as a no-op.
-function toastFail(title) {
-  return (e) => pushToast({ kind: "error", title, description: String(e?.message || e) });
-}
+// Every mutation says when it FAILED — a server error must never read as a no-op (the kit's reportError: the
+// server's own words, and a reference for a fault).
 async function saveDraft() {
   const row = review.activeRow;
   if (!row || draft.value === row.target) return;
+  draftError.value = "";
   try {
     const out = await review.save(row, draft.value);
     pushToast(out.flags.length
       ? { kind: "info", title: t("review.savedFlagged"), description: out.flags.map((f) => f.code).join(", ") }
       : { kind: "success", title: t("review.savedClean") });
-  } catch (e) { toastFail(t("review.saveFailed"))(e); }
+  } catch (e) {
+    const fields = fieldErrors(e);
+    if (fields.value) draftError.value = fields.value;
+    else reportError(e);
+  }
 }
 async function acceptActive() {
   const row = review.activeRow;
@@ -205,30 +222,31 @@ async function acceptActive() {
   try {
     await review.accept(row);
     pushToast({ kind: "success", title: t("review.accepted"), description: row.key });
-  } catch (e) { toastFail(t("review.acceptFailed"))(e); }
+  } catch (e) { reportError(e); }
 }
 async function acceptPicked() {
   try {
     const out = await review.acceptPicked();
     pushToast({ kind: "success", title: t("review.acceptedN", { n: out.recorded }, out.recorded),
                 description: t("review.oneUndo") });
-  } catch (e) { toastFail(t("review.acceptFailed"))(e); }
+  } catch (e) { reportError(e); }
 }
-const unacceptActive = () =>
-  review.unaccept(review.activeRow.lang, review.activeRow.key).catch(toastFail(t("review.unacceptFailed")));
-const unacceptEntry = (entry) =>
-  review.unaccept(review.lang, entry.key).catch(toastFail(t("review.unacceptFailed")));
-const applyProposalActive = () =>
-  review.applyProposal(review.activeRow).catch(toastFail(t("review.applyFailed")));
-const discardProposalActive = () =>
-  review.discardProposal(review.activeRow).catch(toastFail(t("review.discardFailed")));
-const undoLast = () => review.undo().catch(toastFail(t("review.nothingUndone")));
+const unacceptActive = () => review.unaccept(review.activeRow.lang, review.activeRow.key).catch(reportError);
+const unacceptEntry = (entry) => review.unaccept(review.lang, entry.key).catch(reportError);
+const applyProposalActive = () => review.applyProposal(review.activeRow).catch(reportError);
+const discardProposalActive = () => review.discardProposal(review.activeRow).catch(reportError);
+const undoLast = () => review.undo().catch(reportError);
 async function saveNote() {
+  noteError.value = "";
   try {
     await review.setNote(review.activeRow, noteDraft.value);
     pushToast({ kind: "success", title: t("review.noteSaved"),
                 description: t("review.noteSavedBody") });
-  } catch (e) { toastFail(t("review.noteFailed"))(e); }
+  } catch (e) {
+    const fields = fieldErrors(e);
+    if (fields.note) noteError.value = fields.note;
+    else reportError(e);
+  }
 }
 async function backtranslate() {
   if (!review.activeRow || backBusy.value) return;
@@ -236,7 +254,7 @@ async function backtranslate() {
   try {
     await review.backtranslate(review.activeRow);
   } catch (e) {
-    toastFail(t("review.backFailed"))(e);
+    reportError(e);
   } finally {
     backBusy.value = false;
   }
@@ -261,7 +279,7 @@ async function applyAll() {
     const out = await review.applyAllStaged();
     pushToast({ kind: "success", title: t("review.appliedTo", { n: out.applied.length, file: `${review.lang}.json` }),
                 description: t("review.appliedBody") });
-  } catch (e) { toastFail(t("review.applyFailed"))(e); } finally { busy.value = false; }
+  } catch (e) { reportError(e); } finally { busy.value = false; }
 }
 async function discardAll() {
   const n = review.staged.length;
@@ -276,7 +294,7 @@ async function discardAll() {
   try {
     await review.discardAllStaged();
     pushToast({ kind: "info", title: t("review.discarded", { n }, n) });
-  } catch (e) { toastFail(t("review.discardFailed"))(e); } finally { busy.value = false; }
+  } catch (e) { reportError(e); } finally { busy.value = false; }
 }
 </script>
 
@@ -379,7 +397,15 @@ async function discardAll() {
       </div>
 
       <div v-else ref="scroller" class="review-rows" @scroll="onScroll">
-        <EmptyState v-if="!review.visible.length" compact icon="CheckSquare" :message="queueEmptyMessage" />
+        <!-- failed: the reason and Retry; empty only once the rows came; loading the first time -->
+        <UiBanner v-if="review.loadFailed">
+          {{ t("kit.common.loadFailed", { error: failedReason }) }}
+          <template #action>
+            <UiButton intent="secondary" size="small" :label="t('kit.common.retry')" @click="review.refresh()" />
+          </template>
+        </UiBanner>
+        <EmptyState v-else-if="review.loaded && !review.visible.length" compact icon="CheckSquare" :message="queueEmptyMessage" />
+        <q-inner-loading v-else-if="!review.loaded" showing :label="t('kit.common.loading')" />
         <div v-else :style="{ height: `${review.visible.length * ROW}px`, position: 'relative' }">
           <div :style="{ transform: `translateY(${windowed.from * ROW}px)` }">
             <div
@@ -437,13 +463,18 @@ async function discardAll() {
             <mark v-if="m.ph">{{ m.part }}</mark><template v-else>{{ m.part }}</template>
           </template>
         </div>
-        <UiTextarea v-model="draft" class="detail-text" />
-        <div class="row" style="margin-top: 8px">
-          <UiButton intent="primary" :label="t('review.save')" @click="saveDraft" />
-          <UiButton intent="secondary" :label="t('review.acceptAsCorrect')" :title="t('review.shortcut', { key: 'a' })" @click="acceptActive" />
-          <UiButton intent="ghost" :label="t('review.unacceptButton')" @click="unacceptActive" />
-          <UiButton intent="ghost" :label="t('review.skip')" :title="t('review.shortcut', { key: 'j' })" @click="review.move(1)" />
-        </div>
+        <q-form greedy @submit="saveDraft">
+          <UiTextarea
+            v-model="draft" class="detail-text" lazy-rules :rules="draftRules"
+            :error="!!draftError" :error-message="draftError" @update:model-value="draftError = ''"
+          />
+          <div class="row" style="margin-top: 8px">
+            <UiButton type="submit" intent="primary" :label="t('review.save')" />
+            <UiButton intent="secondary" :label="t('review.acceptAsCorrect')" :title="t('review.shortcut', { key: 'a' })" @click="acceptActive" />
+            <UiButton intent="ghost" :label="t('review.unacceptButton')" @click="unacceptActive" />
+            <UiButton intent="ghost" :label="t('review.skip')" :title="t('review.shortcut', { key: 'j' })" @click="review.move(1)" />
+          </div>
+        </q-form>
       </div>
 
       <!-- what a run proposed — never applied by anyone but you -->
@@ -495,13 +526,18 @@ async function discardAll() {
       <div class="card">
         <h2>{{ t("review.noteTitle") }}</h2>
         <p class="hint">{{ t("review.noteHint") }}</p>
-        <div class="row">
-          <UiTextarea v-model="noteDraft" class="detail-text" style="min-height: 40px"
-                      :placeholder="t('review.notePlaceholder')" />
-        </div>
-        <div class="row" style="margin-top: 8px">
-          <UiButton intent="secondary" :label="t('review.saveNote')" @click="saveNote" />
-        </div>
+        <q-form greedy @submit="saveNote">
+          <div class="row">
+            <UiTextarea
+              v-model="noteDraft" class="detail-text" style="min-height: 40px" lazy-rules :rules="noteRules"
+              :placeholder="t('review.notePlaceholder')" :error="!!noteError" :error-message="noteError"
+              @update:model-value="noteError = ''"
+            />
+          </div>
+          <div class="row" style="margin-top: 8px">
+            <UiButton type="submit" intent="secondary" :label="t('review.saveNote')" />
+          </div>
+        </q-form>
       </div>
     </div>
     <div class="review-detail" v-else-if="review.bucket !== 'accepted'">

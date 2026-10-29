@@ -80,7 +80,9 @@ export async function resetWorkspace() {
   const auth = appmeta.getSetting("auth");
   dropTables(h, APP_TABLES);
   dropTables(h, LLM_TABLES);
-  h.createTables(APP_TABLES);
+  // the app's tables from their migrations again (the template's recreateAppTables), the stack's from its DDL
+  h.raw.pragma("user_version = 0");
+  appmeta.migrateAppTables(h);
   h.createTables(LLM_TABLES);
   if (auth !== null) appmeta.setSetting("auth", auth);
   seedLlm();

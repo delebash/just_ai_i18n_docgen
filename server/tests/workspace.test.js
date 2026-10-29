@@ -251,9 +251,11 @@ test("a_run_with_no_usable_engine_is_refused_before_it_starts", async () => {
 });
 
 test("an_unknown_scope_must_not_start_a_job", async () => {
+  // the schema's 422, under the field — a typo never reaches the scope branches
   const r = await client.post("/v1/jobs", { json: { lang: "es", scope: "everythingish" } });
-  expect(r.statusCode).toBe(400);
-  expect(r.json().detail).toContain("unknown scope");
+  expect(r.statusCode).toBe(422);
+  expect(r.json().errors[0].loc).toEqual(["body", "scope"]);
+  expect((await client.get("/v1/jobs", { params: { kind: "translate" } })).json().jobs).toEqual([]);
 });
 
 test("summary_reports_per_language_counts", async () => {
@@ -444,7 +446,9 @@ test("setup_flow_no_project_then_inspect_then_save_goes_live", async () => {
   // Project routes refuse with needsSetup; setup routes work.
   const r = await c.get("/v1/state");
   expect(r.statusCode).toBe(409);
-  expect(r.json().detail.needsSetup).toBe(true);
+  // the kit's problem+json, its needsSetup member what the welcome screen reads (stores/project.js)
+  expect(r.json()).toMatchObject({ status: 409, title: "No project loaded", needsSetup: true });
+  expect(r.json().type).toMatch(/needs-setup$/);
   expect((await c.get("/v1/setup/state")).json().loaded).toBe(false);
 
   // Inspect reports what it found and writes NOTHING.

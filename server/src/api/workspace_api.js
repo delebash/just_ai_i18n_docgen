@@ -16,9 +16,9 @@
 // Python's tests patch `workspace_api.make_send`: it is this module's own export, called as
 // `self.makeSend` (build sheet rule 18).
 
+import { aiRunHttpError } from "@delebash/core/llm";
 import { Hono, input } from "@delebash/core/platform";
-import { HttpError } from "@delebash/core/platform/errors";
-import { T } from "@delebash/core/platform/models";
+import { ApiError, conflict, notFound, RequestValidationError } from "@delebash/core/platform/errors";
 import { errText, pyGet, pyIter, pySorted, RuntimeError, truthy, ValueError } from "@delebash/core/platform/py";
 import { pyJson } from "@delebash/core/platform/pyjson";
 import * as appmeta from "../appmeta.js";
@@ -29,6 +29,24 @@ import { CONFIRM_CODE, confirmIdentical, makeAsk } from "../confirm.js";
 import * as engine from "../engine.js";
 import { JobBusyError, startTranslateRun, TRANSLATE } from "../jobs.js";
 import { firstOf, flatten, pyStr } from "../jsonio.js";
+import {
+  AcceptIn,
+  ApplyIn,
+  BacktranslateIn,
+  DiscardIn,
+  GtFrameQuery,
+  LangQuery,
+  NoteIn,
+  ProposalsQuery,
+  ReferenceQuery,
+  RunIn,
+  SaveIn,
+  SiblingsQuery,
+  TermsQuery,
+  TestVariablesQuery,
+  UnacceptIn,
+  UndoIn,
+} from "../schemas/workspace.js";
 import { backtranslateVariables, parseItems } from "../shieldlib.js";
 import { runCfg, unfilteredFindings } from "../service.js";
 import { recordSources } from "../sources.js";
@@ -53,25 +71,36 @@ import {
 import { checkKeyTerms, checkTerms, termUsage } from "../terms.js";
 import { _glossaryList, _UNLIMITED, labVariables } from "../workspace.js";
 import * as self from "./workspace_api.js";
-import { BODY } from "./server_auth_api.js";
-
-// The only scopes a run may have. Anything else is a typo, and a typo must not start a job —
-// found by driving the real catalogue: an unrecognised scope fell through to the flagged
-// branch and started a 154-key run. `pending` is the dashboard's button: keys with no
-// translation at all PLUS flagged ones — `flagged` alone selects nothing on a fresh language,
-// because a key that is missing has no finding to flag.
-export const SCOPES = new Set(["flagged", "unsure", "all", "keys", "pending"]);
 
 /** The engine seam Python's tests patch on this module. */
 export const makeSend = (action = "translate", presetId = null) => engine.makeSend(action, presetId);
 
-const q = (props) => ({ querystring: T.Object(props) });
-const optStr = () => T.Optional(T.String());
+/** A request's own field the server alone can judge, refused in a 422 under it (app-structure §15). */
+const fieldError = (loc, msg, type = "value_error") => new RequestValidationError([{ type, loc, msg }]);
 
-/** The loaded project, or the 409 that sends the UI to Setup. */
+/**
+ * The engine's own failures on an AI route: the kit's 503/502 when the model isn't ready or the provider can't be
+ * reached (`aiRunHttpError`), a 400 for an engine or a prompt the user has to set up, a 502 for an answer that
+ * wasn't usable (a reply that isn't JSON is a ValueError; EngineNotConfigured is a RuntimeError, so it goes first).
+ */
+export function engineFailure(e) {
+  const kit = aiRunHttpError(e);
+  if (kit) return kit;
+  if (e instanceof engine.EngineNotConfigured) {
+    return new ApiError(400, "engine-not-configured", "The AI engine isn't set up", errText(e));
+  }
+  if (e instanceof RuntimeError || e instanceof ValueError) {
+    return new ApiError(502, "engine-answer-unusable", "The engine's answer wasn't usable", errText(e));
+  }
+  return e;
+}
+
+/** The loaded project, or the 409 that sends the UI to Setup (its `needsSetup` member says so). */
 export function project() {
   const ws = getState().workspace;
-  if (ws.project === null) throw new HttpError(409, { error: "no project loaded yet", needsSetup: true });
+  if (ws.project === null) {
+    throw new ApiError(409, "needs-setup", "No project loaded", "no project loaded yet", { needsSetup: true });
+  }
   // Every project route passes here — the one seam where an externally changed en.json (CLI
   // extract, git, an editor) gets picked up.
   ws.project.refreshSourceIfChanged();
@@ -103,12 +132,12 @@ export function router() {
    * needsSetup like every project route. It replaced POST /v1/ai/prompt-preview (2026-10-29), when the prompts
    * became editable rows.
    */
-  app.get("/v1/ai/test-variables", input(q({ action: T.String(), lang: T.String() })), async (c) => {
+  app.get("/v1/ai/test-variables", input({ querystring: TestVariablesQuery }), async (c) => {
     const { action, lang } = c.req.valid("query");
     return c.json({ variables: labVariables(project(), action, lang) });
   });
 
-  app.get("/v1/rows", input(q({ lang: optStr() })), async (c) => {
+  app.get("/v1/rows", input({ querystring: LangQuery }), async (c) => {
     project();
     return c.json(getState().workspace.buildRows(c.req.valid("query").lang ?? null));
   });
@@ -155,20 +184,18 @@ export function router() {
     });
   });
 
-  app.get("/v1/accepted", input(q({ lang: optStr() })), async (c) => {
+  app.get("/v1/accepted", input({ querystring: LangQuery }), async (c) => {
     const p = project();
     const lg = langOr(c.req.valid("query").lang, p);
     const entries = loadAccepted(p.paths.acceptedFile(lg));
     return c.json({ lang: lg, entries: Object.entries(entries).map(([h, e]) => ({ hash: h, ...e })) });
   });
 
-  app.post("/v1/save", input({ body: BODY }), async (c) => {
-    const body = c.req.valid("json");
+  app.post("/v1/save", input({ body: SaveIn }), async (c) => {
+    const { lang, key, value } = c.req.valid("json");
     const ws = getState().workspace;
     const p = project();
-    const [lang, key, value] = [pyGet(body, "lang"), pyGet(body, "key"), pyGet(body, "value")];
-    if (![lang, key, value].every((x) => typeof x === "string")) throw new HttpError(400, "lang, key and value must be strings");
-    if (!p.src.has(key)) throw new HttpError(404, `no such key: ${key}`);
+    if (!p.src.has(key)) throw notFound(`no such key: ${key}`);
     const prev = (p.targetFlat(lang) ?? new Map()).get(key) ?? null;
     ws.writeKey(lang, key, value);
     recordAction(p.state, { lang, key, kind: "edit", prev, nextValue: value });
@@ -186,18 +213,14 @@ export function router() {
    * ONE CALL IS ONE UNDO: the batch records a single bulk-accept holding every hash it added.
    * `by` comes from the app's reviewer setting — never the OS username.
    */
-  app.post("/v1/accept", input({ body: BODY }), async (c) => {
-    const body = c.req.valid("json");
+  app.post("/v1/accept", input({ body: AcceptIn }), async (c) => {
+    const { lang, key, keys } = c.req.valid("json");
     const ws = getState().workspace;
     const p = project();
-    const lang = pyGet(body, "lang");
-    const [key, keys] = [pyGet(body, "key"), pyGet(body, "keys")];
-    const wanted = Array.isArray(keys) ? keys : key !== null ? [key] : null;
-    if (typeof lang !== "string" || !truthy(wanted) || !wanted.every((k) => typeof k === "string")) {
-      throw new HttpError(400, "lang and keys[] (or key) must be strings");
-    }
+    const wanted = keys ?? (key !== undefined ? [key] : []);
+    if (!wanted.length) throw fieldError(["body", "keys"], "Name a key, or keys[]", "missing");
     const missing = wanted.filter((k) => !p.src.has(k));
-    if (missing.length) throw new HttpError(404, `no such key: ${missing.join(", ")}`);
+    if (missing.length) throw notFound(`no such key: ${missing.join(", ")}`);
 
     const targetFlat = p.targetFlat(lang) ?? new Map();
     const wantedSet = new Set(wanted);
@@ -252,11 +275,9 @@ export function router() {
    * The fix for the complaint that started the Node rebuild: an acceptance was one-way, and
    * accepted keys vanished from the page, so a decision could never be revisited.
    */
-  app.delete("/v1/accept", input({ body: BODY }), async (c) => {
-    const body = c.req.valid("json");
+  app.delete("/v1/accept", input({ body: UnacceptIn }), async (c) => {
+    const { lang, key, code = null } = c.req.valid("json");
     const p = project();
-    const [lang, key, code] = [pyGet(body, "lang"), pyGet(body, "key"), pyGet(body, "code")];
-    if (typeof lang !== "string" || typeof key !== "string") throw new HttpError(400, "lang and key must be strings");
     const path = p.paths.acceptedFile(lang);
     const store = loadAccepted(path);
     const removed = {};
@@ -269,11 +290,11 @@ export function router() {
     return c.json({ key, lang, removed: Object.keys(removed).length });
   });
 
-  app.post("/v1/undo", input({ body: BODY }), async (c) => {
+  app.post("/v1/undo", input({ body: UndoIn }), async (c) => {
     const ws = getState().workspace;
     const p = project();
-    const a = popAction(p.state, { lang: pyGet(c.req.valid("json"), "lang") });
-    if (a === null) throw new HttpError(404, "nothing to undo");
+    const a = popAction(p.state, { lang: c.req.valid("json").lang ?? null });
+    if (a === null) throw notFound("nothing to undo");
     if (a.kind === "edit") {
       // null, not "" — a key that had no translation goes back to none.
       ws.writeKey(a.lang, a.key, a.prev);
@@ -307,23 +328,21 @@ export function router() {
     return c.json({ undone: a });
   });
 
-  app.get("/v1/history", input(q({ lang: optStr() })), async (c) =>
+  app.get("/v1/history", input({ querystring: LangQuery }), async (c) =>
     c.json({ actions: actionHistory(project().state, { lang: c.req.valid("query").lang ?? null }) }),
   );
 
-  app.get("/v1/proposals", input(q({ lang: optStr(), key: optStr() })), async (c) => {
+  app.get("/v1/proposals", input({ querystring: ProposalsQuery }), async (c) => {
     const query = c.req.valid("query");
     const p = project();
     const lg = langOr(query.lang, p);
     return c.json({ lang: lg, proposals: proposals(p.state, { lang: lg, key: query.key ?? null }) });
   });
 
-  app.post("/v1/proposals/apply", input({ body: BODY }), async (c) => {
+  app.post("/v1/proposals/apply", input({ body: ApplyIn }), async (c) => {
     const ws = getState().workspace;
     const p = project();
-    const body = c.req.valid("json");
-    const [lang, keys] = [pyGet(body, "lang"), pyGet(body, "keys")];
-    if (typeof lang !== "string" || !Array.isArray(keys)) throw new HttpError(400, "lang and keys[] required");
+    const { lang, keys } = c.req.valid("json");
     // ONE undo for the whole click — the bulk-accept promise, applied to writes. A run stages
     // one proposal per key, so "apply what the run produced" is a 2,000-key action; 2,000
     // undo entries would make the one thing you want after a bad run — put it back —
@@ -345,16 +364,14 @@ export function router() {
     return c.json({ lang, applied });
   });
 
-  app.delete("/v1/proposals", input({ body: BODY }), async (c) => {
+  app.delete("/v1/proposals", input({ body: DiscardIn }), async (c) => {
     const p = project();
-    const body = c.req.valid("json");
-    const [lang, keys] = [pyGet(body, "lang"), pyGet(body, "keys")];
-    if (typeof lang !== "string") throw new HttpError(400, "lang required");
+    const { lang, keys = null } = c.req.valid("json");
     // Discard destroys staged work by hand, so it is UNDOABLE like every other human action
     // (audit 2026-08-05: it recorded nothing — the next undo silently reversed some OLDER
     // action instead). prev holds the dropped rows; undo re-stages them. The count is what
     // was actually dropped, never keys.length (a key with no proposal is not a discard).
-    const wanted = keys === null ? null : new Set(pyIter(keys).filter((k) => typeof k === "string"));
+    const wanted = keys === null ? null : new Set(keys);
     const dropped = proposals(p.state, { lang }).filter((r) => wanted === null || wanted.has(r.key));
     if (wanted === null) dropAllProposals(p.state, lang);
     else for (const key of wanted) dropProposal(p.state, { lang, key });
@@ -373,7 +390,7 @@ export function router() {
    * How characterAudit.why was actually proven a defect: its sibling renders the same
    * label-with-colon pattern correctly. A reviewer needs that view.
    */
-  app.get("/v1/siblings", input(q({ key: T.String(), lang: optStr() })), async (c) => {
+  app.get("/v1/siblings", input({ querystring: SiblingsQuery }), async (c) => {
     const query = c.req.valid("query");
     const { key } = query;
     const p = project();
@@ -389,14 +406,14 @@ export function router() {
     return c.json({ key, namespace: ns, siblings: sibs });
   });
 
-  app.get("/v1/terms", input(q({ lang: optStr(), key: optStr(), term: optStr() })), async (c) => {
+  app.get("/v1/terms", input({ querystring: TermsQuery }), async (c) => {
     const query = c.req.valid("query");
     const { key = null, term = null } = query;
     const p = project();
     const lg = langOr(query.lang, p);
     const targetFlat = p.targetFlat(lg) ?? new Map();
     if (truthy(term)) return c.json({ term, usage: termUsage({ sourceFlat: p.src, targetFlat, term }) });
-    if (!truthy(key)) throw new HttpError(400, "key or term required");
+    if (!truthy(key)) throw fieldError(["query", "key"], "Name a key or a term", "missing");
     const { index } = checkTerms({ sourceFlat: p.src, targetFlat });
     return c.json({
       key,
@@ -404,27 +421,24 @@ export function router() {
     });
   });
 
-  app.put("/v1/notes", input({ body: BODY }), async (c) => {
+  app.put("/v1/notes", input({ body: NoteIn }), async (c) => {
     const ws = getState().workspace;
     const p = project();
-    const body = c.req.valid("json");
-    const [lang, key] = [pyGet(body, "lang"), pyGet(body, "key")];
-    const n = pyGet(body, "note");
+    const { lang, key, note: n = null } = c.req.valid("json");
     const note = truthy(n) ? n : null;
-    if (typeof lang !== "string" || typeof key !== "string") throw new HttpError(400, "lang and key required");
     const prev = flatten(p.readNotes(lang)).get(key) ?? null;
     ws.writeNote(lang, key, note);
     recordAction(p.state, { lang, key, kind: "note", prev, nextValue: note });
     return c.json({ lang, key, note });
   });
 
-  app.get("/v1/runs", input(q({ lang: optStr() })), async (c) =>
+  app.get("/v1/runs", input({ querystring: LangQuery }), async (c) =>
     c.json({ runs: runHistory(project().state, { lang: c.req.valid("query").lang ?? null }) }),
   );
 
   app.get(
     "/v1/reference",
-    input(q({ key: T.String(), lang: optStr(), engine: T.Optional(T.String({ default: "backtranslate" })) })),
+    input({ querystring: ReferenceQuery }),
     async (c) => {
       const query = c.req.valid("query");
       const { key, engine: eng = "backtranslate" } = query;
@@ -442,13 +456,11 @@ export function router() {
    * English because the ambiguity was in the source). Read-only, cached, never written to a
    * catalogue.
    */
-  app.post("/v1/backtranslate", input({ body: BODY }), async (c) => {
+  app.post("/v1/backtranslate", input({ body: BacktranslateIn }), async (c) => {
     const p = project();
-    const body = c.req.valid("json");
-    const [lang, key] = [pyGet(body, "lang"), pyGet(body, "key")];
-    if (typeof lang !== "string" || typeof key !== "string") throw new HttpError(400, "lang and key required");
+    const { lang, key } = c.req.valid("json");
     const dst = (p.targetFlat(lang) ?? new Map()).get(key);
-    if (!dst) throw new HttpError(404, `no translation for ${key}`);
+    if (!dst) throw notFound(`no translation for ${key}`);
     const cached = getReference(p.state, { lang, key, engine: "backtranslate" });
     if (truthy(cached)) return c.json({ key, lang, english: cached.value, cached: true });
     let english;
@@ -458,12 +470,12 @@ export function router() {
       const out = await send(backtranslateVariables(dst, p.cfg, lang));
       english = parseItems(out).get(0);
     } catch (e) {
-      // A dead second opinion must never block reviewing. (EngineNotConfigured is a
-      // RuntimeError; a reply that isn't JSON is a ValueError.)
-      if (e instanceof RuntimeError || e instanceof ValueError) throw new HttpError(502, errText(e));
-      throw e;
+      // A dead second opinion must never block reviewing: the engine's failure is the answer, named.
+      throw engineFailure(e);
     }
-    if (!english) throw new HttpError(502, "the engine returned nothing usable");
+    if (!english) {
+      throw new ApiError(502, "engine-answer-unusable", "The engine's answer wasn't usable", "the engine returned nothing usable");
+    }
     putReference(p.state, { lang, key, engine: "backtranslate", value: english });
     return c.json({ key, lang, english, cached: false });
   });
@@ -472,21 +484,17 @@ export function router() {
 
   /** Starts a translation run: 202 with the job's snapshot (the kit's job contract — the screen's
    *  runServerJob follows it from there), 409 while one runs. */
-  app.post("/v1/jobs", input({ body: BODY }), async (c) => {
-    const body = c.req.valid("json");
+  app.post("/v1/jobs", input({ body: RunIn }), async (c) => {
+    // the scope is the schema's: a typo is refused before it can start a job (schemas/workspace.js SCOPES)
+    const { lang, scope = "flagged", keys = null, presetId = null } = c.req.valid("json");
     const ws = getState().workspace;
     const p = project();
-    const lang = pyGet(body, "lang");
-    const scope = pyGet(body, "scope", "flagged");
-    const keys = pyGet(body, "keys");
-    const presetId = pyGet(body, "presetId");
     const targets = pyIter(p.targets);
-    if (!targets.includes(lang)) throw new HttpError(400, `unknown language: ${pyStr(lang)}`);
-    if (!SCOPES.has(scope)) {
-      throw new HttpError(400, `unknown scope: ${pyStr(scope)}. Use one of ${pySorted(SCOPES).join(", ")}`);
+    if (!targets.includes(lang)) {
+      throw fieldError(["body", "lang"], `unknown language: ${pyStr(lang)} — this project translates into ${targets.join(", ")}`);
     }
     const { jobs } = getState();
-    if (jobs.busy([TRANSLATE])) throw new HttpError(409, "a job is already running");
+    if (jobs.busy([TRANSLATE])) throw conflict("a job is already running");
 
     let wanted;
     if (scope === "keys") wanted = truthy(keys) ? pyIter(keys) : [];
@@ -511,7 +519,7 @@ export function router() {
     }
     const subset = new Map();
     for (const k of wanted) if (p.src.has(k) && !subset.has(k)) subset.set(k, p.src.get(k));
-    if (!subset.size) throw new HttpError(400, "that scope selected no keys");
+    if (!subset.size) throw new ApiError(400, "nothing-selected", "Nothing to translate", "that scope selected no keys");
 
     // THE two-resolver fix, structural now: the job resolves through the SAME seam the CLI
     // uses. presetId is the escalate-from-the-page door.
@@ -519,8 +527,7 @@ export function router() {
     try {
       send = self.makeSend("translate", presetId);
     } catch (e) {
-      if (e instanceof engine.EngineNotConfigured) throw new HttpError(400, errText(e));
-      throw e;
+      throw engineFailure(e);
     }
     // the conventions line and the reviewer's notes, as the CLI's run sends them
     const cfg = runCfg(p, lang);
@@ -583,7 +590,7 @@ export function router() {
         confirm: confirmPass,
       });
     } catch (e) {
-      if (e instanceof JobBusyError) throw new HttpError(409, errText(e));
+      if (e instanceof JobBusyError) throw conflict(errText(e));
       throw e;
     }
     return c.json(status, 202);
@@ -598,7 +605,7 @@ export function router() {
    */
   app.get(
     "/v1/gt-frame",
-    input(q({ text: T.Optional(T.String({ default: "" })), tl: T.Optional(T.String({ default: "es" })) })),
+    input({ querystring: GtFrameQuery }),
     async (c) => {
       const { text = "", tl = "es" } = c.req.valid("query");
       const esc = text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");

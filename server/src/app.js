@@ -408,9 +408,9 @@ export async function bootLlmStack(dataDir = null, app = null) {
   dataDir = dataDir ? purePath(String(dataDir)) : defaultDataDir();
   mkdirSync(dataDir, { recursive: true });
 
-  // docgen never turned foreign keys on (Python's sqlite3 default) — kept OFF, decided:
-  // identical behaviour (plan §5).
-  const h = openDatabase(path.join(dataDir, "app.db"), { foreignKeys: false });
+  // foreign keys on, as in every family app (app-structure §16; the user's go 2026-10-29 — off until then, a copy
+  // of Python's sqlite3 default). The kit's tables cascade through them; the user's own database had no broken link.
+  const h = openDatabase(path.join(dataDir, "app.db"), { foreignKeys: true });
 
   if (app !== null) {
     // The standard: the host mounts the runner's process API, installLlm mounts the rest —
@@ -472,9 +472,9 @@ export async function createApp(dataDir = null, configPath = null) {
   installLogRing();
   installFileLog(path.join(dataDir, "logs", "just-ai-i18n-docgen.log"));
 
-  // FastAPI's default error answers (a listed deviation — app-structure, Open deviations); an
-  // unhandled exception gets the kit's family envelope (§15: problem+json with the request id).
-  const app = createServer({ errors: "fastapi" });
+  // Every error answer is the kit's problem+json with the request's id (app-structure §15) — FastAPI's `{detail}`
+  // shape until 2026-10-29.
+  const app = createServer({ typeBase: TYPE_BASE });
 
   // Python's middleware order: CSRF outermost, then CORS, then auth. Hono runs middleware in
   // the order it is added and covers only the routes added after it, so the three come first,

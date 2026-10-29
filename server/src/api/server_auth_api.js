@@ -11,16 +11,12 @@
 import { Hono, input } from "@delebash/core/platform";
 import { RequestValidationError } from "@delebash/core/platform/errors";
 import { getLogger } from "@delebash/core/platform/log";
-import { T } from "@delebash/core/platform/models";
 import { pyJson } from "@delebash/core/platform/pyjson";
-import { opt, strictObject } from "@delebash/core/platform/schema";
+import { opt, strictObject, T } from "@delebash/core/platform/schema";
 import * as appmeta from "../appmeta.js";
 import { readAuth } from "../auth.js";
 
 const log = getLogger("just_ai_i18n_docgen.server_auth");
-
-/** FastAPI's `body: dict`. */
-export const BODY = T.Record(T.String(), T.Any());
 
 /** The tokens and the switch — the template's limits (2026-10-29: docgen took any strings, padded ones too, which
  *  the guard then never matched). */

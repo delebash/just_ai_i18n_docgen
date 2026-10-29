@@ -13,7 +13,7 @@ import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import {
   AiTaskStrip, Icon, PaneHeader, UiButton, UiCheckbox, UiInput, UiProgress,
-  UiTable, UiTag, otherWindows, pushToast, usePoll, useSurfaceTask,
+  UiTable, UiTag, otherWindows, reportError, usePoll, useSurfaceTask,
 } from "@delebash/ui";
 import splashPlate from "../assets/images/splash-plate.jpg";
 import { langTitle } from "../services/langs";
@@ -107,7 +107,7 @@ async function translate(codes) {
   try {
     await jobs.startMany([...codes], "pending");
   } catch (e) {
-    pushToast({ kind: "error", title: t("common.couldNotStart"), description: String(e?.message || e) });
+    reportError(e);
   }
 }
 function lastRunLabel(l) {
@@ -246,5 +246,8 @@ function lastRunLabel(l) {
         </UiTable>
       </div>
     </div>
+
+    <!-- loading: the first summary on its way — never a blank page (app-structure §17) -->
+    <q-inner-loading v-else showing :label="t('kit.common.loading')" />
   </q-page>
 </template>

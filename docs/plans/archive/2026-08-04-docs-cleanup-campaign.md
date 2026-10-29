@@ -57,7 +57,7 @@ actively-misleading docs; 1 dead user doc).
 | `docs/dev/IDEAS.md` | keep-live | Conforms; empty holding pen. |
 | `docs/plans/2026-08-04-consistency-sweep.md` | keep-live | Active enforcement list + QuickSetup resumption notes. |
 | `docs/plans/archive/2026-08-04-kit-reuse-audit.md` | banner-close | Every finding landed same day (one splash, BootModelLoad, PNG deleted); §1's "open ruling" was ruled (model name = shared). |
-| `docs/superpowers/specs/2026-08-03-design1-chrome-design.md` | banner-close | Chrome shipped 08-03/04. **Homeless fact:** its deferred pair — `make_data_router` (backup/restore/reset) + `UpdatesPanel` — has no TASKS/IDEAS line and the doc points at the retired repo's HANDOFF for it. |
+| `docs/plans/archive/2026-08-03-design1-chrome-design.md` (moved 2026-10-29) | banner-close | Chrome shipped 08-03/04. **Homeless fact:** its deferred pair — `make_data_router` (backup/restore/reset) + `UpdatesPanel` — has no TASKS/IDEAS line and the doc points at the retired repo's HANDOFF for it. |
 | root `README.md` | DECISION | Still the create-tauri-app template stub; says nothing about the app. Write a real one, or leave-by-standard. |
 | root `CLAUDE.md` | update (1 fix) | "Port 8742 (JW 17495 · **JV 8741**)" — JV is actually **17494** (`JustVioce/src-tauri/src/lib.rs:46`). Same wrong value in `src-tauri/src/lib.rs:22`'s comment. |
 | `e2e/README.md` | keep | Verified: carries the "never drive :8742 while the dev window is open" law (line 65). |

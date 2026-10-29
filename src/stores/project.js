@@ -16,7 +16,6 @@ export const useProjectStore = defineStore("project", {
     reviewer: null,
     languages: [],
     inspect: null,      // the last /v1/setup/inspect result
-    inspectError: "",
     saving: false,
     summary: null,      // /v1/summary — the dashboard's per-language counts
     noProject: false,   // CONFIRMED 409 (needsSetup) — only then is the welcome honest
@@ -50,21 +49,20 @@ export const useProjectStore = defineStore("project", {
         this.serverDown = false;
       } catch (e) {
         this.summary = null;
-        const msg = String(e?.message || e);
-        this.noProject = msg.includes("409") || msg.includes("needsSetup");
+        // the server's problem+json: its needs-setup 409 carries the member (app-structure §15; the transport puts
+        // the status and the problem on the Error)
+        this.noProject = e?.status === 409 && e?.problem?.needsSetup === true;
         this.serverDown = !this.noProject;
       }
       return this.summary;
     },
+    // a path the server can't use is a 422 under `path` — the page shows it under the box (fieldErrors)
     async inspectPath(path) {
-      this.inspectError = "";
       try {
         this.inspect = await post("/v1/setup/inspect", { path });
       } catch (e) {
         this.inspect = null;
-        // The transport pre-parses the envelope now (serverApi 2026-08-05) —
-        // just shed the "400 Bad Request: " prefix for the inline sentence.
-        this.inspectError = String(e?.message || e).replace(/^\d+ [^:]*: /, "");
+        throw e;
       }
       return this.inspect;
     },

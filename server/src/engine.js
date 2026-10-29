@@ -150,7 +150,8 @@ export function makeSend(action = "translate", presetId = null) {
       }
       // the built-in engine refusing its model (the kit's `localNotReady`: just stopped by you, the engine not
       // installed, a load that failed or timed out) — retried per key, each try would load the model again
-      if (e?.localNotReady) throw new EngineNotConfigured(errText(e));
+      // (its flag kept, so a route answers the kit's 503 "the local AI model isn't ready" — aiRunHttpError)
+      if (e?.localNotReady) throw Object.assign(new EngineNotConfigured(errText(e)), { localNotReady: true });
       throw e;
     }
     const text = response.text;

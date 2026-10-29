@@ -6,7 +6,7 @@
 // server transport (the access token rides), polling again if the stream drops. A job stages
 // PROPOSALS only; the review store's applyProposal is the human action that writes.
 import { defineStore } from "pinia";
-import { del, post, pushToast, runServerJob, safeRequest } from "@delebash/ui";
+import { del, get, post, pushToast, reportError, runServerJob } from "@delebash/ui";
 import { i18n } from "../i18n/index.js";
 import { langName } from "../services/langs.js";
 
@@ -47,7 +47,10 @@ export const useJobsStore = defineStore("jobs", {
     job: null, // the run this window follows, or the last one it followed (the kit job's snapshot)
     runs: [],
     starting: false,
-    error: "",
+    // the run list's load (app-structure §17): running, come from the server at least once, or failed (its error)
+    loading: false,
+    loaded: false,
+    loadFailed: null,
     queue: [], // languages still waiting when a multi-select run goes sequential
     queueScope: null,
     _following: null, // the id of the job being followed
@@ -65,8 +68,21 @@ export const useJobsStore = defineStore("jobs", {
   },
   actions: {
     async refresh() {
-      const [live, hist] = await Promise.all([safeRequest("/v1/jobs?kind=translate", null), safeRequest("/v1/runs", null)]);
-      this.runs = hist?.runs ?? [];
+      this.loading = true;
+      let live;
+      try {
+        let hist;
+        [live, hist] = await Promise.all([get("/v1/jobs?kind=translate"), get("/v1/runs")]);
+        this.runs = hist?.runs ?? [];
+        this.loaded = true;
+        this.loadFailed = null;
+      } catch (e) {
+        // the page says so, with Retry — never an empty history that reads as "no runs"
+        this.loadFailed = e;
+        return;
+      } finally {
+        this.loading = false;
+      }
       // Rejoining a live run (a reload mid-run, another window's): it gets its task on the strip and
       // the AI-tasks panel and its events, as a run started here — a rejoined run was invisible
       // everywhere but the raw state once (audit 2026-08-05).
@@ -114,7 +130,6 @@ export const useJobsStore = defineStore("jobs", {
       }
     },
     async start({ lang, scope, keys = null, presetId = null }) {
-      this.error = "";
       this.starting = true;
       try {
         // the start answers first, so a refusal (409 while one runs, a scope that selects nothing)
@@ -122,9 +137,6 @@ export const useJobsStore = defineStore("jobs", {
         const job = await post("/v1/jobs", { lang, scope, keys, presetId });
         this._follow(job);
         return job;
-      } catch (e) {
-        this.error = e?.message || String(e);
-        throw e;
       } finally {
         this.starting = false;
       }
@@ -149,8 +161,9 @@ export const useJobsStore = defineStore("jobs", {
       const lang = this.queue.shift();
       try {
         await this.start({ lang, scope: this.queueScope || "pending" });
-      } catch {
+      } catch (e) {
         this.queue = []; // a failed start must not strand a silent queue
+        reportError(e); // nobody pressed a button for this one, so nothing else would say it
       }
     },
     /** Stop the running translation (it keeps what it staged): its task ends as cancelled on the strip. */

@@ -14,9 +14,10 @@ import { useRouter } from "vue-router";
 import {
   AboutPanel, AppearancePanel, DataManagement, LanguagePicker, LogsPanel, PaneHeader, ServerPanel, SettingsShell,
   StoragePanel, UiInput, UpdatesPanel,
-  SETTINGS_SECTION_ORDER, pushToast, renderHelpMarkdown,
-  safeRequest,
+  SETTINGS_SECTION_ORDER, fieldErrors, pushToast, renderHelpMarkdown, reportError,
+  safeRequest, schemaRules,
 } from "@delebash/ui";
+import { ReviewerIn } from "just-ai-i18n-docgen-server/schemas/setup.js";
 import GeneralSection from "../components/settings/GeneralSection.vue";
 import { LOCALE_CODES } from "../i18n/index.js";
 import { loadDoc } from "../services/helpDocs.js";
@@ -87,16 +88,22 @@ const storageShell = {
 };
 
 // ── reviewer: saved on blur/Enter, never per keystroke (audit 2026-08-05) ──
+// The §15 field: its rules are PUT /v1/reviewer's own schema; a refusal lands under it, anything else is the kit's toast.
 const reviewerDraft = ref("");
+const reviewerRules = schemaRules(ReviewerIn).reviewer;
+const reviewerError = ref("");
 watch(() => project.reviewer, (v) => { reviewerDraft.value = v || ""; },
       { immediate: true });
 async function saveReviewer() {
   if ((reviewerDraft.value || "").trim() === (project.reviewer || "")) return;
+  reviewerError.value = "";
   try {
     await project.setReviewer(reviewerDraft.value.trim());
     pushToast({ kind: "success", title: t("settings.reviewer.saved") });
   } catch (e) {
-    pushToast({ kind: "error", title: t("common.couldNotSave"), description: String(e?.message || e) });
+    const fields = fieldErrors(e);
+    if (fields.reviewer) reviewerError.value = fields.reviewer;
+    else reportError(e);
   }
 }
 
@@ -190,6 +197,8 @@ onMounted(async () => {
                (audit 2026-08-05). -->
           <UiInput
             v-model="reviewerDraft" width="name" :placeholder="t('settings.reviewer.placeholder')"
+            :aria-label="t('settings.reviewer.title')" lazy-rules :rules="reviewerRules"
+            :error="!!reviewerError" :error-message="reviewerError" @update:model-value="reviewerError = ''"
             @blur="saveReviewer" @keydown.enter="saveReviewer"
           />
         </section>

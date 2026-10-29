@@ -1,151 +1,157 @@
 // SPDX-License-Identifier: MIT
-// The e2e driver: the REAL desktop app (Electron) launched and driven through Playwright's
-// Electron driver (the family's move to Electron, 2026-10-08 — it replaced tauri-driver +
-// msedgedriver). The test files are unchanged: this class keeps the old Driver's API —
-// `exec(script, args)` runs a WebDriver-style script body (`arguments[0]`, `return`) in the
-// page, and every DOM helper rides it.
+// The e2e driver: the REAL desktop app (Electron) launched and driven through Playwright's Electron
+// driver (`playwright-core`'s `_electron` — no browser download, no driver binary; app-structure
+// §10). The template's e2e/lib/driver.js (docgen's own was its donor; docgen took it back, hermetic, 2026-10-29) —
+// only this app's constants differ. It is hermetic (§18):
 //
-// How a script runs: as a function expression evaluated over the debugger protocol, which
-// the page's Content-Security-Policy (no eval) does not apply to — the app's real CSP stays
-// on during the tests.
+//   - a temp folder per run holds the data folder, and JUST_AI_HOME points there, so nothing reads
+//     or writes your real data or the family's cache registry;
+//   - the harness starts the app's own server on that folder itself (from source, on Electron's
+//     Node — scripts/node24.js) and stops it after (POST /v1/shutdown);
+//   - the app runs with the shell's <ID>_DEV_NO_SERVER=1 (§10), so the shell never starts, evicts or
+//     strands a server of its own.
+// The window talks to the registered port (8742): a run refuses to start while something already
+// listens there — your dev server, say — rather than touch it.
 //
-// What it launches: the built desktop app before packaging — Quasar's
-// dist/electron/UnPackaged (`npm run build:unpacked` first, or `npm run build`), run by the
-// checkout's Electron — loading the BUILT UI from app://, with its own server on the dev data
-// folder `<repo>/data` (JUST_AI_I18N_DOCGEN_DATA_DIR points it there, since an unpacked app has
-// no checkout of its own). JAID_DEV_NO_SIDECAR=1 (the tests' switch) keeps the
-// shell from starting its own server — the suite talks to the one already on :8742.
+// What it launches: the built desktop app before packaging — Quasar's dist/electron/UnPackaged
+// (`npm run build:unpacked` first) — run by the checkout's Electron, loading the BUILT UI from
+// app://, with the app's real CSP: page scripts run over the debugger protocol, which the CSP
+// doesn't apply to. The packaged app's fuses forbid this driver (EnableNodeCliInspectArguments off),
+// which is why the unfused UnPackaged build is the target.
 
+import { spawn } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import net from "node:net";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { _electron } from "playwright-core";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(__dirname, "../..");
+const here = path.dirname(fileURLToPath(import.meta.url));
+export const REPO_ROOT = path.resolve(here, "../..");
 const APP_ROOT = path.join(REPO_ROOT, "dist", "electron", "UnPackaged");
 // Electron is the desktop app's dependency, installed in src-electron/ (Quasar's Electron mode).
 // Its package's main export is the binary's path — an ES import by file URL (no require).
 const { default: ELECTRON } = await import(pathToFileURL(path.join(REPO_ROOT, "src-electron", "node_modules", "electron", "index.js")).href);
 
+/** The shell's id (src-electron/electron-main.js) — its switch is <ID>_DEV_NO_SERVER, the id's dashes as
+ *  underscores (the kit's shell/main.js reads it so). */
+const ID = "just-ai-i18n-docgen";
+const NO_SERVER = `${ID.toUpperCase().replace(/-/g, "_")}_DEV_NO_SERVER`;
+
+/** The registered server port (app-structure §1) — where the window looks for its server. */
+export const PORT = 8742;
+export const API = `http://127.0.0.1:${PORT}/v1`;
+
+const listening = (port) =>
+  new Promise((resolve) => {
+    const s = net.connect({ host: "127.0.0.1", port }, () => {
+      s.destroy();
+      resolve(true);
+    });
+    s.on("error", () => resolve(false));
+  });
+
+/** Poll  until it answers truthy (no fixed sleeps); throws after . */
+export async function waitFor(fn, { timeout = 30_000, interval = 200, what = "condition" } = {}) {
+  const start = Date.now();
+  for (;;) {
+    const v = await fn().catch(() => null);
+    if (v) return v;
+    if (Date.now() - start > timeout) throw new Error(`timed out waiting for ${what}`);
+    await new Promise((r) => setTimeout(r, interval));
+  }
+}
+
 export class Driver {
   constructor() {
     this.app = null;
     this.page = null;
+    this.server = null;
+    this.tmp = null;
+  }
+
+  /** The app's own server on a temp data folder. */
+  async startServer() {
+    if (await listening(PORT)) {
+      throw new Error(`port ${PORT} is in use — stop the server there (your dev server?) before running the e2e smoke; it never touches one it didn't start`);
+    }
+    this.tmp = mkdtempSync(path.join(os.tmpdir(), "just-ai-i18n-docgen-e2e-"));
+    const env = { ...process.env, JUST_AI_HOME: path.join(this.tmp, "family") };
+    delete env.ELECTRON_RUN_AS_NODE;
+    // a data folder the server is told of must be there (a named folder that isn't is refused, never made)
+    mkdirSync(this.dataDir, { recursive: true });
+    this.server = spawn(process.execPath, ["scripts/node24.js", "server/src/serve.js", "serve", "--port", String(PORT), "--data-dir", this.dataDir], {
+      cwd: REPO_ROOT,
+      env,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    this.serverLog = "";
+    for (const s of [this.server.stdout, this.server.stderr]) s.on("data", (d) => (this.serverLog += d));
+    await waitFor(async () => (await fetch(`${API}/health`)).ok, { what: `the server on ${PORT}` });
+  }
+
+  get dataDir() {
+    return path.join(this.tmp, "data");
   }
 
   async launch() {
-    const env = { ...process.env };
+    if (!this.server) await this.startServer();
+    const env = { ...process.env, [NO_SERVER]: "1", JUST_AI_I18N_DOCGEN_DATA_DIR: this.dataDir };
     delete env.ELECTRON_RUN_AS_NODE;
     delete env.DEV_URL; // the built UI, from app://
-    if (env.JAID_DEV_NO_SIDECAR) env.JUST_AI_I18N_DOCGEN_DEV_NO_SERVER = "1";
-    env.JUST_AI_I18N_DOCGEN_DATA_DIR ??= path.join(REPO_ROOT, "data");
     this.app = await _electron.launch({ executablePath: ELECTRON, args: [APP_ROOT], cwd: REPO_ROOT, env });
     this.page = await this.app.firstWindow();
     await this.page.waitForLoadState("domcontentloaded");
-    // Give the app a moment to mount Vue + hydrate stores (the old driver's wait).
-    await this.sleep(3_500);
     return this;
   }
 
   async close() {
-    if (this.app) {
-      try {
-        await this.app.close();
-      } catch {
-        /* already gone */
-      }
-      this.app = null;
-      this.page = null;
+    try {
+      // the page first, its beforeunload skipped (Playwright's page.close runs none by default): a page with unsaved
+      // work held the app's close on the shell's "Leave without saving?" box (the nineteenth review)
+      await this.page?.close().catch(() => {});
+      if (this.app) await this.app.close();
+    } catch {
+      // already gone
+    }
+    this.app = null;
+    this.page = null;
+    if (this.server) {
+      const exited = new Promise((resolve) => this.server.once("exit", resolve));
+      await fetch(`${API}/shutdown`, { method: "POST" }).catch(() => {});
+      const killer = setTimeout(() => this.server?.kill(), 15_000);
+      await exited;
+      clearTimeout(killer);
+      this.server = null;
+    }
+    if (this.tmp) {
+      rmSync(this.tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+      this.tmp = null;
     }
   }
 
-  // ── primitives ──────────────────────────────────────────
-  sleep(ms) {
-    return new Promise((r) => setTimeout(r, ms));
-  }
-
+  // ── helpers ────────────────────────────────────────────
+  /** A WebDriver-style script body (`arguments[0]`, `return`) run in the page. */
   exec(script, args = []) {
     return this.page.evaluate(`(function(){ ${script} \n}).apply(null, ${JSON.stringify(args)})`);
   }
 
-  async navigate(hash) {
-    await this.exec("window.location.hash = arguments[0];", [hash]);
+  navigate(hash) {
+    return this.exec("window.location.hash = arguments[0];", [hash]);
   }
 
-  async reload() {
-    await this.page.reload();
-    await this.sleep(2_000);
+  screenshot(file) {
+    return this.page.screenshot({ path: file });
   }
 
-  async screenshot(file) {
-    await this.page.screenshot({ path: file });
+  maximize() {
+    return this.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.maximize());
   }
 
-  async maximize() {
-    await this.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.maximize());
-  }
-
-  async title() {
-    return this.page.title();
-  }
-
-  async url() {
-    return this.page.url();
-  }
-
-  // ── DOM helpers driven via exec ──────────────────────────
-  async textOf(css) {
-    return this.exec("const el = document.querySelector(arguments[0]); return el ? el.textContent.trim() : null;", [css]);
-  }
-
-  async exists(css) {
-    return this.exec("return !!document.querySelector(arguments[0]);", [css]);
-  }
-
-  async count(css) {
-    return this.exec("return document.querySelectorAll(arguments[0]).length;", [css]);
-  }
-
-  async click(css) {
-    return this.exec(
-      "const el = document.querySelector(arguments[0]); if (!el) throw new Error('no match: ' + arguments[0]); el.click();",
-      [css],
-    );
-  }
-
-  async attr(css, name) {
-    return this.exec("const el = document.querySelector(arguments[0]); return el ? el.getAttribute(arguments[1]) : null;", [
-      css,
-      name,
-    ]);
-  }
-
-  async htmlAttr(name) {
-    return this.exec("return document.documentElement.getAttribute(arguments[0]);", [name]);
-  }
-
-  /**
-   * Poll until predicate returns truthy. predicate is a string of JS executed in the app;
-   * should return a value. Resolves with that value, or rejects on timeout.
-   */
-  async waitUntil(predicate, { timeout = 10_000, interval = 200 } = {}) {
-    const start = Date.now();
-    while (Date.now() - start < timeout) {
-      const v = await this.exec(`return (function(){ ${predicate} })();`);
-      if (v) return v;
-      await this.sleep(interval);
-    }
-    throw new Error(`waitUntil timed out: ${predicate.slice(0, 120)}`);
-  }
-}
-
-/** One-shot helper: launch, run callback, always close. */
-export async function withDriver(fn) {
-  const d = new Driver();
-  await d.launch();
-  try {
-    return await fn(d);
-  } finally {
-    await d.close();
+  /** The server's API, for a test's own checks (the window's server). */
+  async api(pathname, init) {
+    const r = await fetch(`${API}${pathname}`, init);
+    return r.status === 204 ? null : r.json();
   }
 }

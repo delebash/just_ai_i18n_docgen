@@ -87,14 +87,6 @@
     "by": "Claude (AI review, 2026-10-18)",
     "at": "2026-10-18"
   },
-  "af396612a0984c94": {
-    "key": "review.backFailed",
-    "code": "terminology",
-    "src": "Back-translation failed",
-    "dst": "Error en la retrotraducción",
-    "by": "Claude (AI review, 2026-10-17)",
-    "at": "2026-10-18"
-  },
   "d53f1c2e03c8d850": {
     "key": "setup.pathPlaceholder",
     "code": "untranslated",

@@ -15,18 +15,19 @@ RULED:  the user (relayed from JustWrite's session, 2026-10-29): "you dont under
         docgen releases only with every family app, on one kit commit (the kit's TASKS, "The family releases
         together…", just-core 684ee36). Until then a release workflow runs as a dry run only (`publish: false`).
 
-## Needs your ruling — docgen's e2e on the template's hermetic driver? [found 2026-10-29]
-FOUND:  the kit's standard (`../just-core/docs/app-structure.md` §Q's test table): "Desktop e2e — the unpackaged app
-        through Playwright's `_electron`, hermetic (§10)… Every test is hermetic: a temp data folder, `JUST_AI_HOME`
-        pointed there, no network, no real model unless an env flag asks for one (`<APP>_REAL_*=1`)". The template's
-        and house-paint's `e2e/lib/driver.js` do that (they start the app's own server on a temp folder, stop it with
-        POST /v1/shutdown, refuse to run while something holds the port). docgen's (and JustWrite's) driver is the
-        older design they were lifted from: it runs against the dev data folder and the server you start on
-        JustWrite's real project (e2e/README.md) — your global rule: "Test against the user's real app, real data and
-        real project — never a sandbox or scratch config unless asked." The two rules disagree; nothing was changed.
-REC:    docgen takes the template's driver as it is (hermetic by default, a fixture project as its Setup create-flow
-        test already builds), and the kit's own `<APP>_REAL_*` switch — `JUST_AI_I18N_DOCGEN_REAL_PROJECT=1` — runs the
-        same suite against your real data and JustWrite's project, as today. Attack: it costs rewriting the smoke tests
-        that read JustWrite's live state (the staged chip, the routing written by "quick setup RUNS"); without the
-        switch the suite would stop testing your real project, which your rule forbids, hence the switch. JustWrite's
-        driver has the same gap (its session's).
+## Waiting on the kit's finish list — the round's last two steps [2026-10-29]
+WHY:    the close-out round (the user's go, 2026-10-29: "remeber kit work goes to kit session your rec on all go")
+        built items 1–6 and verified them (RESEARCH, "docgen on §15–§18"); two steps take what the kit builds, on
+        its finish list the user approved ("your rec on all … go", kit TASKS "Finish the kit", 7b015c9).
+OPEN:   1. When the kit's template/scripts/start-packaged.js reads the launcher's name from server/package.json (its B):
+           docgen takes the template's file as it is (its copy hard-codes just-ai-i18n-docgen-server, the one line).
+        2. When start-packaged.js takes --data-dir <folder> (its C): that run on docgen's real data folder and
+           JustWrite's project is the acceptance run before a commit (item 5 — the walk done by hand until then).
+
+## Needs your word — a pre-commit hook (Husky + lint-staged, app-structure §18) [2026-10-29]
+FOUND:  the kit asks every app for the template's pre-commit hook (package.json `"prepare": "husky"` + a `lint-staged`
+        block, .husky/pre-commit `npx lint-staged` — Biome on the staged files); its guard will require it once all three
+        apps have it. Claude Code's permission check refused installing it here (a git hook is persistence: it runs
+        on every commit); nothing was left half-done.
+REC:    do — it is the template's, and the guard will fail without it. Your word allows it (or install it yourself:
+        npm i -D husky@^9.1.7 lint-staged@^17.6.0, then the two package.json lines and .husky/pre-commit).

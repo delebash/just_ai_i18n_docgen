@@ -365,6 +365,50 @@ confirm / review moving onto the kit's prompt rows.
   (`seedWorkspace`), so a backup from before the prompt rows restored without them and no run could
   start until a restart. — *code + test (`data.test.js`), 2026-10-29.*
 
+## docgen on §15–§18: errors, forms, the database, screen states, tests (2026-10-29)
+
+- **The kit's `input()` names a query's schema `querystring`**, not `query` — `input({ query: X })` validated
+  nothing and `c.req.valid("query")` came back undefined (a 500 on every query route until fixed). The
+  handler still reads `c.req.valid("query")`. — *found by `server/tests/routes.test.js`, 2026-10-29.*
+- **A plain `HttpError` was already problem+json under `errors: "problem"`** (the kit maps its status to a
+  slug: 409 → `conflict`); docgen's answers were FastAPI's `{detail}` only because `app.js` asked
+  `createServer({ errors: "fastapi" })`. The extension members an app needs (the no-project 409's
+  `needsSetup`) ride `ApiError`'s fifth argument, merged into the body. A route nobody serves still answers
+  `{"detail": "Not Found"}` in both modes (the kit's `app.notFound`). — *`platform/errors.js`, read 2026-10-29.*
+- **The kit's transport puts `status`, `problem`, `errors` and `requestId` on every Error it throws**
+  (`ui/common/services/apiError.js`) — so Home's welcome reads `e.status === 409 && e.problem.needsSetup`,
+  never the message text it used to match. `reportError` shows a 4xx's own problem title (English, the
+  server's) and a 5xx's title only when it isn't HTTP's own phrase, with `Reference <id>`. — *read 2026-10-29.*
+- **The kit's `schemaRules` makes a required, non-nullable property a "Required" rule** — and a QForm
+  marked `greedy` checks every box in it on submit. Setup's add-a-term box (empty whenever nothing is being
+  added) on a required schema refused every Save; a box that may be empty takes an optional or nullable schema, or
+  its field's schema alone (`schemaRules({ properties: { value: Text } })`). — *found by the e2e's create-flow
+  and `src/services/formRules.test.js`, 2026-10-29.*
+- **An AI route's own refusals:** docgen's engine wraps the kit's `localNotReady` in `EngineNotConfigured` (the
+  run's fatal stop) — the flag is kept on the wrapper, so `aiRunHttpError` answers 503 engine-not-ready; an
+  unreachable provider's error passes through with `unreachable` (502); an engine to set up is docgen's 400
+  `engine-not-configured`, an unusable reply its 502 `engine-answer-unusable`. — *`routes.test.js`, 2026-10-29.*
+- **The biggest real catalog, for the schemas' limits:** JustWrite's en.json, 3,165 keys, its longest string 569
+  characters, its longest key 66 (the kit's 1,701 / 396 / 49; docgen's 261 / 305 / 32). The schemas allow 10,000
+  characters a string, 500 a key, 50,000 keys a call. — *measured 2026-10-29.*
+- **docgen's database before §16:** `app.db` at `user_version` 0, its one table `app_settings` created from the
+  captured DDL, foreign keys off. Version 1 of `database/schema.js` adopts the table as it is (created only when
+  missing), so the user's own data folder moved to 1 with every row kept; `PRAGMA foreign_key_check` found no
+  broken link before the keys went on (the kit deletes child rows itself, `llm/stores.js` ~586). — *`node:sqlite`,
+  read-only, before and after the first start, 2026-10-29; `server/tests/database.test.js`.*
+- **The template's e2e driver is hermetic only**: its `<APP>_REAL_*` flag (§18) is about a real model, not real
+  data, and `start-packaged.js --default-data` on Windows runs a fresh `data/` inside its temp copy of the
+  build (`data_paths.js` defaultDataDir: the install folder's `data/` when writable). How an app's acceptance run
+  reaches the user's real data is the kit's (its finish list, 2026-10-29: `start-packaged --data-dir`). The shell's
+  no-server switch is `<ID>_DEV_NO_SERVER` with the id's dashes as underscores (`shell/main.js` ~406) — the
+  template's driver upper-cases its id alone. — *read 2026-10-29.*
+- **The e2e's fixture loads through Setup's own route** (`POST /v1/setup/save`), its staged run output written
+  with the server's `state.js` beside the config before the load. Playwright waits for a clickable element: a
+  second click on the AI-tasks row lands under the open panel's backdrop and times out — `click({ force: true })`,
+  as the template's test does. — *`e2e/lib/fixture.js`, the 19/19 run, 2026-10-29.*
+- **A git hook is persistence to Claude Code's permission check**: installing Husky's pre-commit hook (`prepare: husky`,
+  which sets `core.hooksPath`) was refused — it waits on the user's word. — *2026-10-29.*
+
 ---
 
 ## Records not yet distilled

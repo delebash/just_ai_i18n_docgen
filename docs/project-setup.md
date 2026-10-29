@@ -11,7 +11,9 @@ Press **Check path**. The tool reads the file and reports what it found — *wit
 writing anything*: how many keys, the inferred placeholder syntax (`{name}`,
 `%s`, …), the plural separator, which locale files already exist beside it and how
 done each one is, and glossary candidates it spotted. If any of that looks wrong,
-fix it here — a wrong placeholder inference would flag every translated string.
+fix it here — a wrong placeholder inference would flag every translated string. A path
+the tool can't use (no file there, or not a locale catalog) is said under the box, in
+red, until you change it.
 
 ## The choices
 

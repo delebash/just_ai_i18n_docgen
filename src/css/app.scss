@@ -42,12 +42,13 @@
 
 /* ── runs ───────────────────────────────────────────────────────────────── */
 .runs__strip { margin-top: 12px; }
+/* the history card holds its own loading overlay (q-inner-loading covers its nearest positioned box) */
+.runs__history { position: relative; min-height: 120px; }
 
 /* ── setup ──────────────────────────────────────────────────────────────── */
 .setup__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-items: start; }
 .setup__grid .card { break-inside: avoid; }
 @media (max-width: 1100px) { .setup__grid { grid-template-columns: 1fr; } }
-.setup__error { color: var(--danger); margin: 8px 0 0; }
 .setup__pre {
   margin: 0; padding: 10px 12px; background: var(--surface-2);
   border-radius: var(--r-sm); overflow-x: auto;
@@ -74,7 +75,7 @@
 .bucket .n { margin-left: auto; font-family: var(--font-mono); font-size: 11px;
   color: var(--muted); }
 .review-list { width: 340px; flex-shrink: 0; display: flex; flex-direction: column; min-height: 0; }
-.review-rows { flex: 1; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.review-rows { position: relative; flex: 1; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
 .review-detail { flex: 1; min-width: 0; overflow-y: auto; }
 /* the terse windowed row — a row's job is only to let you move */
 .rrow { display: flex; align-items: center; gap: 8px; padding: 0 10px;

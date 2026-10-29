@@ -28,7 +28,10 @@ export const useReviewStore = defineStore("review", {
     accepted: 0,
     total: 0,
     lang: null,
+    // the rows' load (app-structure §17): running, come from the server at least once, or failed (its error)
     loading: false,
+    loaded: false,
+    loadFailed: null,
     activeKey: null,
     detail: null,        // { siblings, reference } for the active key
     staged: [],          // /v1/proposals for this language — a run's unapplied output
@@ -63,9 +66,16 @@ export const useReviewStore = defineStore("review", {
     async refresh(lang = this.lang) {
       this.loading = true;
       try {
-        const body = await safeRequest(
-          lang ? `/v1/rows?lang=${encodeURIComponent(lang)}` : "/v1/rows", null);
-        if (!body) return;
+        let body;
+        try {
+          body = await get(lang ? `/v1/rows?lang=${encodeURIComponent(lang)}` : "/v1/rows");
+        } catch (e) {
+          // the page says so, with Retry — a failed load never reads as an empty queue
+          this.loadFailed = e;
+          return;
+        }
+        this.loadFailed = null;
+        this.loaded = true;
         this.rows = body.rows;
         this.counts = body.counts;
         this.accepted = body.accepted;

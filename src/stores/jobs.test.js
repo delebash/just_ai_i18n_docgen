@@ -16,14 +16,9 @@ const reply = (method, path, body) => {
 vi.mock("@delebash/ui", () => ({
   post: async (p, b) => reply("POST", p, b),
   del: async (p) => reply("DELETE", p),
-  safeRequest: async (p, fallback = null) => {
-    try {
-      return reply("GET", p);
-    } catch {
-      return fallback;
-    }
-  },
+  get: async (p) => reply("GET", p),
   pushToast: (t) => calls.push(["TOAST", t]),
+  reportError: (e) => calls.push(["REPORT", e?.message]),
   runServerJob: (opts) =>
     new Promise((resolve, reject) => {
       follows.push({ opts, resolve, reject });
@@ -130,4 +125,35 @@ test("the confirmation pass's events become their toasts", async () => {
   expect(toasts[0].message).toContain("3");
   expect(toasts[1]).toMatchObject({ kind: "error" });
   expect(toasts[1].description).toContain("engine down");
+});
+
+test("a run list that fails to load says so, keeps what it had, and Retry clears it (app-structure §17)", async () => {
+  const jobs = useJobsStore();
+  answers.set("GET /v1/runs", { runs: [{ id: 1, lang: "es", scope: "all", state: "done" }] });
+  await jobs.refresh();
+  expect([jobs.loaded, jobs.loadFailed, jobs.runs.length]).toEqual([true, null, 1]);
+  answers.set("GET /v1/runs", () => {
+    throw Object.assign(new Error("Failed to fetch"), { name: "TypeError" });
+  });
+  await jobs.refresh();
+  expect(jobs.loadFailed?.message).toBe("Failed to fetch");
+  expect(jobs.runs.length, "a failed load never empties the history").toBe(1);
+  answers.set("GET /v1/runs", { runs: [] });
+  await jobs.refresh();
+  expect([jobs.loadFailed, jobs.loading]).toEqual([null, false]);
+});
+
+test("a queued language that can't start is said — nobody pressed a button for it", async () => {
+  const jobs = useJobsStore();
+  answers.set("POST /v1/jobs", (b) => {
+    if (b.lang === "fr") throw Object.assign(new Error("a job is already running"), { status: 409 });
+    return snapshot(`j-${b.lang}`, b.lang);
+  });
+  await jobs.startMany(["es", "fr", "de"], "pending");
+  follows[0].opts.onJob(snapshot("j-es", "es", "done"));
+  follows[0].resolve(null);
+  await settle();
+  await settle();
+  expect(calls.filter((c) => c[0] === "REPORT")).toEqual([["REPORT", "a job is already running"]]);
+  expect(jobs.queue, "the rest of the queue is dropped, never stranded").toEqual([]);
 });

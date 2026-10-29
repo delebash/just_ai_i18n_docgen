@@ -8,7 +8,10 @@
 // screen that starts a task shows its strip, and the global stack leaves it out), as on Home.
 import { computed, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { AiTaskStrip, PaneHeader, UiButton, UiProgress, UiSelect, UiTable, otherWindows, pushToast, pageFlow, useSurfaceTask } from "@delebash/ui";
+import {
+  AiTaskStrip, EmptyState, PaneHeader, UiBanner, UiButton, UiProgress, UiSelect, UiTable, errorMessage, otherWindows, pageFlow,
+  reportError, useSurfaceTask,
+} from "@delebash/ui";
 import { ref } from "vue";
 import { langLabel, langOptions } from "../services/langs";
 import { useJobsStore } from "../stores/jobs";
@@ -31,6 +34,13 @@ watch(() => otherWindows.changes, () => jobs.refresh());
 const running = computed(() => jobs.running);
 const translateTask = useSurfaceTask("translate");
 const run = computed(() => jobs.run);
+// the history's states (app-structure §17): loading the first time, failed with its reason and Retry, empty
+const firstLoad = computed(() => jobs.loading && !jobs.loaded);
+const failedReason = computed(() => {
+  if (!jobs.loadFailed) return "";
+  const { title, detail } = errorMessage(jobs.loadFailed);
+  return [title, detail].filter(Boolean).join(" — ");
+});
 
 // History on the SHARED table (2026-08-03) — this page had a hand-rolled `table.plain`
 // beside the dashboard's UiTable, which is two table looks in one app and the exact
@@ -59,7 +69,7 @@ async function start() {
   try {
     await jobs.start({ lang: lang.value, scope: scope.value });
   } catch (e) {
-    pushToast({ kind: "error", title: t("common.couldNotStart"), description: String(e?.message || e) });
+    reportError(e);
   }
 }
 </script>
@@ -80,7 +90,6 @@ async function start() {
                   :disabled="running || jobs.starting || !lang" @click="start" />
       </div>
       <AiTaskStrip v-if="translateTask" class="runs__strip" :task="translateTask" />
-      <p v-if="jobs.error" class="mono" style="color: var(--danger)">{{ jobs.error }}</p>
     </div>
 
     <div class="card" v-if="run">
@@ -95,9 +104,19 @@ async function start() {
       </p>
     </div>
 
-    <div class="card">
+    <div class="card runs__history">
       <h2>{{ t("runs.history") }}</h2>
+      <!-- failed: the reason and Retry -->
+      <UiBanner v-if="jobs.loadFailed">
+        {{ t("kit.common.loadFailed", { error: failedReason }) }}
+        <template #action>
+          <UiButton intent="secondary" size="small" :label="t('kit.common.retry')" @click="jobs.refresh()" />
+        </template>
+      </UiBanner>
+      <!-- empty: no run yet (the form above is what fills it) -->
+      <EmptyState v-else-if="jobs.loaded && !jobs.runs.length" compact icon="History" :message="t('runs.none')" />
       <UiTable
+        v-else-if="jobs.loaded"
         :data="jobs.runs" :columns="historyColumns" data-key="id"
         :default-sort="{ id: 'when', desc: true }"
       >
@@ -110,8 +129,9 @@ async function start() {
           <span :style="row.failed ? 'color: var(--danger); font-weight: 600' : ''">{{ row.failed }}</span>
         </template>
         <template #scope="{ row }">{{ scopeWord(row.scope) }}</template>
-        <template #empty><span class="muted">{{ t("runs.none") }}</span></template>
       </UiTable>
+      <!-- loading: the first load only; never "no runs" while it runs -->
+      <q-inner-loading :showing="firstLoad" :label="t('kit.common.loading')" />
     </div>
   </q-page>
 </template>

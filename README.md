@@ -142,13 +142,13 @@ Lives in `e2e/` — automation over the real desktop app (Electron, the built UI
 ```bash
 cd e2e && npm install          # once — no browser download, no driver binary
 npm run build:unpacked         # the harness drives the BUILT desktop app
-npm run server -- --config <your app>/just-ai-i18n-docgen/config.json   # the real project, on :8742
-npm test                       # the smoke suite
+npm test                       # the smoke suite (stop your dev server first: it starts its own on :8742)
 npm run screenshots            # → e2e/shots/
 ```
 
-- **Real data, real project.** The suite reads live endpoints, so the server must have your real project loaded — a bare `npm run server` boots with none. One test drives the real Quick Setup and writes the engine presets, then restores them.
-- **Cadence.** The suite is a pre-commit gate; per change, run the fast gates (lint, `test:server`, `build:spa`).
+- **Hermetic.** A temp data folder, the harness's own server and the suite's own project (`e2e/lib/fixture.js`) — it never reads or writes your data or your project (the template's driver, app-structure §18). No real model and no network unless `JUST_AI_I18N_DOCGEN_REAL_MODEL=1`.
+- **Your real project** is the acceptance walk in the real window before a change ships (`e2e/README.md`).
+- **Cadence.** The change's own test while building; the suite once, when the work is done.
 - **Rebuild first.** It drives whatever `dist/electron/UnPackaged` was last built.
 - **Close your dev window.** Don't run it while your own window is open on the same server.
 

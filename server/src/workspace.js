@@ -21,7 +21,7 @@
 // server_auth_api / health_api) — the family tree. This module keeps the domain: the
 // Workspace holder, the write rules, and the Lab's test input (labVariables).
 
-import { HttpError } from "@delebash/core/platform/errors";
+import { badRequest } from "@delebash/core/platform/errors";
 import { cmp, isDict, pyGet, pyIter, truthy } from "@delebash/core/platform/py";
 import { pyJson } from "@delebash/core/platform/pyjson";
 import { confirmVariables } from "./confirm.js";
@@ -182,10 +182,10 @@ export class Workspace {
  * (ruling 2026-08-04: "def show the full lab"); the loud 400s are for a catalogue with nothing to sample.
  */
 export function labVariables(p, action, lang, n = 6) {
-  if (!pyIter(p.targets).includes(lang)) throw new HttpError(400, `unknown language: ${lang}`);
+  if (!pyIter(p.targets).includes(lang)) throw badRequest(`unknown language: ${lang}`);
   const dst = p.targetFlat(lang) ?? new Map();
   const keys = [...p.src.keys()];
-  if (!keys.length) throw new HttpError(400, "The source catalogue has no keys to sample.");
+  if (!keys.length) throw badRequest("The source catalogue has no keys to sample.");
   if (action === "translate") {
     const cfg = runCfg(p, lang);
     const phRe = placeholderRe(cfg.placeholder);
@@ -208,10 +208,10 @@ export function labVariables(p, action, lang, n = 6) {
   }
   if (action === "review") {
     const key = keys.find((k) => typeof dst.get(k) === "string" && dst.get(k));
-    if (key === undefined) throw new HttpError(400, `Nothing is translated into ${lang} yet — a back-translation reads a translation.`);
+    if (key === undefined) throw badRequest(`Nothing is translated into ${lang} yet — a back-translation reads a translation.`);
     return backtranslateVariables(dst.get(key), p.cfg, lang);
   }
-  throw new HttpError(400, `No test input for "${action}".`);
+  throw badRequest(`No test input for "${action}".`);
 }
 
 /**

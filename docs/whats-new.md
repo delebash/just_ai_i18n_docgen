@@ -2,6 +2,13 @@
 
 ## v0.1.0
 
+- **Errors say what went wrong, where it went wrong.** A value the server refuses is said under its
+  box — Setup's path when no catalog is there, a translation or a note that is too long; when the
+  server couldn't finish something, the message carries a **Reference** that finds its line in
+  App Settings → Logs ([Troubleshooting](troubleshooting.md))
+- **A list that couldn't load says so.** Review's list and the Runs history show the reason and
+  **Retry** instead of looking empty, and Home shows it is loading instead of a blank page
+  ([Troubleshooting](troubleshooting.md))
 - **You can edit the AI features' prompts.** Translate, confirm and review each have one prompt in the
   AI page's Lab, saved for every run, with **Reset to default** to put the shipped one back; the Lab
   tries it on a live sample of the language you pick. A run whose prompt can't work — no `{{items}}`,

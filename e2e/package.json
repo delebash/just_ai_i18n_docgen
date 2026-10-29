@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "E2E tests and screenshot capture over the REAL desktop app (Electron) via Playwright's Electron driver",
+  "description": "The e2e smoke and screenshot capture over the REAL desktop app (Electron) through Playwright's Electron driver (app-structure §10), hermetic (§18).",
   "scripts": {
-    "test": "node --test --test-reporter=spec tests/*.test.js",
+    "test": "node --test --test-concurrency=1 --test-reporter=spec tests/*.test.js",
     "contract": "node --test --test-reporter=spec tests/contract.test.js",
     "capture": "node capture-direct.js"
   },

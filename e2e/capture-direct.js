@@ -1,74 +1,70 @@
-// Screenshot capture — drives the REAL desktop app (Electron, the built UI from app://)
-// through every surface via the e2e Driver and saves PNGs of its real rendering.
+// SPDX-License-Identifier: MIT
+// Screenshot capture — drives the REAL desktop app (Electron, the built UI from app://) through every surface and saves
+// PNGs of its real rendering into e2e/shots/ (gitignored). `npm run screenshots` from the app's root (app-structure
+// §10); the template's capture-direct.js, with this app's surfaces.
 //
-// Run with: npm run screenshots   (from the app root)
-//
-// The app is launched with JAID_DEV_NO_SIDECAR=1 so it talks to whatever
-// server is already on :8742 — start the server first (e2e/README.md). The
-// unpacked build can't start one of its own: Quasar's --skip-pkg skips
-// installing its dependencies, so with CAPTURE_NO_SIDECAR=0 its server
-// exits at once (measured 2026-10-29) — the packaged build carries them.
+// Hermetic like the smoke (lib/driver.js): a temp data folder, the harness's own server, the shell's
+// JUST_AI_I18N_DOCGEN_DEV_NO_SERVER=1, and the suite's own project (lib/fixture.js) — the shots never show or change
+// your own data. Your real project in the real window is the acceptance walk (e2e/README.md).
 
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Driver } from "./lib/driver.js";
+import { loadFixture } from "./lib/fixture.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const OUT_DIR = path.resolve(__dirname, "shots");
+const here = path.dirname(fileURLToPath(import.meta.url));
+const OUT_DIR = path.resolve(here, "shots");
 
-if (process.env.CAPTURE_NO_SIDECAR !== "0") {
-  process.env.JAID_DEV_NO_SIDECAR = "1";
-}
-
-const ONCE = [
-  { name: "home", hash: "#/", wait: 2200 },
-  { name: "setup", hash: "#/setup", wait: 2200 },
-  { name: "review", hash: "#/review", wait: 2200 },
-  { name: "runs", hash: "#/runs", wait: 1800 },
-  { name: "docs", hash: "#/docs", wait: 1500 },
-  { name: "ai", hash: "#/ai", wait: 2500 },
-  { name: "settings-appearance", hash: "#/settings/appearance", wait: 1800 },
-  { name: "settings-storage", hash: "#/settings/storage", wait: 1800 },
-  { name: "settings-logs", hash: "#/settings/logs", wait: 1800 },
+const SURFACES = [
+  { name: "home", hash: "#/", ready: ".dash" },
+  { name: "setup", hash: "#/setup" },
+  { name: "review", hash: "#/review?lang=es", ready: ".rrow" },
+  { name: "runs", hash: "#/runs" },
+  { name: "docs", hash: "#/docs" },
+  { name: "ai", hash: "#/ai" },
+  { name: "settings-general", hash: "#/settings/general" },
+  { name: "settings-appearance", hash: "#/settings/appearance" },
+  { name: "settings-reviewer", hash: "#/settings/reviewer" },
+  { name: "settings-backups", hash: "#/settings/backups" },
+  { name: "settings-storage", hash: "#/settings/storage" },
+  { name: "settings-server", hash: "#/settings/server" },
+  { name: "settings-logs", hash: "#/settings/logs" },
+  { name: "settings-about", hash: "#/settings/about" },
+  { name: "not-found", hash: "#/no-such-page" },
 ];
 
 async function main() {
-  if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
-
+  fs.mkdirSync(OUT_DIR, { recursive: true });
   const d = new Driver();
-  console.log("→ launching the desktop app");
+  console.log("→ starting the server and the desktop app (hermetic)");
+  await d.startServer();
+  await loadFixture(d);
   await d.launch();
   await d.maximize();
-  await d.sleep(2000);
-
+  await d.page.waitForSelector(".shell", { timeout: 30_000 });
   try {
-    for (const t of ONCE) {
-      console.log(`→ ${t.name} (${t.hash})`);
-      await d.navigate(t.hash);
-      await d.sleep(t.wait);
-      const file = path.join(OUT_DIR, `${t.name}.png`);
-      await d.screenshot(file);
-      console.log(`   saved ${path.basename(file)}`);
+    for (const s of SURFACES) {
+      console.log(`→ ${s.name} (${s.hash})`);
+      await d.navigate(s.hash);
+      if (s.ready) await d.page.waitForSelector(s.ready, { timeout: 10_000 });
+      await d.page.waitForLoadState("networkidle").catch(() => {});
+      await d.page.waitForTimeout(600); // let transitions settle before the picture
+      await d.screenshot(path.join(OUT_DIR, `${s.name}.png`));
     }
-
-    // The Quick Setup wizard, OPEN — a modal never appears in a route shot, and
-    // this one is where the design decisions live (one Cancel, the measured
-    // catalog, the copy). It is only opened, never run: "Set it up" starts a real
-    // engine install + multi-GB download.
-    console.log("→ quicksetup (modal, opened not run)");
+    // the Quick Setup wizard, open — a dialog never shows in a route's shot; opened, never run (Apply starts a real
+    // engine install and a multi-GB download)
+    console.log("→ quicksetup (dialog, opened not run)");
     await d.navigate("#/ai");
-    await d.sleep(2500);
-    await d.exec(`[...document.querySelectorAll('button')].find(b => /Run Quick Setup/i.test(b.textContent))?.click();`);
-    await d.sleep(1200);
-    const qs = path.join(OUT_DIR, "quicksetup.png");
-    await d.screenshot(qs);
-    console.log(`   saved ${path.basename(qs)}`);
+    await d.page.getByRole("button", { name: /Run Quick Setup|Re-run Quick Setup/i }).click();
+    await d.page.waitForSelector("[role=dialog]");
+    await d.page.waitForTimeout(1200);
+    await d.screenshot(path.join(OUT_DIR, "quicksetup.png"));
   } finally {
-    console.log("→ ending session");
+    console.log("→ closing");
     await d.close();
   }
-  console.log("done.");
+  console.log(`done — ${OUT_DIR}`);
 }
 
 main().catch((e) => {

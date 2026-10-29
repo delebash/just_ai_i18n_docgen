@@ -14,20 +14,31 @@
 //   operator config and stays.
 //
 // The table's DDL is generated from Python's AppBase (appmeta_schema.js, the kit's
-// capture-schema.py) so a new database is byte-for-byte what Python creates.
+// capture-schema.py) so a new database is byte-for-byte what Python creates; the kit's migrations bring it up
+// (database/schema.js, app-structure §16).
 
+import { migrate } from "@delebash/core/platform";
+import { getLogger } from "@delebash/core/platform/log";
 import { pyJson } from "@delebash/core/platform/pyjson";
-import { TABLES } from "./appmeta_schema.js";
+import { APP_TABLES, MIGRATIONS } from "./database/schema.js";
 
-export { TABLES as APP_TABLES };
+export { APP_TABLES };
+
+const log = getLogger("just_ai_i18n_docgen.database");
 
 let handle = null;
 
 /** Called once from createApp, with the same database handle installLlm uses — one database,
- * two table sets, the documented pattern. Creates the table when missing. */
+ * two table sets, the documented pattern. Brings the app's tables to the newest schema (the kit's migrate). */
 export function configureAppStorage(h) {
   handle = h;
-  h.createTables(TABLES);
+  migrateAppTables(h);
+}
+
+/** The app's migrations on the handle (a database newer than this code is refused, as in every family app). */
+export function migrateAppTables(h) {
+  const { from, to } = migrate(h, MIGRATIONS);
+  if (from !== to) log.info(`app tables at schema ${to} (from ${from})`);
 }
 
 function session() {

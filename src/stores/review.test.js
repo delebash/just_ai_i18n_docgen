@@ -5,6 +5,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, expect, test, vi } from "vitest";
 
 const calls = [];
+let rowsFail = null; // an error the next GET /v1/rows throws
 vi.mock("@delebash/ui", () => ({
   post: async (p, b) => {
     calls.push(["POST", p, b]);
@@ -12,7 +13,8 @@ vi.mock("@delebash/ui", () => ({
   },
   get: async (p) => {
     calls.push(["GET", p]);
-    return { rows: [], counts: {}, accepted: 0, total: 0 };
+    if (rowsFail && p.startsWith("/v1/rows")) throw rowsFail;
+    return { rows: [], counts: {}, accepted: 0, total: 0, langs: ["es"] };
   },
   put: async () => ({}),
   del: async () => ({}),
@@ -24,6 +26,7 @@ const { useReviewStore } = await import("./review.js");
 beforeEach(() => {
   setActivePinia(createPinia());
   calls.length = 0;
+  rowsFail = null;
 });
 
 test("Undo undoes the shown language's last action", async () => {
@@ -32,4 +35,16 @@ test("Undo undoes the shown language's last action", async () => {
   review.refresh = async () => {};
   await review.undo();
   expect(calls[0]).toEqual(["POST", "/v1/undo", { lang: "fr" }]);
+});
+
+test("a queue that fails to load says so and is never shown as empty; Retry clears it (app-structure §17)", async () => {
+  const review = useReviewStore();
+  expect([review.loaded, review.loadFailed]).toEqual([false, null]);
+  rowsFail = Object.assign(new TypeError("Failed to fetch"));
+  await review.refresh("es");
+  expect(review.loadFailed?.message).toBe("Failed to fetch");
+  expect([review.loaded, review.loading]).toEqual([false, false]);
+  rowsFail = null;
+  await review.refresh("es");
+  expect([review.loaded, review.loadFailed]).toEqual([true, null]);
 });

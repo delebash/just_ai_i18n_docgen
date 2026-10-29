@@ -7,26 +7,31 @@
 
 import path from "node:path";
 import { Hono, input } from "@delebash/core/platform";
-import { HttpError } from "@delebash/core/platform/errors";
+import { RequestValidationError } from "@delebash/core/platform/errors";
 import { LANGUAGE_CODES } from "@delebash/core/platform/languages";
 import { errText, FileNotFoundError, isDict, pyGet, pyTypeName, strip, truthy, ValueError } from "@delebash/core/platform/py";
 import * as appmeta from "../appmeta.js";
 import { getState } from "../app_state.js";
 import { gitignoreLines, planInit, writeInit } from "../init.js";
-import { flatten, mergeDicts, pyStr, readJson, toPlain } from "../jsonio.js";
+import { flatten, mergeDicts, readJson, toPlain } from "../jsonio.js";
 import { exists } from "../paths.js";
+import { InspectIn, ReviewerIn, SetupIn } from "../schemas/setup.js";
 import { _glossaryList } from "../workspace.js";
-import { BODY } from "./server_auth_api.js";
 
-/** `str(body.get("path") or "").strip().strip("\"'")` */
+/** The path box's text, its whitespace and quotes trimmed (a path pasted from Explorer's "Copy as path" is quoted);
+ *  nothing left is the field's own refusal, under it. */
 const pathOf = (body) => {
-  const p = pyGet(body, "path");
-  return strip(strip(pyStr(truthy(p) ? p : "")), "\"'");
+  const p = strip(strip(body.path), "\"'");
+  if (!p) throw pathError("give me the path to your en.json", "missing");
+  return p;
 };
 
-/** FileNotFoundError / ValueError → 400 with the message (Python's `except … as e: 400`). */
-function asBadRequest(e) {
-  if (e instanceof FileNotFoundError || e instanceof ValueError) return new HttpError(400, errText(e));
+/** A path the server can't use, said under the path box (a 422 at `["body", "path"]` — the form's fieldErrors). */
+const pathError = (msg, type = "value_error") => new RequestValidationError([{ type, loc: ["body", "path"], msg }]);
+
+/** FileNotFoundError / ValueError (no such file, not a locale catalog) → the path's own 422, in their words. */
+function asPathError(e) {
+  if (e instanceof FileNotFoundError || e instanceof ValueError) return pathError(errText(e));
   return e;
 }
 
@@ -59,14 +64,13 @@ export function router() {
    * validation behind the path box. Seeing that the tool understood your catalogue is what
    * proves the path is right before an hour of engine time proves it was not.
    */
-  app.post("/v1/setup/inspect", input({ body: BODY }), async (c) => {
+  app.post("/v1/setup/inspect", input({ body: InspectIn }), async (c) => {
     const p = pathOf(c.req.valid("json"));
-    if (!p) throw new HttpError(400, "give me the path to your en.json");
     let plan;
     try {
       plan = planInit(p);
     } catch (e) {
-      throw asBadRequest(e);
+      throw asPathError(e);
     }
     const locales = [];
     for (const code of plan.existingTargets) {
@@ -102,18 +106,15 @@ export function router() {
    * the file already had that this screen does not manage is preserved — the UI is a writer,
    * never an owner.
    */
-  app.post("/v1/setup/save", input({ body: BODY }), async (c) => {
+  app.post("/v1/setup/save", input({ body: SetupIn }), async (c) => {
     const body = c.req.valid("json");
     const ws = getState().workspace;
     const p = pathOf(body);
-    if (!p) throw new HttpError(400, "give me the path to your en.json");
     // A field the caller DIDN'T send falls back to the EXISTING config's value, never to
     // planInit's defaults — the defaults overwrote the real glossary through the merge below
     // (found by the 2026-08-05 audit). The existing file is read for fallbacks BEFORE
     // planning; the merge still preserves every unmanaged key.
-    const bodyTargets = Array.isArray(pyGet(body, "targets")) ? pyGet(body, "targets") : null;
-    const bodyContext = typeof pyGet(body, "context") === "string" ? pyGet(body, "context") : null;
-    const bodyGlossary = Array.isArray(pyGet(body, "glossary")) ? pyGet(body, "glossary") : null;
+    const { targets: bodyTargets = null, context: bodyContext = null, glossary: bodyGlossary = null } = body;
     let plan;
     try {
       const probe = planInit(p);
@@ -132,7 +133,7 @@ export function router() {
               : null,
       });
     } catch (e) {
-      throw asBadRequest(e);
+      throw asPathError(e);
     }
     const configPath = plan.configPath;
     const existing = exists(configPath) ? readJson(configPath) : new Map();
@@ -144,10 +145,8 @@ export function router() {
 
   app.get("/v1/reviewer", async (c) => c.json({ reviewer: appmeta.getReviewer() }));
 
-  app.put("/v1/reviewer", input({ body: BODY }), async (c) => {
-    const r = pyGet(c.req.valid("json"), "reviewer");
-    if (r !== null && typeof r !== "string") throw new HttpError(400, "reviewer must be a string or null");
-    appmeta.setReviewer(r);
+  app.put("/v1/reviewer", input({ body: ReviewerIn }), async (c) => {
+    appmeta.setReviewer(c.req.valid("json").reviewer);
     return c.json({ reviewer: appmeta.getReviewer() });
   });
   return app;

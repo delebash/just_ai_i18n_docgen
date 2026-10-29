@@ -25,7 +25,14 @@ another Just AI i18n & DocGen server is using this data folder. Quit the other c
 tray's **Quit**), or give the second one its own `--data-dir`.
 
 **A message showed an error from the window.** The window's own errors land in
-**App Settings → Logs** beside the server's lines, so the details are there.
+**App Settings → Logs** beside the server's lines, so the details are there. When the
+server couldn't finish something, the message carries a **Reference** — search for it in
+**App Settings → Logs** to find that request's own line. A value the server refused is
+said under its box instead (a path that isn't there, a note that is too long).
+
+**A page says it couldn't load.** Review's list and the Runs history say so, with the
+reason and **Retry**, rather than looking empty — the server didn't answer that time.
+Retry asks again.
 
 **Home shows the welcome screen although I set up before.** The welcome only
 appears on a confirmed "no project loaded" answer from the server. If your
@@ -56,4 +63,7 @@ committed — commit your applied translations and `<lang>.accepted.json`
 together. Advisory flags (`disagreement`, `terminology`) never fail `check`.
 
 **Back-translate shows an error.** "What does it say?" needs the engine; when
-the engine is down it fails soft (a 502) and never blocks reviewing or saving.
+the engine is down it fails soft and never blocks reviewing or saving. The message says
+which: the local model isn't ready (it's still loading, or stopped), the AI provider
+can't be reached, the engine isn't set up for the review feature, or its answer wasn't
+usable.
