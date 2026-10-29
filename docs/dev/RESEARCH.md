@@ -134,6 +134,20 @@ standard").
 - **The kit's fonts reach the build** — with `~@delebash/ui/common/fonts.css` in
   `quasar.config.js > css`, `npm run build:spa` writes 242 woff/woff2 files to `dist/spa/assets`.
   — *measured 2026-10-24.*
+- **The CLI's shell launcher (macOS/Linux, 2026-10-28)** — the server's launcher with `cli.js`;
+  dry-run with a stub executable: it runs `<here>/just_ai_i18n_docgen` on
+  `resources/app.asar/node_modules/just-ai-i18n-docgen-server/src/cli.js` with the arguments,
+  `ELECTRON_RUN_AS_NODE=1`, `NODE_USE_SYSTEM_CA=1` (a value already set kept). The builder ships
+  every non-.cmd launcher on both. macOS's branch unrun (no runner here). — *measured 2026-10-28.*
+- **JustWrite's website rebuilds on a release through a secret** — its repo holds
+  `WEBSITE_DISPATCH_TOKEN` (set 2026-06-04), and its v2.0.0 release run (01:20 UTC 2026-10-29) was
+  followed by justwrite-website's `repository_dispatch` deploy at 01:28. docgen's repo has none:
+  its release's notify-website says so and passes. — *`gh secret list`, `gh run list`, 2026-10-28.*
+- **npm audit, 2026-10-28** — docgen's root lock: jsdom's `undici` 8.11.2 → 8.12.3 and Quasar's
+  `serialize-javascript` 7.1.2 → 7.1.4 (`npm audit fix`, no --force); `src-electron/`'s lock:
+  `fast-uri` and `@electron/get`'s `undici`. Left, the kit's to move: the kit core's own `undici`
+  8.11.2 (its lock; it ships in docgen's server — `dist/electron/UnPackaged/package-lock.json`)
+  and Electron 44.7.0 (GHSA-jr5w-w6x2-84p9, fixed in 44.10.0). — *`npm audit`, `npm ls`.*
 - **The maintenance gate holds every write by default** — a restore waits for the writes already
   running (an AI run's POST included) and refuses new ones with 503 and Retry-After; docgen
   passes no `isDataWrite`, as the template. — *code: core `platform/maintenance.js`;

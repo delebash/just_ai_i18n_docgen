@@ -2,6 +2,13 @@
 
 ## v0.1.0
 
+- **The command line on macOS and Linux.** The installed app carries `just-ai-i18n-docgen` there too,
+  and on every system it trusts the system's certificates ([The command line](cli.md))
+- **Runs shows a running run as Home does** — the same strip, with its Cancel ([Running a
+  translation](translate.md))
+- **Server and About in App Settings are the family's.** Server copies the address, generates an
+  access token and copies the address with a token for a browser on another computer; About shows
+  the desktop runtime and the data folder beside the version ([App Settings](settings.md))
 - **Change folder keeps the old copy until you remove it.** Settings → Storage shows the copy a
   move left behind, with its size and **Remove the old copy**, and a **Move back to the default
   folder** while the data is elsewhere ([App Settings](settings.md))

@@ -67,7 +67,7 @@ A fresh install opens on a welcome screen — **1 Point · 2 Translate · 3 Revi
 
 - **Five commands.** `translate`, `check`, `escalate`, `accept`, `extract` — `check` exits 1 on failures, so it gates CI.
 - **One implementation, two doors.** The CLI and the app share every decision; a CLI run shows up in Review exactly like an app run.
-- **Installed with the app.** `just-ai-i18n-docgen <command> <config>` and `just-ai-i18n-docgen-server serve` sit beside the exe and run on it — nothing else to install.
+- **Installed with the app.** `just-ai-i18n-docgen <command> <config>` and `just-ai-i18n-docgen-server serve` sit beside the exe (on macOS in `Contents/Resources`) and run on it — nothing else to install.
 
 ### ✶ AI — local or online
 

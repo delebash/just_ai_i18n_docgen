@@ -1,0 +1,23 @@
+#!/bin/sh
+# just-ai-i18n-docgen: the command line (translate, check, escalate, accept, extract) on macOS and Linux - the
+# app's own executable run as Node, the same brain as the app, no window (Windows has the .cmd beside it). Linux:
+# beside the executable (an AppImage: after --appimage-extract, in squashfs-root); macOS: in the app's
+# Contents/Resources. The server's launcher (just-ai-i18n-docgen-server beside it) with the CLI's entry.
+self=$(readlink -f "$0" 2>/dev/null || printf '%s' "$0")
+here=$(cd "$(dirname "$self")" && pwd)
+if [ -d "$here/../MacOS" ]; then
+  # the bundle's own executable, named by its Info.plist (CFBundleExecutable; PlistBuddy ships with macOS): another
+  # program an app puts in Contents/MacOS never runs in its place (JustVoice's audiocpp_dsp, 2026-10-20)
+  exe="$here/../MacOS/$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$here/../Info.plist")"
+  res="$here"
+else
+  # the Linux executable is named after the package (package.json "name", electron-builder's default):
+  # just_ai_i18n_docgen - not this launcher's stem, as on Windows (just_ai_i18n_docgen.exe)
+  exe="$here/just_ai_i18n_docgen"
+  res="$here/resources"
+fi
+# the OS's certificates trusted too (Node's NODE_USE_SYSTEM_CA, nodejs.org/api/cli.html#node_use_system_ca1):
+# a network that inspects TLS signs with a certificate only the OS knows. A value already set is kept.
+NODE_USE_SYSTEM_CA="${NODE_USE_SYSTEM_CA:-1}"
+export NODE_USE_SYSTEM_CA
+ELECTRON_RUN_AS_NODE=1 exec "$exe" "$res/app.asar/node_modules/just-ai-i18n-docgen-server/src/cli.js" "$@"

@@ -26,9 +26,11 @@
   **Clear…** for the downloaded models (the model must be unloaded first) and for
   the engine's logs. Your PROJECT files are not here — they live in your app's repo
   (see [Your files](files-and-git.md)).
-- **Server** — for headless use: the URL to open in a browser, bearer tokens
-  (auth is off while the token list is empty), and "require for loopback" if
-  even local requests must authenticate. **Keep server running after the app
+- **Server** — for headless use: the address to open in a browser, with **Copy**;
+  access tokens (off while the list is empty) — paste one or **Generate** it,
+  **Copy the address with this token** for a browser on another computer (it
+  opens signed in), and **Require a token on this computer too** if even local
+  requests must authenticate. **Keep server running after the app
   closes**: with it on, closing the window hides the app to the system tray and
   the server keeps serving — left-click the tray icon to bring the window back.
   The tray menu carries 📺 Show / 🔵 Hide window, ▶️ Start / ⏹ Stop / 🔄 Restart
@@ -40,4 +42,4 @@
 - **Updates** — the version you're on and what changed in each release.
 - **Reviewer** — the name stamped on every acceptance. Set it before you review;
   an empty name records "unknown" in your committed review history.
-- **About** — version and links.
+- **About** — the version, the desktop runtime, the data folder and the source.

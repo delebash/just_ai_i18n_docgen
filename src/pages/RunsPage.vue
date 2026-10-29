@@ -3,10 +3,12 @@
 // Runs — start a job (202, followed, cancellable, rejoinable), watch it, and read the
 // history ("how did this catalogue get here"). A job stages PROPOSALS only; applying
 // is the review page's explicit human action. Close the tab and come back: the page
-// rejoins the run it did not start, and a finished run's card is read from its record.
+// rejoins the run it did not start, and a finished run's card is read from its record. A running
+// run shows here as the kit's AiTaskStrip (its progress and the one Cancel — app-structure §8: the
+// screen that starts a task shows its strip, and the global stack leaves it out), as on Home.
 import { computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { PaneHeader, UiButton, UiProgress, UiSelect, UiTable, pushToast, pageFlow } from "@delebash/ui";
+import { AiTaskStrip, PaneHeader, UiButton, UiProgress, UiSelect, UiTable, pushToast, pageFlow, useSurfaceTask } from "@delebash/ui";
 import { ref } from "vue";
 import { langLabel, langOptions } from "../services/langs";
 import { useJobsStore } from "../stores/jobs";
@@ -25,6 +27,7 @@ onMounted(async () => {
 });
 
 const running = computed(() => jobs.running);
+const translateTask = useSurfaceTask("translate");
 const run = computed(() => jobs.run);
 
 // History on the SHARED table (2026-08-03) — this page had a hand-rolled `table.plain`
@@ -73,9 +76,8 @@ async function start() {
         <UiSelect v-model="scope" :options="scopeOptions" width="token" />
         <UiButton intent="primary" :label="jobs.starting ? t('runs.starting') : t('common.translate')"
                   :disabled="running || jobs.starting || !lang" @click="start" />
-        <UiButton v-if="running" intent="danger-outline" :label="t('runs.cancel')"
-                  @click="jobs.cancel()" />
       </div>
+      <AiTaskStrip v-if="translateTask" class="runs__strip" :task="translateTask" />
       <p v-if="jobs.error" class="mono" style="color: var(--danger)">{{ jobs.error }}</p>
     </div>
 
@@ -85,7 +87,7 @@ async function start() {
         {{ t("runs.jobProgress", { done: run.done, total: run.total, requests: run.requests, state: stateWord(run) }) }}
         <template v-if="run.error"> · {{ run.error }}</template>
       </p>
-      <UiProgress :value="run.done" :max="run.total" />
+      <UiProgress v-if="!running" :value="run.done" :max="run.total" />
       <p v-if="run.failed.length" class="mono" style="color: var(--danger); margin-bottom: 0">
         {{ t("runs.exhausted", { n: run.failed.length, keys: run.failed.join(", ") }, run.failed.length) }}
       </p>

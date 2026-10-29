@@ -119,7 +119,6 @@
       "cancelled": "cancelled"
     },
     "starting": "Starting…",
-    "cancel": "Cancel (keeps staged work)",
     "jobRunning": "Running — {lang} · {scope}",
     "jobLast": "Last job — {lang} · {scope}",
     "jobProgress": "{done}/{total} staged · {requests} requests · state: {state}",
@@ -183,18 +182,6 @@
     "storage": {
       "saves": "your connections, presets"
     },
-    "server": {
-      "headlessTitle": "Headless access",
-      "headlessHint": "The server hosts the UI itself — {command} plus a browser gives the full app without the desktop shell.",
-      "url": "URL",
-      "keepRunning": "Keep server running after the app closes",
-      "keepRunningHint": "With this on, closing the window hides the app to the tray and the server keeps serving — use the tray to show the window again or quit for real.",
-      "tokensTitle": "Access tokens",
-      "tokensHint": "Off by default. Add a token to require an {header} header on every {api} API call — for when you run the server exposed beyond this machine.",
-      "tokenPlaceholder": "new token…",
-      "addToken": "Add token",
-      "requireOnLocalhost": "Require a token even on localhost"
-    },
     "logsHint": "The live ring + per-day files. What the engine actually did, when.",
     "reviewer": {
       "title": "Reviewer",
@@ -203,9 +190,7 @@
       "saved": "Reviewer saved"
     },
     "about": {
-      "blurb": "Simple translation & help docs for your application — translated locally or online, verified, and reviewed by you.",
-      "version": "Version",
-      "source": "Source"
+      "blurb": "Simple translation & help docs for your application — translated locally or online, verified, and reviewed by you."
     }
   },
   "review": {

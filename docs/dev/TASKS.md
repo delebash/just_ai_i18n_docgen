@@ -16,15 +16,6 @@
 > item points to — **read that doc before coding the item**. Close = delete — git
 > keeps history. A tracker line is a claim, not evidence — verify against code.
 
-## Settings → Server and About on the kit's panels [2026-10-28]
-OPEN:   found 2026-10-28 while Storage moved onto the kit's StoragePanel (f7f2fc6), and on the kit's list (its
-        840b6ae, "for docgen's own list"): docgen's Server section (headless URL, keep-running, access tokens)
-        and About are hand-built in `src/pages/SettingsPage.vue`, where the template uses the kit's
-        `ServerPanel` and `AboutPanel` (`../just-core/template/src/pages/SettingsPage.vue`) — a second way to do
-        a job the kit has. Rec (not yet put to the user): both on the kit's panels, as Storage; their own
-        `settings.server.*` / `settings.about.*` words go where the kit's take over, Spanish by the review's
-        --new run, user docs settings.md.
-
 ## The kit's page looks, the window counter and the settings upgrade — adopt them [2026-10-24]
 OPEN:   the kit grew three standards on 2026-10-24 (its plan `../just-core/docs/plans/2026-10-24-engines-the-llama-way.md`,
         round A2 — under the user's go there, "fix it all your rec do it right like a professional go"); the template
@@ -39,50 +30,6 @@ OPEN:   the kit grew three standards on 2026-10-24 (its plan `../just-core/docs/
         `watchOtherWindows` (the template's app.js, data_admin.js, boot file and NotesPage are the reference).
         F2 — a better default reaching an install: the kit's `upgradeSettings` + a test holding every
         default's fingerprint (the template's database/seed.js PREVIOUS_DEFAULTS, tests/settings_upgrade.test.js).
-
-## docgen on the template's standard — the guard's advisories [2026-10-24]
-STATE:  BUILT 2026-10-24 in a docgen session; four questions open (OPEN). The user (2026-10-24):
-        "you can start a docgen session in its repo if needed you can do it all just do it right
-        think about it before you act" —
-        each fix follows the kit template's own file (`../just-core/template`), the list being the
-        family guard's docgen advisories (`node scripts/check-family.js --info`); the settings
-        page's title is the user's decision D5 (2026-10-24): "# App Settings", the kit's sidebar
-        word in every app.
-BUILT:  server — CORS answers the app's own origins only (APP_ORIGINS + CAPACITOR_ORIGINS, was every
-        origin); the kit's MaintenanceGate before the routes; Settings → Backups' router moved to
-        `server/src/data_admin.js` (the template's): the gate, `beforeReplace`, and `keepAuth` — a
-        restore or a reset keeps this server's access tokens, a backup carries none; the built UI
-        through the kit's `serveUi`. Tests: `server/tests/data.test.js`, the CORS and headless-UI
-        tests in `app.test.js`. User docs: settings.md (Backups).
-        Renderer — the connection page says the shell's reasons (portOtherUser, portReserved,
-        serverError; `shellServerStatus` in native.js, the template's page and its test); the tray's
-        Copy server URL through Quasar's `copyToClipboard`; boot calls the kit's
-        `installErrorReporting`; the kit's fonts listed in quasar.config.js (the SPA build carries
-        them); Home finds its translate strip's task with the kit's `useSurfaceTask("translate")`.
-        User docs: troubleshooting.md, settings.md (Logs), whats-new.md.
-        Release and launchers — the template's `.github/workflows/release.yml` (workflow_dispatch only,
-        the kit at `inputs.core_ref`), `scripts/release.js`, `bump.js`, `start-packaged.js` (the
-        launcher named `just-ai-i18n-docgen-server`), the "bump"/"release" scripts, the builder's
-        GitHub `publish` + `artifactName`, the launchers copied per platform, the macOS/Linux shell
-        launcher (executable in git; it names the Linux executable `just_ai_i18n_docgen`), the .cmd
-        sets NODE_USE_SYSTEM_CA=1; `GET /v1/health` names `dataDir` (the release's
-        --default-data check reads it). Linux builds the AppImage only, as the template (the .deb
-        needs a maintainer and a homepage). Not run: no release, no workflow.
-        AGENTS.md in the template's shape with the family rules between the markers; CLAUDE.md
-        imports it. The help page "settings" titled "App Settings" (D5) — settings.md, toc.json,
-        whats-new.md's link text.
-CHECKED: 2026-10-24 — lint (98 files), test:server 171/171 (165 before), test:unit 11/11 (5
-        before), i18n:lint 0, i18n:report none missing, the guard: no violations and no docgen
-        advisory left; the Windows installer built with `-P never` and `start-packaged.js`
-        (window, --headless, the --default-data pair) passed. Not run: `npm test` (the e2e needs
-        the real dev data folder and JustWrite's project, and one test writes presets).
-OPEN:   questions for the user — (1) the Runs page starts translations too and keeps its own run
-        card (progress, requests, exhausted keys); the kit's strip is only on Home: add it on Runs
-        too? (2) the CLI's .cmd launcher doesn't set NODE_USE_SYSTEM_CA, and macOS/Linux have no CLI
-        launcher — the template has no CLI to follow. (3) and (4) closed 2026-10-28 (the user: "your rec on
-        the rest go"): Linux stays AppImage-only, as the template (a .deb needs a maintainer, still unnamed);
-        es.json has the eight strings it lacked, by the agentic review's --new run (RESEARCH).
-GO:     the user, 2026-10-24 (above).
 
 ## Every app and the kit on vue-i18n [2026-10-12]
 STATE:  DECIDED 2026-10-12, family-wide; plan written, awaiting go — the decision with the user's

@@ -23,9 +23,10 @@ Rules a run always follows:
   silently skipped.
 
 The **Runs** page offers the same start controls plus scope choices
-(`pending` / `flagged` / `unsure` / `all`) and the full run history. Its card shows
-the running run, or the last one — how it ended and the keys it couldn't deliver —
-after a reload too. One honest
+(`pending` / `flagged` / `unsure` / `all`) and the full run history. A running run
+shows there as the same strip as on Home, with its progress and Cancel; its card shows
+the counts, or the last run — how it ended and the keys it couldn't deliver — after a
+reload too. One honest
 note: `unsure` selects keys the [probe](verification.md) marked as disagreements —
 and today the probe only runs from the CLI, so on an app-only workflow that scope
 finds nothing.

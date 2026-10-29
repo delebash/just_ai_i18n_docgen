@@ -5,21 +5,22 @@
 // to the kit 2026-10-19 — the old copies a move leaves, removed from here), the shell's folder
 // calls; Appearance = the kit AppearancePanel
 // (JV's donor rows, ONE shared surface — the 2026-08-04 shared-panel ruling);
-// Server = JW's headless/auth section over this app's /v1/server-auth;
-// Logs = kit LogsPanel; Reviewer = this app's own (tool-level, moved from Setup).
+// Server = the kit's ServerPanel (JW's headless/auth cards, promoted) over this app's /v1/server-auth;
+// Logs = kit LogsPanel; About = the kit's AboutPanel (version and data folder from /v1/health);
+// Reviewer = this app's own (tool-level, moved from Setup).
 import { computed, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import {
-  AppearancePanel, DataManagement, LanguagePicker, LogsPanel, PaneHeader, SettingsShell, StoragePanel,
-  UiButton, UiInput, UiToggle, UpdatesPanel,
-  SETTINGS_SECTION_ORDER, openExternal, pushToast, put, renderHelpMarkdown,
-  safeRequest, serverUrl,
+  AboutPanel, AppearancePanel, DataManagement, LanguagePicker, LogsPanel, PaneHeader, ServerPanel, SettingsShell,
+  StoragePanel, UiInput, UpdatesPanel,
+  SETTINGS_SECTION_ORDER, pushToast, renderHelpMarkdown,
+  safeRequest,
 } from "@delebash/ui";
 import { LOCALE_CODES } from "../i18n/index.js";
 import { loadDoc } from "../services/helpDocs.js";
 import {
-  desktopUpdater, pickDirectory, setKeepRunning as nativeSetKeepRunning, storageForgetOldCopy, storageGetRoot,
+  desktopUpdater, pickDirectory, setKeepRunning as nativeSetKeepRunning, shellVersion, storageForgetOldCopy, storageGetRoot,
   storageOldCopies, storageRelocate, storageRemoveOldCopy, storageUseDefault,
 } from "../services/native.js";
 import { SETTINGS_SECTION_IDS } from "../services/settingsSections.js";
@@ -49,9 +50,13 @@ const active = ref(props.section || "appearance");
 watch(() => props.section, (s) => { if (s) active.value = s; });
 
 // Updates — release notes for the kit UpdatesPanel (JW's pattern: source +
-// renderer app-side, presentation shared). Loaded lazily on first open.
-const APP_VERSION = "0.1.0";
+// renderer app-side, presentation shared). Loaded lazily on first open. The version is the
+// server's (GET /v1/health — one number, package.json), never written here.
 const SOURCE_URL = "https://github.com/delebash/just_ai_i18n_docgen";
+// About: the desktop runtime (Electron's version; "" in a browser). Server: the command that starts
+// the server alone — the installed launcher's name.
+const runtime = shellVersion();
+const SERVER_COMMAND = "just-ai-i18n-docgen-server serve";
 // The desktop app's updater (the kit shell's); docgen's shell has updates off until it has releases.
 const updater = desktopUpdater();
 const changelogHtml = ref("");
@@ -92,34 +97,6 @@ async function saveReviewer() {
   }
 }
 
-// ── server (headless access + bearer tokens — JW's section) ───────────────
-const auth = ref({ tokens: [], requireForLoopback: false });
-const tokenDraft = ref("");
-const headlessUrl = computed(
-  () => serverUrl("") || (typeof window !== "undefined" ? window.location.origin : ""),
-);
-async function loadAuth() {
-  const a = await safeRequest("/v1/server-auth", null);
-  if (a) auth.value = a;
-}
-async function saveAuth(patch) {
-  const next = { ...auth.value, ...patch };
-  try {
-    auth.value = await put("/v1/server-auth", next);
-  } catch (e) {
-    pushToast({ kind: "error", title: t("common.couldNotSave"), description: String(e?.message || e) });
-  }
-}
-function addToken() {
-  const token = tokenDraft.value.trim();
-  if (!token) return;
-  tokenDraft.value = "";
-  saveAuth({ tokens: [...auth.value.tokens, token] });
-}
-function dropToken(token) {
-  saveAuth({ tokens: auth.value.tokens.filter((x) => x !== token) });
-}
-
 // The keep-running toggle writes the shell's flag immediately AND persists in the
 // ui store (layouts/MainLayout.vue re-applies it every boot — the shell's flag resets per launch).
 async function setKeepRunning(v) {
@@ -129,7 +106,7 @@ async function setKeepRunning(v) {
 }
 
 onMounted(async () => {
-  const [h] = await Promise.all([safeRequest("/v1/health", null), project.refresh(), loadAuth()]);
+  const [h] = await Promise.all([safeRequest("/v1/health", null), project.refresh()]);
   health.value = h;
 });
 </script>
@@ -176,60 +153,9 @@ onMounted(async () => {
            leaves (Remove the old copy), the disk usage and what can be cleared -->
       <StoragePanel v-else-if="active === 'storage'" :data-dir="health?.dataDir || ''" :shell="storageShell" :saves="t('settings.storage.saves')" />
 
-      <!-- Server — headless access + bearer tokens (JW's section) -->
-      <template v-else-if="active === 'server'">
-        <section class="card">
-          <h2>{{ t("settings.server.headlessTitle") }}</h2>
-          <i18n-t keypath="settings.server.headlessHint" tag="p" class="hint" scope="global">
-            <template #command><code class="mono">just-ai-i18n-docgen-server serve</code></template>
-          </i18n-t>
-          <table class="ui-formgrid">
-            <tbody>
-              <tr><th>{{ t("settings.server.url") }}</th><td class="mono">{{ headlessUrl }}</td></tr>
-            </tbody>
-          </table>
-          <!-- The family headless/tray ruling (2026-08-04, JV's donor): OFF ⇒
-               closing the window stops everything; ON ⇒ the window closes but the
-               tray + server stay. -->
-          <label class="row" style="gap: 10px; margin-top: 12px; align-items: center">
-            <UiToggle
-              :model-value="ui.keepServerRunning"
-              @update:model-value="setKeepRunning"
-            />
-            <span>{{ t("settings.server.keepRunning") }}</span>
-          </label>
-          <p class="hint" style="margin-top: 4px">{{ t("settings.server.keepRunningHint") }}</p>
-        </section>
-        <section class="card">
-          <h2>{{ t("settings.server.tokensTitle") }}</h2>
-          <!-- The donor's words (JW settings.server) — "loopback" was invented at
-               port time; JW's user-facing label says localhost (audit 2026-08-05). -->
-          <i18n-t keypath="settings.server.tokensHint" tag="p" class="hint" scope="global">
-            <template #header><code class="mono">Authorization: Bearer</code></template>
-            <template #api><code class="mono">/v1</code></template>
-          </i18n-t>
-          <table class="ui-formgrid" v-if="auth.tokens.length">
-            <tbody>
-              <tr v-for="token in auth.tokens" :key="token">
-                <td class="mono">{{ token }}</td>
-                <td style="width: 90px">
-                  <UiButton intent="ghost" size="small" :label="t('kit.common.remove')" @click="dropToken(token)" />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <div class="row" style="margin-top: 10px">
-            <UiInput v-model="tokenDraft" width="name" :placeholder="t('settings.server.tokenPlaceholder')" @keydown.enter="addToken" />
-            <UiButton intent="secondary" :label="t('settings.server.addToken')" :disabled="!tokenDraft.trim()" @click="addToken" />
-          </div>
-          <div class="row" style="margin-top: 12px">
-            <UiToggle
-              :model-value="auth.requireForLoopback" :label="t('settings.server.requireOnLocalhost')"
-              @update:model-value="(v) => saveAuth({ requireForLoopback: v })"
-            />
-          </div>
-        </section>
-      </template>
+      <!-- Server — the kit's ServerPanel: the headless address, keep-running (the ui store keeps it and
+           tells the shell — the family headless/tray ruling, 2026-08-04), the access tokens -->
+      <ServerPanel v-else-if="active === 'server'" :server-command="SERVER_COMMAND" :keep-running="ui.keepServerRunning" @update:keep-running="setKeepRunning" />
 
       <!-- Logs -->
       <template v-else-if="active === 'logs'">
@@ -245,7 +171,7 @@ onMounted(async () => {
            no auto-updater in this app yet, so the #actions slot stays empty). -->
       <template v-else-if="active === 'updates'">
         <section class="card">
-          <UpdatesPanel :app-version="APP_VERSION" :changelog-html="changelogHtml" :updater="updater" />
+          <UpdatesPanel :app-version="health?.version || ''" :changelog-html="changelogHtml" :updater="updater" />
         </section>
       </template>
 
@@ -263,22 +189,11 @@ onMounted(async () => {
         </section>
       </template>
 
-      <!-- About -->
-      <template v-else>
-        <section class="card">
-          <h2>{{ t("app.name") }}</h2>
-          <p class="hint">{{ t("settings.about.blurb") }}</p>
-          <table class="ui-formgrid">
-            <tbody>
-              <tr><th>{{ t("settings.about.version") }}</th><td class="mono">{{ APP_VERSION }}</td></tr>
-              <tr>
-                <th>{{ t("settings.about.source") }}</th>
-                <td><a :href="SOURCE_URL" @click.prevent="openExternal(SOURCE_URL)">{{ SOURCE_URL.replace("https://", "") }}</a></td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-      </template>
+      <!-- About — the kit's AboutPanel with this app's words, version, runtime, data folder and source -->
+      <AboutPanel
+        v-else :app-name="t('app.name')" :blurb="t('settings.about.blurb')" :version="health?.version || ''"
+        :runtime="runtime" :data-dir="health?.dataDir || ''" :source-url="SOURCE_URL"
+      />
     </SettingsShell>
   </q-page>
 </template>

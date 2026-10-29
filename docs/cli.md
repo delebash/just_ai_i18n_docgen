@@ -1,7 +1,10 @@
 # The command line
 
-The same brain as the app, no window. The installed app carries it beside its exe; from
-a source checkout, run it through npm:
+The same brain as the app, no window. The installed app carries it beside its exe on
+Windows, beside the executable on Linux (an AppImage: run it with `--appimage-extract`
+first, the launcher is in `squashfs-root/`), and in the app's `Contents/Resources` on
+macOS; it trusts your system's certificates, so it works behind a network that inspects
+TLS. From a source checkout, run it through npm:
 
 ```bash
 just-ai-i18n-docgen <command> <config> [options]          # an installed app

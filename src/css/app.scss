@@ -249,6 +249,7 @@ body {
 .ai-page { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 
 .dash__strip { margin-bottom: 12px; }
+.runs__strip { margin-top: 12px; }
 
 /* Review's header line: pickers left, Undo right, on ONE line — the shared .row wraps,
    which stranded Undo on a line of its own. The pickers shrink instead. */

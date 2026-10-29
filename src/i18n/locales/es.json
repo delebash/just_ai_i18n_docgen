@@ -119,7 +119,6 @@
       "cancelled": "cancelado"
     },
     "starting": "Iniciando…",
-    "cancel": "Cancelar (mantiene el trabajo preparado)",
     "jobRunning": "En ejecución — {lang} · {scope}",
     "jobLast": "Último trabajo — {lang} · {scope}",
     "jobProgress": "{done}/{total} preparados · {requests} solicitudes · estado: {state}",
@@ -183,18 +182,6 @@
     "storage": {
       "saves": "tus conexiones, preajustes"
     },
-    "server": {
-      "headlessTitle": "Acceso sin interfaz",
-      "headlessHint": "El servidor aloja la propia interfaz — {command} más un navegador te da la aplicación completa sin el shell de escritorio.",
-      "url": "URL",
-      "keepRunning": "Mantener el servidor ejecutándose después de cerrar la aplicación",
-      "keepRunningHint": "Con esto activado, cerrar la ventana oculta la aplicación en la bandeja y el servidor sigue funcionando — usa la bandeja para mostrar la ventana de nuevo o sal completamente.",
-      "tokensTitle": "Tokens de acceso",
-      "tokensHint": "Desactivado de forma predeterminada. Añade un token para requerir un encabezado {header} en cada llamada a la API {api} — para cuando ejecutes el servidor expuesto fuera de esta máquina.",
-      "tokenPlaceholder": "nuevo token…",
-      "addToken": "Añadir token",
-      "requireOnLocalhost": "Requerir un token incluso en localhost"
-    },
     "logsHint": "El anillo en vivo + archivos diarios. Lo que el motor hizo realmente, y cuándo.",
     "reviewer": {
       "title": "Revisor",
@@ -203,9 +190,7 @@
       "saved": "Revisor guardado"
     },
     "about": {
-      "blurb": "Traducciones sencillas y documentos de ayuda para tu aplicación: traducidos localmente o en línea, verificados y revisados por ti.",
-      "version": "Versión",
-      "source": "Código fuente"
+      "blurb": "Traducciones sencillas y documentos de ayuda para tu aplicación: traducidos localmente o en línea, verificados y revisados por ti."
     }
   },
   "review": {
