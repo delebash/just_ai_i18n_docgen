@@ -341,6 +341,14 @@ confirm / review moving onto the kit's prompt rows.
   left-click shows the window again; the menu's Quit stops every process and the server. The menu
   read "Quit Just AI i18n  DocGen" — Windows takes "&" as a menu mnemonic; the kit's ca087d0 escapes
   it. — *measured 2026-10-29.*
+- **electron-builder 26 refuses an "&" in a Linux build's file name** — the AppImage step checks
+  `productFilename` against letters, digits, hyphens, underscores, dots and spaces, and without
+  `linux.executableName` that is the product name: the release's dry run 40826540251 stopped on
+  Linux with "productFilename contains characters that cannot be safely used in file paths: Just AI
+  i18n & DocGen" (Windows and macOS built). `linux.executableName: 'just_ai_i18n_docgen'` (the Windows
+  exe's name, what the Linux launchers run) fixed it: dry run 40827227846 green on all three builds
+  and the Linux user check, on the template's latest action majors. — *measured 2026-10-29;
+  code: app-builder-lib `appInfo.js`, `targets/appimage/appImageUtil.js`.*
 - **The site's `/docs/` index comes only from an app's `docs/README.md`** (the kit's sync-docs);
   docgen's own retired script wrote it from `toc.json`, so on the kit's script the sidebar's
   `docs` entry had no page and the site's build failed. docgen has a `docs/README.md` now, as
