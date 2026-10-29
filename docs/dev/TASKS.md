@@ -16,6 +16,15 @@
 > item points to — **read that doc before coding the item**. Close = delete — git
 > keeps history. A tracker line is a claim, not evidence — verify against code.
 
+## Settings → Server and About on the kit's panels [2026-10-28]
+OPEN:   found 2026-10-28 while Storage moved onto the kit's StoragePanel (f7f2fc6), and on the kit's list (its
+        840b6ae, "for docgen's own list"): docgen's Server section (headless URL, keep-running, access tokens)
+        and About are hand-built in `src/pages/SettingsPage.vue`, where the template uses the kit's
+        `ServerPanel` and `AboutPanel` (`../just-core/template/src/pages/SettingsPage.vue`) — a second way to do
+        a job the kit has. Rec (not yet put to the user): both on the kit's panels, as Storage; their own
+        `settings.server.*` / `settings.about.*` words go where the kit's take over, Spanish by the review's
+        --new run, user docs settings.md.
+
 ## The kit's page looks, the window counter and the settings upgrade — adopt them [2026-10-24]
 OPEN:   the kit grew three standards on 2026-10-24 (its plan `../just-core/docs/plans/2026-10-24-engines-the-llama-way.md`,
         round A2 — under the user's go there, "fix it all your rec do it right like a professional go"); the template
