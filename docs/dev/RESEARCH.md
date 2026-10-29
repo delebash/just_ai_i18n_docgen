@@ -407,7 +407,8 @@ confirm / review moving onto the kit's prompt rows.
   second click on the AI-tasks row lands under the open panel's backdrop and times out — `click({ force: true })`,
   as the template's test does. — *`e2e/lib/fixture.js`, the 19/19 run, 2026-10-29.*
 - **A git hook is persistence to Claude Code's permission check**: installing Husky's pre-commit hook (`prepare: husky`,
-  which sets `core.hooksPath`) was refused — it waits on the user's word. — *2026-10-29.*
+  which sets `core.hooksPath`) was refused. The family has no commit hooks: the user dropped them ("remove hook",
+  JustWrite's session, 2026-10-29) and the template's went (just-core 5ff893d); the guard never requires one. — *2026-10-29.*
 
 ---
 

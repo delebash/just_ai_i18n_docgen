@@ -23,11 +23,3 @@ OPEN:   1. When the kit's template/scripts/start-packaged.js reads the launcher'
            docgen takes the template's file as it is (its copy hard-codes just-ai-i18n-docgen-server, the one line).
         2. When start-packaged.js takes --data-dir <folder> (its C): that run on docgen's real data folder and
            JustWrite's project is the acceptance run before a commit (item 5 — the walk done by hand until then).
-
-## Needs your word — a pre-commit hook (Husky + lint-staged, app-structure §18) [2026-10-29]
-FOUND:  the kit asks every app for the template's pre-commit hook (package.json `"prepare": "husky"` + a `lint-staged`
-        block, .husky/pre-commit `npx lint-staged` — Biome on the staged files); its guard will require it once all three
-        apps have it. Claude Code's permission check refused installing it here (a git hook is persistence: it runs
-        on every commit); nothing was left half-done.
-REC:    do — it is the template's, and the guard will fail without it. Your word allows it (or install it yourself:
-        npm i -D husky@^9.1.7 lint-staged@^17.6.0, then the two package.json lines and .husky/pre-commit).
