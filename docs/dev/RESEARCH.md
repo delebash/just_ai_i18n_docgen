@@ -360,7 +360,7 @@ confirm / review moving onto the kit's prompt rows.
   key(s), up to date", the file byte-identical. The work is JustWrite's (its toc `hint`s are English
   literals shown untranslated, and its docgen config has no `docsDir`), the kit's (its help renderer
   must strip front-matter — b8551d2) and its website's; handed to those sessions with the steps. —
-  *measured 2026-10-29 (read-only); JustWrite's `docs/plans/2026-07-26-i18n-single-source-research.md`.*
+  *measured 2026-10-29 (read-only); JustWrite's `docs/plans/archive/2026-07-26-i18n-single-source-research.md`.*
   JustWrite adopted it the same day (justwrite-app 4aa9649a: 26 docs with `lede:`, its config's `"docsDir": "../docs"`,
   `extract --check` in its fast gate): docgen's `extract --check` over it answered "27 doc(s), 26 with front-matter → 26
   key(s) (26 lede, 0 hints), 26 replaced · up to date", exit 0, nothing written. Its Spanish `lede.*` come with its next
