@@ -38,10 +38,9 @@ import { translateLanguage } from "./loop.js";
 import { exists, projectPaths } from "./paths.js";
 import * as self from "./service.js";
 import { confirmations, dropConfirmation, openProject, putConfirmation, setReviewStatus } from "./state.js";
+import { recordSources, seedSources, sourceChangedFindings } from "./sources.js";
 import { rankSuspects, spread } from "./suspects.js";
 import { checkTerms } from "./terms.js";
-
-export const PROBE_CACHE_FILE = ".just-ai-i18n-docgen-probe-cache.json";
 
 /** The packaged conventions table (Python read it from the package's `config/`). */
 function loadConventions() {
@@ -171,6 +170,9 @@ export function unfilteredFindings(project, lang, targetFlat, { topN = null, inc
     );
   }
   if (includeTerms) findings = findings.concat(termFindings(project, lang, targetFlat, termCache));
+  // a translation whose English changed since it was made (sources.js)
+  const record = seedSources(project.paths.cachePath, lang, project.src, targetFlat);
+  findings = findings.concat(sourceChangedFindings(record, project.src, targetFlat));
   return findings;
 }
 
@@ -193,8 +195,10 @@ function termFindings(project, lang, targetFlat, cache) {
   return found;
 }
 
-/** The project cfg as one language's run sends it: the conventions line and the notes. */
-function runCfg(project, lang, notes) {
+/** The project cfg as one language's run sends it: the conventions line and the notes — the CLI's, the app's run
+ *  (api/workspace_api.js) and the Lab's test input (workspace.js labVariables). The note a reviewer writes on a key is
+ *  sent when they press re-translate on that same key — the one place it matters. */
+export function runCfg(project, lang, notes = project.readNotes(lang)) {
   const conv = pyGet(project.conventions, lang);
   return {
     ...project.cfg,
@@ -209,20 +213,26 @@ function writeCatalogue(p, sourceRaw, values) {
 }
 
 /**
- * Translates `subset` for one language and merges the result over what is already there.
- * `outPath`/`cachePath` are parameters because the probe pass runs this SAME function into a
- * sidecar with its OWN cache — sharing the main cache would poison every later delta (the
- * probe would overwrite the real translation's entries).
+ * Translates `subset` for one language and merges the result over what is already there. A key
+ * that already has a translation is kept unless its English changed since that translation was
+ * made (sources.js); `force` re-translates every key. `outPath` is a parameter because the probe
+ * pass runs this SAME function into a sidecar — its second opinions are never recorded as what a
+ * translation was made from.
  */
-export async function translateInto(project, lang, subset, send, { force = false, outPath = null, cachePath = null, log = console.log } = {}) {
+export async function translateInto(project, lang, subset, send, { force = false, outPath = null, log = console.log } = {}) {
+  const intoTarget = !outPath;
   outPath = outPath || project.paths.targetFile(lang);
-  cachePath = cachePath || project.paths.cachePath;
   const existing = exists(outPath) ? flatten(readJson(outPath)) : new Map();
+  const sourcesFile = project.paths.cachePath;
+  const recorded = intoTarget ? seedSources(sourcesFile, lang, project.src, existing) : null;
+  const english = asMap(subset);
 
   const write = (values) => {
     const merged = new Map(existing);
     for (const [k, v] of asMap(values)) merged.set(k, v);
     writeCatalogue(outPath, project.sourceRaw, merged);
+    // each translation written is recorded with the English it was made for
+    if (intoTarget) recordSources(sourcesFile, lang, new Map([...asMap(values).keys()].map((k) => [k, english.get(k) ?? null])));
     return merged;
   };
 
@@ -231,7 +241,7 @@ export async function translateInto(project, lang, subset, send, { force = false
     existingFlat: force ? new Map() : existing,
     lang,
     cfg: runCfg(project, lang, project.readNotes(lang)),
-    cachePath,
+    recorded,
     send,
     force,
     log,
@@ -272,14 +282,12 @@ export async function runTranslate(project, { send = null, ask = null, force = f
     langs[lang] = { failed: result.failed, requests: result.requests };
 
     if (probe) {
-      // The SAME engine, a second time. force=true because the point is a fresh sample —
-      // served from cache it would return the first answer and every key would agree with
-      // itself. Its own cache file, never the main one.
+      // The SAME engine, a second time. force=true because the point is a fresh sample — kept
+      // from the first pass, every key would agree with itself.
       log(`${lang}: probe pass — same engine, second opinion`);
       const probed = await translateInto(project, lang, project.src, send, {
         force: true,
         outPath: project.paths.probeFile(lang),
-        cachePath: path.join(project.paths.configDir, PROBE_CACHE_FILE),
         log,
       });
       const target = project.targetFlat(lang) ?? new Map();

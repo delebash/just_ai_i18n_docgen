@@ -18,7 +18,10 @@ in a run resolves against that file, never against where you ran the command.
 
 - **`translate <config>`** — a full run: translate what's pending, verify, stage
   or write per your review state, run the probe sample and the confirmation pass.
-  - `--force` — retranslate everything, ignoring the cache.
+  A key that already has a translation is kept — unless its English changed since
+  that translation was made, then it's translated again. Changing the project's
+  context sentence or glossary never re-translates (or overwrites) what you reviewed.
+  - `--force` — retranslate every key.
   - `--probe` — the self-agreement pass (see
     [verification](verification.md)); needs non-zero temperature.
   - `--no-confirm` — skip the confirmation pass.

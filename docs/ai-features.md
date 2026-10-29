@@ -34,10 +34,19 @@ signs off a string by itself.
 parsing with no engine call anywhere, and a routing row for a feature that
 cannot route would lie. It re-appears the day it gains a real AI step.
 
-## Prompts are built, not stored
+## Each feature's prompt
 
-This tool builds each feature's prompt from your project data on every run —
-context and glossary, per-key notes, the shielded strings. The Routing-by-
-feature Lab shows the *real* generated prompt for `translate` and `confirm`;
-to change what it says, edit the data it is built from (see
-[Set up the AI engine](ai-providers.md) for the Lab's mechanics).
+Each feature has one prompt, and you can read and change it in the AI page's
+Lab (**Routing by feature** → the feature): its instructions, its message, and
+its JSON answer. The parts in `{{double braces}}` are filled from your project
+on every run — the languages, the context sentence and the glossary from Setup,
+the per-key notes from Review, and the strings themselves, with placeholders and
+glossary terms already swapped for `⟦0⟧`-style tokens. A rule that doesn't apply
+to your project (no glossary, no plural separator) is left out whole.
+**Reset to default** puts the shipped prompt back.
+
+A run checks its prompt before it starts. A prompt without `{{items}}` (where
+the strings go), with **Output as JSON** off, or using a `{{name}}` the run
+doesn't fill is refused, with the reason and the fix; the confirmation pass
+checks its own prompt when it starts. See
+[Set up the AI engine](ai-providers.md) for trying a prompt in the Lab.

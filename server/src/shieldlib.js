@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Placeholder shielding + the translation prompt — the pure heart of the loop. The port of
+// Placeholder shielding + the translation prompt's variables — the pure heart of the loop. The port of
 // shieldlib.py (ported from just-ai-help's `server/loop.js`, minus the transport: the request
 // body belongs to the kit's adapters, and per-request temperature belongs to the engine
 // preset each feature points at).
@@ -15,7 +15,6 @@
 // The brackets are U+27E6/U+27E7 (MATHEMATICAL WHITE SQUARE BRACKET) — they occur in no UI
 // string and no natural language, so a false positive is not possible.
 
-import { createHash } from "node:crypto";
 import { cpLen, cpSlice, D, digitsToInt, pyGet, pySorted, reEscape, S, truthy, ValueError } from "@delebash/core/platform/py";
 import { JSONDecodeError, jsonLoadsExact, PyFloat, pyJson } from "@delebash/core/platform/pyjson";
 import { ALNUM, pyStr } from "./jsonio.js";
@@ -77,51 +76,27 @@ export function restore(text, tokens) {
   return restored;
 }
 
-// ── the prompt ───────────────────────────────────────────────────────────────
-// One template, slots filled from config. Every rule in it exists because something got it
-// wrong on the corpus: placeholders (lingo.dev wrote {3}), the glossary (it wrote "Hilos" for
-// "Strands"), the conventions line (qwen3 missed the opening ¿ 5/5), and plural pipes (an
-// engine that splits the halves apart translates them inconsistently).
+// ── the prompt's variables ─────────────────────────────────────────────────
+// The prompts themselves are the seeded rows (seed_feature_prompts.js) — editable in the AI Lab, run by the
+// kit's runAction (engine.js). Shielding happens before a row renders: the model sees ⟦n⟧ tokens only.
 
 /**
- * The system half. The plural rule is BUILT FROM THE CONFIGURED SEPARATOR and omitted
- * entirely when a catalogue has none — it used to be the literal `" | "`, which made
- * pluralSeparator a half-honoured setting: the checks split on your value while the model
- * was told about a pipe. i18next catalogues legitimately have no separator (plurals are
- * separate keys), and telling the model one exists is a false instruction.
- */
-export function buildSystemPrompt({
-  source,
-  targetLang,
-  doNotTranslate = null,
-  conventionsLine = "",
-  pluralSeparator = null,
-}) {
-  const pluralRule = truthy(pluralSeparator)
-    ? `a string containing "${pluralSeparator}" holds plural forms — translate each half and keep the separator`
-    : "";
-  const rules = [
-    "tokens like ⟦0⟧ are untouchable placeholders — reproduce each exactly once",
-    truthy(doNotTranslate) ? `never translate these terms: ${doNotTranslate.join(", ")}` : "",
-    conventionsLine,
-    pluralRule,
-    'an item may carry a "note" — it describes how that string is used; follow it',
-    "output ONLY JSON matching the schema",
-  ].filter((r) => truthy(r));
-  return `You are a professional software-UI translator, ${source}→${targetLang}. Rules: ${rules.join("; ")}.`;
-}
-
-/**
- * The user half: the catalogue's context line, then the items.
+ * The translate row's {{variables}} for one batch of shielded items (seed_feature_prompts.js TRANSLATE_PROMPT) —
+ * the run's (loop.js) and the Lab's test input (workspace.js labVariables), from this one function.
  *
- * PER-KEY NOTES live here. `cfg.context` is one sentence for the ENTIRE catalogue, so a
- * four-character label and a two-hundred-character paragraph arrive with identical context
- * — that is how `characterAudit.why` (EN "Why:", a label above a reasoning block) came back
- * as "¿Por qué?", a question. A note is written by a reviewer for a key they are ALREADY
- * fixing, so the fix compounds instead of recurring; only keys that have one carry the
- * field, so batches do not grow for the 99% that need nothing.
+ * The optional rules are composed here, each "" or "; <rule>", so a rule that doesn't apply leaves nothing behind.
+ * The plural rule is BUILT FROM THE CONFIGURED SEPARATOR and omitted entirely when a catalogue has none — it used to
+ * be the literal `" | "`, which made pluralSeparator a half-honoured setting: the checks split on your value while
+ * the model was told about a pipe. i18next catalogues legitimately have no separator (plurals are separate keys),
+ * and telling the model one exists is a false instruction.
+ *
+ * PER-KEY NOTES ride the items. `cfg.context` is one sentence for the ENTIRE catalogue, so a four-character label and
+ * a two-hundred-character paragraph arrive with identical context — that is how `characterAudit.why` (EN "Why:", a
+ * label above a reasoning block) came back as "¿Por qué?", a question. A note is written by a reviewer for a key
+ * they are ALREADY fixing, so the fix compounds instead of recurring; only keys that have one carry the field, so
+ * batches do not grow for the 99% that need nothing.
  */
-export function buildUserMessage(shieldedItems, cfg) {
+export function translateVariables(shieldedItems, cfg, lang, terms = null) {
   const notesRaw = pyGet(cfg, "notes");
   const notes = truthy(notesRaw) ? notesRaw : new Map();
   const items = [];
@@ -131,9 +106,30 @@ export function buildUserMessage(shieldedItems, cfg) {
     if (truthy(note)) item.note = note;
     items.push(item);
   }
+  const conventionsLine = pyGet(cfg, "conventionsLine", "");
+  const sep = pyGet(cfg, "pluralSeparator");
   const ctx = pyGet(cfg, "context");
-  const context = truthy(ctx) ? ctx : "a software application";
-  return `Context: ${pyStr(context)}. Translate items: ${pyJson(items, { ensureAscii: false })}`;
+  return {
+    source: String(pyGet(cfg, "sourceLanguage", "en")),
+    lang: String(lang),
+    glossary_rule: truthy(terms) ? `; never translate these terms: ${terms.join(", ")}` : "",
+    conventions_rule: truthy(conventionsLine) ? `; ${conventionsLine}` : "",
+    plural_rule: truthy(sep)
+      ? `; a string containing "${sep}" holds plural forms — translate each half and keep the separator`
+      : "",
+    context: pyStr(truthy(ctx) ? ctx : "a software application"),
+    items: pyJson(items, { ensureAscii: false }),
+  };
+}
+
+/** The back-translation row's {{variables}} (seed_feature_prompts.js BACKTRANSLATE_PROMPT): one target string
+ *  `text`, in `lang`, back into the project's source language — Review's and the Lab's, from this one function. */
+export function backtranslateVariables(text, cfg, lang) {
+  return {
+    lang: String(lang),
+    source: String(pyGet(cfg, "sourceLanguage", "en")),
+    items: pyJson([{ id: 0, text }]),
+  };
 }
 
 // The response contract. Ids come back so a reordered or partial answer is detectable rather
@@ -195,18 +191,4 @@ export function parseItems(content) {
     if (id !== undefined && typeof tr === "string") out.set(id, tr);
   }
   return out;
-}
-
-// ── cache key ────────────────────────────────────────────────────────────────
-// The delta. A key is skipped when its target already exists AND the hash of everything that
-// could change its translation is unchanged: the source text, the language, the context
-// sentence and the glossary. Change the context and every key re-translates — correct,
-// because the context is part of the instruction the translation came from.
-
-export function sha1(s) {
-  return createHash("sha1").update(s, "utf8").digest("hex");
-}
-
-export function cacheKey({ text, lang, contextHash, glossaryHash }) {
-  return sha1(`${text}|${lang}|${contextHash}|${glossaryHash}`);
 }

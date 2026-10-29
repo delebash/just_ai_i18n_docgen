@@ -172,7 +172,9 @@ export const useReviewStore = defineStore("review", {
       await this.refresh();
     },
     async undo() {
-      await post("/v1/undo", {});
+      // this language's last action — the page shows one language, and its Undo is that one's (the
+      // server undid the last action in ANY language when it was sent none, 2026-10-29)
+      await post("/v1/undo", { lang: this.lang });
       await this.refresh();
     },
     async setNote(row, note) {

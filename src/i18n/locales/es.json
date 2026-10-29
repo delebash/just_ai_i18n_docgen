@@ -33,7 +33,6 @@
     "discard": "Descartar",
     "couldNotStart": "No se pudo iniciar",
     "couldNotSave": "No se pudo guardar",
-    "clearing": "Borrando…",
     "checking": "Comprobando…"
   },
   "nav": {
@@ -71,6 +70,11 @@
     "title": "Proveedores, enrutamiento y uso",
     "linkContext": "Contexto y glosario",
     "linkNotes": "Notas por clave"
+  },
+  "lab": {
+    "source": {
+      "language": "idioma"
+    }
   },
   "home": {
     "intro": {
@@ -191,6 +195,14 @@
     },
     "about": {
       "blurb": "Traducciones sencillas y documentos de ayuda para tu aplicación: traducidos localmente o en línea, verificados y revisados por ti."
+    },
+    "sections": {
+      "general": "General"
+    },
+    "general": {
+      "windowsTitle": "Otras ventanas",
+      "windowsHint": "La aplicación abierta en más de un lugar a la vez — la aplicación de escritorio, un navegador en este servidor, un teléfono: cada cuánto busca cada una lo que cambiaron las demás. Muestra sus cambios por sí sola.",
+      "checkSeconds": "Buscar los cambios de las otras ventanas cada (segundos)"
     }
   },
   "review": {
@@ -206,7 +218,8 @@
       "blank": "la traducción está vacía",
       "missing": "esta clave no tiene ninguna traducción",
       "disagreement": "una segunda pasada redactó esto de forma distinta — el modelo no estaba seguro aquí",
-      "terminology": "esto usa una palabra diferente a la del resto del catálogo para el mismo término"
+      "terminology": "esto usa una palabra diferente a la del resto del catálogo para el mismo término",
+      "sourceChanged": "el inglés cambió desde que se tradujo esto — antes decía: “{was}”"
     },
     "bucket": {
       "needs": "Requiere revisión",
@@ -315,5 +328,10 @@
     "preset": {
       "confirm": "Confirmar"
     }
+  },
+  "notFound": {
+    "title": "Aquí no hay ninguna página",
+    "message": "La dirección no coincide con ninguna página de la aplicación.",
+    "home": "Ir a Inicio"
   }
 }

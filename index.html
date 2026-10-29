@@ -12,18 +12,18 @@
          both apply there. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; media-src 'self' data: blob: http: https:; font-src 'self' data:; connect-src 'self' http: https:<% if (ctx.dev) { %> ws://localhost:* ws://127.0.0.1:*<% } %>; worker-src 'self' blob:;"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; media-src 'self' data: blob: http: https:; font-src 'self' data:; connect-src 'self' http: https:<% if (ctx.dev) { %> ws://localhost:* ws://127.0.0.1:*<% } %>; worker-src 'self' blob:; frame-src 'self' http://127.0.0.1:* http://localhost:*;"
     />
     <!-- First-paint boot layer (JW pattern, adopted 2026-08-04) — the SAME plate the shell's
-         splash renders (AppShell.vue), shown before the JS bundle parses, so boot is ONE
+         splash renders (layouts/MainLayout.vue), shown before the JS bundle parses, so boot is ONE
          continuous image: static plate → Vue splash → shell. KEEP the image + fit IN SYNC with
-         AppShell.vue's .splash / styles.css .splash__plate. App.vue removes it when it mounts
+         the layout's .splash (the kit's common/app.css .splash__plate: cover, centred). App.vue removes it when it mounts
          (the shell, or the connection-error screen). -->
     <style>
       #app-boot { position: fixed; inset: 0; background: #f7f3ea; }
       #app-boot img {
         position: absolute; inset: 0; width: 100%; height: 100%;
-        object-fit: cover; object-position: center top;
+        object-fit: cover; object-position: center;
       }
       @media (prefers-color-scheme: dark) {
         #app-boot { background: #1d2126; }

@@ -9,6 +9,7 @@ import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { PaneHeader, UiButton, UiCheckbox, UiInput, UiMultiSelect, UiTag, pushToast, pageFlow } from "@delebash/ui";
 import { useRouter } from "vue-router";
+import { langOptions } from "../services/langs.js";
 import { useProjectStore } from "../stores/project";
 import { useUiStore } from "../stores/ui";
 
@@ -23,14 +24,9 @@ const glossary = ref([]);
 const glossaryDraft = ref("");
 const checking = ref(false);
 
-const display = new Intl.DisplayNames(undefined, { type: "language" });
-const languageOptions = computed(() =>
-  (project.languages || []).map((code) => {
-    let label = code;
-    try { label = `${display.of(code)} (${code})`; } catch { /* raw code */ }
-    return { label, value: code };
-  }),
-);
+// the languages named in the interface's language, as every other picker names them (services/langs.js —
+// this one named them in the browser's language until 2026-10-29)
+const languageOptions = computed(() => langOptions(project.languages));
 
 onMounted(async () => {
   // Prefill from the loaded project — but never check the path for you.

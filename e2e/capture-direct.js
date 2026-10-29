@@ -4,9 +4,10 @@
 // Run with: npm run screenshots   (from the app root)
 //
 // The app is launched with JAID_DEV_NO_SIDECAR=1 so it talks to whatever
-// server is already on :8742 — start the demo server first if you want
-// shots with data. Unset CAPTURE_NO_SIDECAR=0 to exercise the real
-// sidecar spawn instead.
+// server is already on :8742 — start the server first (e2e/README.md). The
+// unpacked build can't start one of its own: Quasar's --skip-pkg skips
+// installing its dependencies, so with CAPTURE_NO_SIDECAR=0 its server
+// exits at once (measured 2026-10-29) — the packaged build carries them.
 
 import fs from "node:fs";
 import path from "node:path";

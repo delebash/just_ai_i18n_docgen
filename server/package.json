@@ -6,7 +6,8 @@
   "description": "Just AI i18n & DocGen's Node server — Hono on the family kit, run by the desktop app in a utilityProcess, headless as `just-ai-i18n-docgen-server serve`, or `npm run server` in a checkout. Its own package because the packaged app installs only what src-electron/package.json names (the kit's app-structure §Q.3).",
   "license": "MIT",
   "exports": {
-    "./serve": "./src/serve.js"
+    "./serve": "./src/serve.js",
+    "./schemas/*.js": "./src/schemas/*.js"
   },
   "dependencies": {
     "@delebash/core": "file:../../just-core/packages/core"

@@ -90,15 +90,14 @@ test("the AI tasks nav row is a REAL toggle: opens, STAYS open, second click clo
   assert.equal(await d.exists(panel), false, "second click must close it");
 });
 
-test("routing by feature shows the THREE routed features; the promptless pane AGREES with the API", async () => {
+test("routing by feature shows the THREE routed features; the Lab runs the real prompt row", async () => {
   await d.navigate("#/ai");
   await d.waitUntil(`return /Routing by feature/i.test(document.body.textContent)`, { timeout: 15_000 });
   // the AI page's sections are the kit's tabs since 2026-10-20 (`.lu-subnav [role=tab]`, the kit's TASKS)
   await d.exec(`[...document.querySelectorAll('.lu-subnav [role=tab]')].find(x => /Routing by feature/i.test(x.textContent))?.click();`);
-  // feature_prompts={} here — the kit renders promptless rows with the assigned-preset
-  // line on each card. Extract left the catalog 2026-08-04: it never calls the engine
-  // (pure front-matter parsing), so a routing row for it was a lie; it returns the day
-  // it gains a real AI step (the CLI `extract` door is untouched).
+  // One card per feature, each its one prompt row (seed_feature_prompts.js, 2026-10-29). Extract left the catalog
+  // 2026-08-04: it never calls the engine (pure front-matter parsing), so a routing row for it was a lie; it
+  // returns the day it gains a real AI step (the CLI `extract` door is untouched).
   await d.waitUntil(`return document.querySelectorAll('.lu-fw-card').length >= 3`, { timeout: 15_000 });
   const text = await d.exec(`return document.body.textContent;`);
   for (const f of ["Translate", "Review", "Confirm"]) {
@@ -107,35 +106,24 @@ test("routing by feature shows the THREE routed features; the promptless pane AG
   assert.equal(
     await d.exec(`return [...document.querySelectorAll('.lu-fw-card')].some(c => /Extract/.test(c.textContent));`),
     false, "extract must NOT be a routing row");
-  // The promptless Lab (2026-08-04): the UI must AGREE with the API. A healthy
-  // project — pending OR finished — answers 200 (a finished language samples
-  // already-translated keys, the same-day ruling: "def show the full lab"), so the
-  // REAL generated prompt + the preset surface render; the loud fallback pane is
-  // only for genuinely broken states (no targets configured, unknown feature),
-  // where the named reason renders with the Engine-preset select still working.
+  // The Lab over the translate row: the UI must AGREE with the API — the row the server runs is the one the Lab
+  // edits, its test input fills from the project's languages (GET /v1/ai/test-variables, the same functions a run
+  // calls), and the doors to the data the prompt is fed (context, glossary, notes) stay on the page.
   await d.exec(`[...document.querySelectorAll('.lu-fw-card')].find(c => /Translate/.test(c.textContent))?.click();`);
-  const pv = await fetch(`${API}/ai/prompt-preview`, {
-    method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ feature: "translate" }),
-  });
-  if (pv.ok) {
-    await d.waitUntil(`return /Generated prompt/.test(document.body.textContent)`, { timeout: 15_000 });
-    const page = await d.exec(`return document.body.textContent;`);
-    assert.equal(/never|nothing here is saved/i.test(page), true, "the test-only banner must state the contract");
-    assert.equal(/Save as preset/i.test(page), true, "the preset surface must render for a promptless feature");
-    assert.equal(/Edit copies for this test/.test(page), true, "the unlock affordance must render (the read-only-with-unlock decision)");
-    assert.equal(/Change what this prompt says:/.test(page) && /Context & glossary/.test(page), true,
-      "the data links must render (Option-A seam, ruling 2026-08-04)");
-  } else {
-    // The pane shows the kit's raw error text, where FastAPI —-escapes the
-    // em-dash — so assert the pre-em-dash head of the parsed reason.
-    const reasonHead = ((await pv.json()).detail || "").split("—")[0].trim();
-    await d.waitUntil(`return !!document.querySelector('.lu-fw-route .lu-error')`, { timeout: 15_000 });
-    const pane = await d.exec(`return document.querySelector('.lu-fw-route').textContent;`);
-    assert.equal(reasonHead.length > 0 && pane.includes(reasonHead), true,
-      `the server's named reason must render loud (wanted "${reasonHead}")`);
-    assert.equal(/Engine preset/.test(pane), true, "assignment must stay possible in the fallback");
-  }
+  await d.waitUntil(`return /Test input/.test(document.body.textContent)`, { timeout: 15_000 });
+  const { prompts } = await (await fetch(`${API}/ai/prompts`)).json();
+  const row = prompts.find((p) => p.key === "translate");
+  assert.equal(row?.jsonMode, true, "the server's translate row answers in JSON");
+  assert.equal(
+    await d.exec(`return [...document.querySelectorAll('textarea')].some(t => t.value.includes("professional software-UI translator"));`),
+    true, "the Lab shows the translate row's own text");
+  const page = await d.exec(`return document.body.textContent;`);
+  assert.equal(/Insert from language/.test(page), true, "the test input fills from the project's languages");
+  assert.equal(/Save as preset/i.test(page), true, "the preset surface renders");
+  assert.equal(/Change what this prompt says:/.test(page) && /Context & glossary/.test(page), true,
+    "the data links render on the row's Lab (the kit's 8bdc2f7)");
+  const vars = await fetch(`${API}/ai/test-variables?action=translate&lang=es`);
+  assert.equal(vars.ok, true, "the server builds the Lab's test input for the project's language");
 });
 
 test("quick setup OPENS and offers translation-measured models, not JW's", async () => {
@@ -391,7 +379,7 @@ test("settings renders its sections and the logs panel", async () => {
   const modeWas = await stamp();
   let sawDark = false;
   for (let i = 0; i < 3; i++) {
-    await d.exec(`[...document.querySelectorAll('.titlebar button')].find(b => (b.title || '').startsWith('Theme'))?.click();`);
+    await d.exec(`[...document.querySelectorAll('.titlebar button')].find(b => (b.getAttribute('aria-label') || '').startsWith('Theme'))?.click();`);
     await d.sleep(150);
     if ((await stamp()) === "dark") sawDark = true;
   }

@@ -18,6 +18,12 @@ runDesktopApp({
   appName: "just-ai-i18n-docgen",
   productName: "Just AI i18n & DocGen",
   port: 8742, // the family port registry: JW 17495 · JV 17494 · this app 8742 · template 17490
+  // A server of this app found on its port is asked to stop through its own route first (the kit's
+  // platform/shutdown_api.js, mounted in server/src/app.js), killed only past the shell's wait.
+  shutdownPath: "/v1/shutdown",
+  // Review's Google second opinion is a frame over this app's server (GET /v1/gt-frame): the window's policy lets
+  // frames come from it (the kit's shell csp.js; without it the frame never loaded in the desktop app, 2026-10-29)
+  cspAdd: { "frame-src": ["http://127.0.0.1:*", "http://localhost:*"] },
   // the server package (server/): its source in development, the installed copy when packaged
   serverEntry: dev
     ? path.resolve("server", "src", "serve.js")

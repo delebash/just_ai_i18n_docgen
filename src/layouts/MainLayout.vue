@@ -1,39 +1,46 @@
 <script setup>
 // SPDX-License-Identifier: MIT
-// The app's layout — Quasar's, as its CLI creates it (the kit's app-structure §Q.1) — Design 1,
-// ruled 2026-08-03: the TitleBar (JW pattern) in q-header over the labeled nav in q-drawer and the
-// one main scroller in q-page-container (the pages, each a q-page, flow in it). The drawer keeps
-// desktop behaviour at every width — docgen is a desktop app, the nav a column as before. Until
-// 2026-10-09 this was AppShell.vue, a flex column. The boot splash (the user's plate, JW mechanics)
-// covers the shell until the server answers and — when "load the default local
-// model on startup" is on — the warm load finishes, showing the SAME shared
-// DownloadBars the engine panel uses. Continue is the universal escape: a slow
-// or failed load never traps anyone on the boot screen.
-// Family rules: height:100% chain (never 100vh), one scroller per area.
+// The app's chrome — Quasar's layout as its CLI creates it (app-structure §Q.1), the template's
+// layouts/MainLayout.vue with this app's pages (2026-10-29; Design 1, ruled 2026-08-03):
+//   - the title bar (components/TitleBar.vue — the kit's frame, the mode cycler, AiStatusButton);
+//   - the nav in the drawer: Home, Review, Runs, Docs, then the kit's "AI Settings" / "App Settings"
+//     and Setup, then the "AI tasks" row, which spreads the kit's navAttrs (its data-panel-toggle
+//     keeps the panel from closing on the very click that opens it) — Quasar's QList/QItem, so the
+//     rows are Quasar's own links and the kit's common/app.css styles them; under them the reviewer's
+//     name (this app's);
+//   - the one content scroller (pages flow in it: pageFlow);
+//   - <LlmUiHosts/> (the kit's dialogs, toasts and panels — with one missing, a confirm never
+//     answers), <HelpDrawer/>, the once-ever AI offer (fired by Setup's first save);
+//   - the warm-start splash: this app's plate (the same image as index.html's), the kit's
+//     <BootModelLoad/> inside it, shown while the kit's `warmModelId` is set;
+//   - the tray's renderer half (Open settings, About, Copy server URL) and keep-running, re-applied
+//     to the shell every start (the shell forgets it per launch), and the listeners dropped when the
+//     layout goes;
+//   - the shell's two menus in the app's language (the kit's shellTrayLabels / shellMenuLabels).
+// Family rules: a height:100% chain (never 100vh), one scroller per area.
 import { copyToClipboard } from "quasar";
-import { computed, onMounted, watch } from "vue";
+import {
+  AiSetupOffer, BootModelLoad, HelpDrawer, Icon, LlmUiHosts, pushToast, shellMenuLabels, shellTrayLabels, useAiTasksNav,
+  warmModelId,
+} from "@delebash/ui";
+import { computed, onBeforeUnmount, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { AiSetupOffer, BootModelLoad, HelpDrawer, Icon, LlmUiHosts, pushToast, shellMenuLabels, shellTrayLabels, useAiTasksNav, warmModelId } from "@delebash/ui";
-import TitleBar from "../components/TitleBar.vue";
 import splashPlate from "../assets/images/splash-plate.jpg";
+import TitleBar from "../components/TitleBar.vue";
 import { onShellEvent, setContextMenuLabels, setKeepRunning, setTrayLabels } from "../services/native.js";
 import { useProjectStore } from "../stores/project";
 import { useUiStore } from "../stores/ui";
 
-const project = useProjectStore();
+const { t, locale } = useI18n();
 const ui = useUiStore();
+const project = useProjectStore();
 const router = useRouter();
 
-// The once-ever AI offer (ruling R3 + the trigger ruling 2026-08-04): fired by
-// SETUP-SAVE (ui.maybeOfferAiSetup — JW's donor moment), rendered here at App
-// level; the persisted flag means never again, whatever path was taken.
-
-// The trio's words are the kit's (`kit.nav.*`) — the same "App Settings / AI Settings / AI tasks"
-// every family app shows, in the app's language.
-const { t, locale } = useI18n();
+// The app's pages, then the family's two (their words are the kit's, `kit.nav.*`, the same in every
+// app) and Setup. Icon names are ids, not words.
 const NAV = computed(() => [
-  { to: "/", label: t("nav.home"), icon: "Home" },
+  { to: "/", label: t("nav.home"), icon: "Home", exact: true },
   { to: "/review", label: t("nav.review"), icon: "CheckSquare" },
   { to: "/runs", label: t("nav.runs"), icon: "History" },
   { to: "/docs", label: t("nav.docs"), icon: "Book" },
@@ -43,129 +50,114 @@ const TOOLS = computed(() => [
   { to: "/settings", label: t("kit.nav.appSettings"), icon: "Settings" },
   { to: "/setup", label: t("nav.setup"), icon: "Folder" },
 ]);
-// The AI-tasks nav row (JW Sidebar parity): toggles the kit panel, badges the running
-// count — red while there are unseen errors. Behaviour AND the required
-// `data-panel-toggle` attribute come from the kit, so the row cannot be rebuilt
-// without the one attribute that makes it work (see useAiTasksNav).
 const aiTasksNav = useAiTasksNav();
-// The nav column's width (app.scss .shell__nav), which QDrawer takes in pixels.
-const NAV_WIDTH = 196;
+// The drawer's width, which QDrawer takes in pixels (the kit's common/app.css .shell__nav fills it).
+const NAV_WIDTH = 200;
 
-// ── boot splash — the PAGE is this app's, the load group is the KIT's ─────
-// (2026-08-04 ruling: the loading-model control is shared, the splash page is
-// not.) `warmModelId` comes from the kit now — set by the boot file's PRE-MOUNT
-// startWarmOnBoot(), the one signal this overlay renders on. Everything inside
-// the load group — the engine bar, the model bar titled with the MODEL NAME,
-// Continue, the auto-dismiss on resident — lives in <BootModelLoad />, so it
-// cannot drift from JW again. Nothing loading → no splash → the app just opens.
+// The shell's menus speak the app's language; it holds only their English until told.
+watch(locale, () => {
+  setTrayLabels(shellTrayLabels(t, t("app.name")));
+  setContextMenuLabels(shellMenuLabels(t));
+}, { immediate: true });
 
+const unsubscribe = [];
 onMounted(async () => {
-  // Re-apply the persisted keep-running flag to the shell every boot (the shell
-  // resets per launch; the family headless ruling 2026-08-04).
-  // Through services/native.js — the one place a command name is written
-  // (family shape, 2026-08-15).
   if (ui.keepServerRunning) setKeepRunning(true);
-  // The shell's tray and right-click menus in the interface's language, now and on every switch.
-  watch(locale, () => {
-    setTrayLabels(shellTrayLabels(t, t("app.name")));
-    setContextMenuLabels(shellMenuLabels(t));
-  }, { immediate: true });
+  unsubscribe.push(
+    onShellEvent("tray:open-settings", () => router.push("/settings")),
+    onShellEvent("tray:about", () => router.push("/settings/about")),
+    onShellEvent("tray:copy-url", async (url) => {
+      // A focused window's clipboard write is reliable; the shell shows the window first (§11).
+      try {
+        await copyToClipboard(String(url));
+        pushToast({ kind: "success", title: t("tray.urlCopied"), description: String(url) });
+      } catch (err) {
+        pushToast({ kind: "error", title: t("tray.copyFailed"), description: String(err?.message || err) });
+      }
+    }),
+  );
   await project.refresh();
-  // The tray's renderer half (the full-donor ruling 2026-08-04): settings/about
-  // navigate, Copy URL writes the clipboard + says so. Through services/native.js —
-  // a no-op outside the desktop shell.
-  onShellEvent("tray:open-settings", () => router.push("/settings"));
-  onShellEvent("tray:about", () => router.push("/settings/about"));
-  onShellEvent("tray:copy-url", async (url) => {
-    try {
-      // Quasar's copyToClipboard: navigator.clipboard is missing on a page served over plain http
-      // (a browser on another computer); a focused window's write is reliable, and the shell shows
-      // the window first (§11).
-      await copyToClipboard(String(url));
-      pushToast({ kind: "success", title: t("tray.urlCopied"), description: String(url) });
-    } catch (err) {
-      pushToast({ kind: "error", title: t("tray.copyFailed"), description: String(err?.message || err) });
-    }
-  });
+});
+onBeforeUnmount(() => {
+  for (const off of unsubscribe.splice(0)) off();
 });
 </script>
 
 <template>
-  <!-- view "hhh lpr fff": the title bar over the full width, the nav under it on the left —
-       neither fixed: the layout's root is fixed to the window and never scrolls (the main
-       scroller does), and a fixed drawer is a compositing layer of its own whose icons Chrome
-       antialiases differently from the rest of the window (measured on JustWrite, 2026-10-09). -->
+  <!-- view "hhh lpr fff": the title bar over the full width, the nav under it on the left — neither
+       fixed: the layout's root is fixed to the window and never scrolls (the content scroller
+       does), and a fixed drawer is a compositing layer of its own (measured on JustWrite,
+       2026-10-09). The drawer keeps desktop behaviour at every width. -->
   <q-layout view="hhh lpr fff" class="shell">
     <q-header>
       <TitleBar />
     </q-header>
+
     <q-drawer :model-value="true" side="left" behavior="desktop" :width="NAV_WIDTH">
-      <aside class="shell__nav">
+      <nav class="shell__nav">
         <div class="shell__brand">
           <span class="brand-mark">{{ t("app.mark") }}</span>
           <span class="brand-name">{{ t("app.wordmark") }}</span>
         </div>
-        <nav class="shell__links">
-          <router-link v-for="n in NAV" :key="n.to" :to="n.to" class="navlink" :title="n.label">
-            <Icon :name="n.icon" :size="17" />
-            <span class="nav-label">{{ n.label }}</span>
-          </router-link>
-          <div class="nav-divider" />
-          <router-link v-for="n in TOOLS" :key="n.to" :to="n.to" class="navlink" :title="n.label">
-            <Icon :name="n.icon" :size="17" />
-            <span class="nav-label">{{ n.label }}</span>
-          </router-link>
-          <!-- v-bind="navAttrs" carries `data-panel-toggle`: the kit's usePanelDismiss
-               exempts elements holding it, so the click that OPENS the panel isn't also
-               the outside-click that closes it. Without it the panel opened and
-               instantly shut (found live 2026-08-03); it comes from the composable now
-               so the row cannot be rebuilt without it. -->
-          <button
-            class="navlink navlink--btn"
-            :class="{ 'router-link-exact-active': aiTasksNav.isOpen.value }"
-            v-bind="aiTasksNav.navAttrs" @click="aiTasksNav.toggle"
+        <q-list class="shell__links">
+          <q-item
+            v-for="n in NAV" :key="n.to" :to="n.to" :exact="n.exact"
+            class="navlink" active-class="navlink--active" dense
           >
-            <Icon name="Sparkle" :size="17" />
-            <span class="nav-label">{{ t("kit.nav.aiTasks") }}</span>
-            <span
-              v-if="aiTasksNav.badge.value" class="nav-count"
-              :class="{ 'nav-count--error': aiTasksNav.hasErrors.value }"
-            >{{ aiTasksNav.badge.value }}</span>
-          </button>
-        </nav>
+            <q-item-section avatar class="navlink__icon"><Icon :name="n.icon" :size="17" /></q-item-section>
+            <q-item-section>{{ n.label }}</q-item-section>
+          </q-item>
+          <q-separator class="nav-divider" />
+          <q-item
+            v-for="n in TOOLS" :key="n.to" :to="n.to"
+            class="navlink" active-class="navlink--active" dense
+          >
+            <q-item-section avatar class="navlink__icon"><Icon :name="n.icon" :size="17" /></q-item-section>
+            <q-item-section>{{ n.label }}</q-item-section>
+          </q-item>
+          <!-- v-bind="navAttrs" carries `data-panel-toggle` (the kit's useAiTasksNav): without it the
+               click that opens the panel is also its outside-click, and it shuts at once. -->
+          <q-item
+            clickable dense class="navlink navlink--tasks" :active="aiTasksNav.isOpen.value"
+            active-class="navlink--active" v-bind="aiTasksNav.navAttrs" @click="aiTasksNav.toggle"
+          >
+            <q-item-section avatar class="navlink__icon"><Icon name="Sparkle" :size="17" /></q-item-section>
+            <q-item-section>{{ t("kit.nav.aiTasks") }}</q-item-section>
+            <q-item-section v-if="aiTasksNav.badge.value" side>
+              <q-badge class="nav-count" :class="{ 'nav-count--error': aiTasksNav.hasErrors.value }">
+                {{ aiTasksNav.badge.value }}
+              </q-badge>
+            </q-item-section>
+          </q-item>
+        </q-list>
+        <!-- the name every acceptance is stamped with (Settings → Reviewer) — this app's -->
         <div class="shell__foot">
           <span v-if="project.reviewer" class="shell__reviewer" :title="t('nav.reviewer', { name: project.reviewer })">
             {{ project.reviewer }}
           </span>
         </div>
-      </aside>
+      </nav>
     </q-drawer>
+
     <q-page-container>
       <div class="shell__main">
         <router-view />
       </div>
     </q-page-container>
-    <!-- Every host the shared UI needs, as one tag. It was two, and the day the
-         confirm host was missing every confirmed action in the app — Change folder,
-         Clear models cache, Clear spawn logs, Apply all staged — became a button that
-         did nothing at all, because `confirmDialog()`'s promise never settled. One tag
-         so the failure mode is "forgot the hosts", not "mounted some of them". -->
+
     <LlmUiHosts />
-    <!-- The kit Help drawer (content adapter in the boot file over docs/*.md). LlmUiHosts
-         deliberately doesn't include it — not every consumer has docs. -->
     <HelpDrawer />
-    <!-- The once-ever AI offer (ruling R3): fired by Setup-save on a box with no
-         default provider; the flag persists whatever path is taken. -->
+    <!-- The once-ever AI offer (ruling R3): opened by Setup's first save on a machine with no
+         default AI provider; the flag is kept whatever the user picks. -->
     <AiSetupOffer
-      v-if="ui.aiOfferOpen" app-name="Just AI i18n &amp; DocGen"
+      v-if="ui.aiOfferOpen" :app-name="t('app.name')"
       @close="ui.closeAiOffer()"
       @quick-setup="router.push('/ai?quicksetup=1')"
-      @connect-provider="router.push('/ai?providers=online')" />
+      @connect-provider="router.push('/ai?providers=online')"
+    />
 
-    <!-- ── the boot splash — this app's plate (centre-composed, bars in the art's
-         clear bottom strip; JW's is left-empty), the KIT's load group inside it.
-         KEEP the plate + fit IN SYNC with index.html #app-boot — the static layer
-         shows the same image, so boot is one continuous plate, never two splashes. ── -->
+    <!-- The warm-start splash — this app's plate (keep the image and its fit in step with
+         index.html's #app-boot), the kit's load group inside it. -->
     <div v-if="warmModelId" class="splash">
       <img class="splash__plate" :src="splashPlate" alt="" />
       <div class="splash__strip">

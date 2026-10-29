@@ -13,7 +13,7 @@ import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import {
   AiTaskStrip, Icon, PaneHeader, UiButton, UiCheckbox, UiInput, UiProgress,
-  UiTable, UiTag, pushToast, usePoll, useSurfaceTask,
+  UiTable, UiTag, otherWindows, pushToast, usePoll, useSurfaceTask,
 } from "@delebash/ui";
 import splashPlate from "../assets/images/splash-plate.jpg";
 import { langTitle } from "../services/langs";
@@ -24,7 +24,7 @@ import { pageFill } from "@delebash/ui";
 const project = useProjectStore();
 const jobs = useJobsStore();
 const router = useRouter();
-const { t, n } = useI18n();
+const { t, n, d } = useI18n();
 
 const filter = ref("");
 const selected = ref([]);
@@ -40,6 +40,10 @@ onMounted(async () => {
   await Promise.all([project.refresh(), project.fetchSummary(), jobs.refresh()]);
   retry.start();
 });
+
+// Another window's change on this server (the kit's otherWindows — a translation saved, a run started): the counts
+// and the run read again in place.
+watch(() => otherWindows.changes, () => Promise.all([project.fetchSummary(), jobs.refresh()]));
 
 // A finished run changes every count on this page — refetch when one settles.
 watch(() => jobs.job?.state, async (state, prev) => {
@@ -107,7 +111,8 @@ async function translate(codes) {
   }
 }
 function lastRunLabel(l) {
-  return l.lastRun?.startedAt ? l.lastRun.startedAt.slice(0, 16).replace("T", " ") : "—";
+  // the run's time in this computer's time zone and the interface's language (it showed UTC, sliced)
+  return l.lastRun?.startedAt ? d(new Date(l.lastRun.startedAt), "dateTimeShort") : "—";
 }
 </script>
 
@@ -227,9 +232,13 @@ function lastRunLabel(l) {
             <span class="muted">{{ lastRunLabel(row) }}</span>
           </template>
           <template #go="{ row }">
-            <button class="iconbtn iconbtn--quiet" :title="t('nav.review')" @click="openReview(row.code)">
-              <Icon name="ChevRight" :size="14" />
-            </button>
+            <!-- the kit's icon button, named and with its tooltip (a hand-built button until 2026-10-29) -->
+            <UiButton
+              v-tooltip="t('nav.review')" intent="ghost" size="icon" :aria-label="t('nav.review')"
+              @click="openReview(row.code)"
+            >
+              <template #icon><Icon name="ChevRight" :size="14" /></template>
+            </UiButton>
           </template>
           <template #empty>
             <span class="muted">{{ t("home.noMatch") }}</span>

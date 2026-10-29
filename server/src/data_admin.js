@@ -21,9 +21,12 @@ import { makeDataRouter } from "@delebash/core/platform";
 import { sortedTables } from "@delebash/core/platform/data_api";
 import { getLogger } from "@delebash/core/platform/log";
 import * as lifecycle from "@delebash/core/runner/lifecycle";
+// (app.js mounts this router; its seed is called only when a restore runs, so the two modules' cycle never matters)
+import { seedLlmStack } from "./app.js";
 import { getState } from "./app_state.js";
 import * as appmeta from "./appmeta.js";
 import { APP_TABLES } from "./appmeta.js";
+import { seedSettings } from "./settings.js";
 
 const log = getLogger("just_ai_i18n_docgen.data");
 
@@ -81,6 +84,10 @@ export async function resetWorkspace() {
   h.createTables(LLM_TABLES);
   if (auth !== null) appmeta.setSetting("auth", auth);
   seedLlm();
+  seedSettings(h);
+  // the data's new epoch: every other window reloads (the kit's ChangeCounter)
+  getState().changes?.renewEpoch(h);
+  getState().changes?.replaced();
   log.info("workspace reset to its first-run state");
 }
 
@@ -91,9 +98,20 @@ export const router = (dataDir, { gate } = {}) =>
     runReset: resetWorkspace,
     assetDirs: () => ({}),
     ...keepAuth,
+    // and the data's new epoch, in the same transaction as the restored rows (the backup's own row replaced)
+    afterCopy: (h) => {
+      keepAuth.afterCopy(h);
+      getState().changes?.renewEpoch(h);
+    },
+    // a backup from an older version gets what this one's seed adds and upgrades, as at start (the template's
+    // seedWorkspace): the prompt rows a backup from before 2026-10-29 lacks, the presets, the catalog, the settings
+    afterTables: () => seedLlmStack(),
     // what would write into the data being replaced stops before it is (the gate is closed by then), and what was
-    // derived from the old data after
+    // derived from the old data after; every window reloads — only once the data has been replaced
     beforeReplace: teardown,
-    onReplaced: stopRunnerBestEffort,
+    onReplaced: async () => {
+      getState().changes?.replaced();
+      await stopRunnerBestEffort();
+    },
     gate,
   });

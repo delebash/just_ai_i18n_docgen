@@ -53,14 +53,14 @@ export class JobBusyError extends RuntimeError {
  */
 export function startTranslateRun(
   jobs,
-  { store = null, lang, engine, send, scope, subset, cfg, cachePath, translate = translateLanguage, confirm = null, log: logFn = (line) => log.info(line) },
+  { store = null, lang, engine, send, scope, subset, cfg, clientId = null, translate = translateLanguage, confirm = null, log: logFn = (line) => log.info(line) },
 ) {
   if (jobs.busy([TRANSLATE])) throw new JobBusyError("a job is already running");
   const total = asMap(subset).size;
   const runId = store ? startRun(store, { lang, engine, scope, total }) : null;
   const startedMs = monotonic();
 
-  return jobs.start({ kind: TRANSLATE, key: lang, label: lang }, async ({ signal, progress, update, emit }) => {
+  return jobs.start({ kind: TRANSLATE, key: lang, label: lang, clientId }, async ({ signal, progress, update, emit }) => {
     const seen = new Set();
     let requests = 0;
     let failed = [];
@@ -87,7 +87,6 @@ export function startTranslateRun(
         existingFlat: new Map(),
         lang,
         cfg,
-        cachePath,
         send,
         force: true,
         log: logFn,

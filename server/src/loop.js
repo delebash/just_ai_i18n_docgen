@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 // The translate loop — Layer 1's orchestration. Owned, on purpose. The port of loop.py
 // (ported from just-ai-help's `server/loop.js` `translateLanguage`, with ONE structural
-// change: the engine call is an injected async `send(system, user) -> str` instead of a
-// transport this module owns — the body is owned by the kit's adapters and the
-// per-feature engine preset, and THAT layer carries the probe's non-zero-temperature guard).
+// change: the engine call is an injected async `send(variables) -> str` instead of a
+// transport this module owns — the prompt is the translate row the variables fill
+// (seed_feature_prompts.js), the body is owned by the kit's adapters and the per-feature
+// engine preset, and THAT layer carries the probe's non-zero-temperature guard).
 //
 // Everything else ports faithfully, because every rule was paid for:
 //
@@ -15,32 +16,19 @@
 // translation that lost a placeholder is a FAILURE routed to retry, not a result.
 //
 // FLUSH after every batch, not once at the end: a full catalogue is an hour of local
-// generation, and a crash at minute 55 must not throw away 54 minutes. Both halves are
-// needed — the cache alone resumes nothing, because the delta skips a key only when the
-// cache entry AND the existing target value are present, so `onBatch` writes the partial
-// locale file.
+// generation, and a crash at minute 55 must not throw away 54 minutes — `onBatch` writes the
+// partial result, so a resumed run finds those keys done.
 //
-// The cache is ALWAYS loaded, even under force: force means "re-translate these keys
-// anyway", not "throw away what every other key and language already learned".
+// THE DELTA: a key that already has a translation is kept unless its English changed since that
+// translation was made (`recorded`, sources.js — the English each translation was written for);
+// `force` re-translates anyway. Until 2026-10-29 the delta asked a translation cache whose key held
+// the project's context and glossary, so a changed context sentence re-translated — and the CLI
+// wrote over — every reviewed string.
 
 import { sleep } from "@delebash/core/platform/asyncutil";
-import { errText, FileNotFoundError, isDict, pyGet, strip, truthy, ValueError } from "@delebash/core/platform/py";
-import { pyJson } from "@delebash/core/platform/pyjson";
-import { asMap, OSError, placeholderRe, readJson, toPlain, writeText } from "./jsonio.js";
-import { exists } from "./paths.js";
-import { buildSystemPrompt, buildUserMessage, cacheKey, parseItems, restore, sha1, shield } from "./shieldlib.js";
-
-function loadCache(p) {
-  if (!exists(p)) return {};
-  try {
-    const c = toPlain(readJson(p));
-    // A cache is a {key: translation} dict; anything else is as good as corrupt.
-    return isDict(c) ? c : {};
-  } catch (e) {
-    if (e instanceof ValueError || e instanceof OSError || e instanceof FileNotFoundError) return {};
-    throw e; // (a corrupt cache costs a re-run, never a wrong answer)
-  }
-}
+import { errText, pyGet, strip, truthy } from "@delebash/core/platform/py";
+import { asMap, placeholderRe } from "./jsonio.js";
+import { parseItems, restore, shield, translateVariables } from "./shieldlib.js";
 
 const monotonic = () => performance.now() / 1000;
 
@@ -57,7 +45,7 @@ export async function translateLanguage({
   existingFlat = null,
   lang,
   cfg,
-  cachePath,
+  recorded = null,
   send,
   force = false,
   batchSize = 16,
@@ -69,21 +57,12 @@ export async function translateLanguage({
   const source = asMap(sourceFlat);
   const existing = asMap(truthy(existingFlat) ? existingFlat : null);
   const phRe = placeholderRe(cfg.placeholder);
-  const ctx = pyGet(cfg, "context");
-  const contextHash = sha1(truthy(ctx) ? ctx : "");
   const gl = pyGet(cfg, "glossary");
-  const glossaryHash = sha1(pyJson(truthy(gl) ? gl : {}, { sortKeys: true }));
   const dnt = pyGet(truthy(gl) ? gl : {}, "doNotTranslate");
   const terms = truthy(dnt) ? dnt : [];
-  const system = buildSystemPrompt({
-    source: pyGet(cfg, "sourceLanguage", "en"),
-    targetLang: lang,
-    doNotTranslate: terms,
-    conventionsLine: pyGet(cfg, "conventionsLine", ""),
-    pluralSeparator: pyGet(cfg, "pluralSeparator"),
-  });
 
-  const cache = loadCache(cachePath);
+  // the English each existing translation was made from (sources.js); null: none known
+  const madeFrom = recorded ? asMap(recorded) : new Map();
   const values = new Map();
   const todo = [];
 
@@ -95,12 +74,11 @@ export async function translateLanguage({
       values.set(key, text);
       continue;
     }
-    const ck = cacheKey({ text, lang, contextHash, glossaryHash });
-    if (!force && existing.has(key) && Object.hasOwn(cache, ck)) {
+    if (!force && existing.has(key) && (!madeFrom.has(key) || madeFrom.get(key) === text)) {
       values.set(key, existing.get(key));
       continue;
     }
-    todo.push({ key, text, ck });
+    todo.push({ key, text });
   }
 
   log(`${lang}: ${source.size - todo.length} unchanged, ${todo.length} to translate`);
@@ -119,14 +97,15 @@ export async function translateLanguage({
       const [sh, tokens] = shield(it.text, phRe, terms);
       return { ...it, i, shielded: sh, tokens };
     });
-    const user = buildUserMessage(shielded, cfg);
+    // shielded BEFORE the row renders: the model sees ⟦n⟧ tokens, never a placeholder or a term
+    const variables = translateVariables(shielded, cfg, lang, terms);
 
     const wait = rateLimitMs / 1000 - (monotonic() - lastCall);
     if (wait > 0) await sleep(wait * 1000);
     lastCall = monotonic();
     requests += 1;
 
-    const items = parseItems(await send(system, user));
+    const items = parseItems(await send(variables));
 
     const stillMissing = [];
     for (const s of shielded) {
@@ -135,7 +114,6 @@ export async function translateLanguage({
       if (restored === null || !strip(restored)) stillMissing.push(s);
       else {
         values.set(s.key, restored);
-        cache[s.ck] = restored;
       }
     }
     return stillMissing;
@@ -154,6 +132,8 @@ export async function translateLanguage({
         pending = await attempt(pending);
         if (pending.length) log(`  batch ${bi + 1}: ${pending.length} item(s) unresolved, retry ${tryNo}/3`);
       } catch (err) {
+        // a setting no retry can fix (engine.js EngineNotConfigured) ends the run, named
+        if (err?.fatal) throw err;
         // an engine error is data for the ladder
         log(`  batch ${bi + 1}: ${errText(err)} (attempt ${tryNo}/3)`);
         if (tryNo === 3) break;
@@ -170,13 +150,13 @@ export async function translateLanguage({
         try {
           done = (await attempt([item])).length === 0;
         } catch (err) {
+          if (err?.fatal) throw err;
           log(`  ${item.key}: ${errText(err)} (singleton ${tryNo}/2)`);
         }
       }
       if (!done) failed.push(item.key);
     }
 
-    writeText(cachePath, pyJson(cache, { indent: 2, ensureAscii: false }));
     if (onBatch) onBatch(values);
     log(`  ${lang}: ${values.size}/${source.size} done (batch ${bi + 1}/${batches.length})`);
   }

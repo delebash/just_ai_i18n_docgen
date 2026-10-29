@@ -6,9 +6,9 @@
 // rejoins the run it did not start, and a finished run's card is read from its record. A running
 // run shows here as the kit's AiTaskStrip (its progress and the one Cancel — app-structure §8: the
 // screen that starts a task shows its strip, and the global stack leaves it out), as on Home.
-import { computed, onMounted } from "vue";
+import { computed, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { AiTaskStrip, PaneHeader, UiButton, UiProgress, UiSelect, UiTable, pushToast, pageFlow, useSurfaceTask } from "@delebash/ui";
+import { AiTaskStrip, PaneHeader, UiButton, UiProgress, UiSelect, UiTable, otherWindows, pushToast, pageFlow, useSurfaceTask } from "@delebash/ui";
 import { ref } from "vue";
 import { langLabel, langOptions } from "../services/langs";
 import { useJobsStore } from "../stores/jobs";
@@ -16,7 +16,7 @@ import { useProjectStore } from "../stores/project";
 
 const project = useProjectStore();
 const jobs = useJobsStore();
-const { t, te } = useI18n();
+const { t, te, d } = useI18n();
 const lang = ref(null);
 const scope = ref("pending");
 
@@ -26,6 +26,8 @@ onMounted(async () => {
   await jobs.refresh();
 });
 
+// another window's change (the kit's otherWindows): the run and the history read again
+watch(() => otherWindows.changes, () => jobs.refresh());
 const running = computed(() => jobs.running);
 const translateTask = useSurfaceTask("translate");
 const run = computed(() => jobs.run);
@@ -100,7 +102,7 @@ async function start() {
         :default-sort="{ id: 'when', desc: true }"
       >
         <template #when="{ row }">
-          <span class="mono">{{ row.startedAt?.slice(0, 19).replace("T", " ") }}</span>
+          <span class="mono">{{ row.startedAt ? d(new Date(row.startedAt), "dateTime") : "" }}</span>
         </template>
         <template #lang="{ row }">{{ langLabel(row.lang) }}</template>
         <template #engine="{ row }"><span class="mono">{{ row.engine }}</span></template>

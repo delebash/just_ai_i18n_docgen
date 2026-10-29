@@ -55,18 +55,21 @@ route through it instead of the local engine.
 
 The **Routing by feature** tab shows which engine preset each feature uses —
 `translate`, `review` (back-translation deliberately uses the SAME engine the
-translation used), and `confirm`. Selecting `translate` or `confirm` shows the
-*real* generated prompt, read-only (`review` has no preview — it routes only): prompts here are built by the pipeline for each string, so the
-preview is for understanding and test-tuning, never something that saves. The
-preset surface below it (model, temperature, samplers, save/load presets, "Use in
-production") is live and is where you'd point a feature at a stronger model.
+translation used), and `confirm`. Selecting one opens its Lab: the feature's
+prompt, which you can edit and save for every run (see
+[AI features](ai-features.md)), and the preset surface below it (model,
+temperature, samplers, save/load presets, "Use in production") — where you'd
+point a feature at a stronger model.
 
-To experiment with wording, **Edit copies for this test** unlocks editable copies
-inside the test columns — they run once and are never saved (every real run
-rebuilds its own prompt); **Restore generated** re-seeds the columns from the
-generated prompt, and the sample line always names what fed the preview and when
-it was built. To change what the prompt *really* says, follow the links under it —
+To try a prompt, pick a language under **Test input → Insert from language…**.
+The Lab fills the prompt's parts from a small live sample of your project, shielded
+exactly as a run shields them, so a test sends what a real run sends:
+`translate` takes the first strings still waiting for that language (on a
+finished language, already-translated ones), `confirm` a string that came back
+unchanged, `review` a translated one. With no project loaded, **Sample** fills a
+small built-in example instead. The links under the test input —
 **"Change what this prompt says:" → Context & glossary** (Setup) and **Per-key
-notes** (Review) — that data is what the builder assembles on every run. On a language that's already fully translated there's nothing
-pending to sample, so the preview samples already-translated keys and says so —
-the Lab still renders and tuning still works on a finished project.
+notes** (Review) — go to the data those parts come from.
+
+These three features answer in strict JSON, so their preset's thinking stays off
+for them: a reasoning block would break the answer.

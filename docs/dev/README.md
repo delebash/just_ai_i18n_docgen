@@ -8,9 +8,8 @@ Read in this order:
 2. **`TASKS.md`** — the live tracker. **`IDEAS.md`** — the backlog. **`RESEARCH.md`** —
    what is already known, by subject, with the proof; read its section before
    researching anything (the family rule, 2026-10-04).
-3. **`../plans/2026-08-04-consistency-sweep.md`** — the live family-consistency
-   enforcement list + the QuickSetup surgery resumption notes (the next build
-   chunk). Closed history: `../plans/archive/`.
+3. **Closed plans** — `../plans/archive/` (history; the family-consistency sweep
+   of 2026-08-04 among them, closed 2026-10-29 — its rows are the kit's now).
 4. **The family standard** — `../../../just-core/docs/app-structure.md`
    (this app is its reference implementation; §11 the standard chrome, §13 the
    docs convention).

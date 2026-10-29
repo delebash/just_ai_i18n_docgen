@@ -13,7 +13,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useI18n } from "vue-i18n";
 import {
   EmptyState, PaneHeader, UiButton, UiCheckbox, UiInput, UiSelect, UiTag,
-  UiTextarea, confirmDialog, pushToast, serverUrl,
+  UiTextarea, confirmDialog, otherWindows, pushToast, serverUrl,
 } from "@delebash/ui";
 import { useRoute } from "vue-router";
 import { langName, langOptions } from "../services/langs";
@@ -46,6 +46,8 @@ const WHY_KEYS = {
   missing: "review.why.missing",
   disagreement: "review.why.disagreement",
   terminology: "review.why.terminology",
+  // its detail is the English the translation was made from
+  "source-changed": "review.why.sourceChanged",
 };
 
 // The picker says which languages have work, and how much — this page IS the work, so
@@ -71,6 +73,9 @@ onMounted(async () => {
   window.addEventListener("keydown", onKey);
 });
 onBeforeUnmount(() => window.removeEventListener("keydown", onKey));
+// Another window's change (the kit's otherWindows — it waits while the cursor is in a text box): the queue reads
+// again in place, on the same language.
+watch(() => otherWindows.changes, () => review.refresh());
 
 // ── the keyboard (the original's App.vue map, page-local here) ─────────────
 /** True when the user is typing, so j/k do not steal characters out of a box. */
@@ -415,7 +420,7 @@ async function discardAll() {
         <!-- why is this flagged — the code, plus what the check looks for in plain English -->
         <div v-if="review.activeRow.flags.length" style="margin-bottom: 8px">
           <div v-for="(f, i) in hard" :key="`h${i}`" class="finding">
-            <span class="code">{{ f.code }}</span>{{ WHY_KEYS[f.code] ? t(WHY_KEYS[f.code]) : f.detail }}
+            <span class="code">{{ f.code }}</span>{{ WHY_KEYS[f.code] ? t(WHY_KEYS[f.code], { was: f.detail }) : f.detail }}
           </div>
           <div v-for="(f, i) in soft" :key="`s${i}`" class="finding advisory">
             <span class="code">{{ f.code }}</span>{{ f.detail }}

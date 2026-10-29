@@ -6,9 +6,10 @@
 // connection-error screen as its own app); the start-up now decides by route — the app, or the
 // connection-error page (/offline) — and the sequence below is unchanged. The stylesheets are quasar.config.js's `css`.
 import { defineBoot } from "#q-app";
-import { bootPrefs, checkServer, configureHelp, installErrorReporting, installLlmUi, startWarmOnBoot } from "@delebash/ui";
+import { bootPrefs, checkServer, configureFileSave, configureHelp, configureTestData, installErrorReporting, installLlmUi, startWarmOnBoot, tooltipDirective, watchOtherWindows } from "@delebash/ui";
 import { hasDoc, loadDoc, titleForSlug } from "../services/helpDocs.js";
-import { openPath, openUrl } from "../services/native.js";
+import { LAB_TEST_ACTIONS, LAB_TEST_SOURCES } from "../services/labTestData.js";
+import { hasShell, openPath, openUrl, saveFile, saveFromUrl } from "../services/native.js";
 import { i18n } from "../i18n/index.js";
 import { useUiStore } from "../stores/ui";
 
@@ -31,15 +32,30 @@ async function boot({ app, router, store: pinia }) {
     external: { open: openUrl, openPath },
     // No embedding features here, and the catalog seeds translation-measured rows only.
     capabilities: { embeddings: false },
+    // every request names this window (X-Client-Id): the server counts each window's changes apart, so the others'
+    // pages read again (the kit's ChangeCounter; watchOtherWindows below)
+    sendClientId: true,
   });
 
   // Renderer errors reach the server's log (app-structure §15): Vue's errorHandler and the window's
   // error / unhandledrejection post each failure to POST /v1/logs/client, and tell the user once per
   // distinct message — Settings → Logs shows them beside the server's lines.
   installErrorReporting(app);
+  // the kit's tooltips (v-tooltip — the AI status button, the help button, the tables…), as the template registers it
+  app.directive("tooltip", tooltipDirective);
+  // Every file the app makes (Settings → Backups) goes through the kit's saveBlob: the shell's Save-as dialog in
+  // the desktop app, a browser download elsewhere (app-structure §5, door 3) — the template's wiring.
+  configureFileSave({
+    save: (blob, { filename, title, filterName, filterExt, defaultDir }) =>
+      saveFile({ blob, suggestedName: filename, title, filterName, filterExt, defaultDir }),
+    saveUrl: (url, { filename, headers, title, filterName, filterExt, defaultDir }) =>
+      saveFromUrl({ url, headers, suggestedName: filename, title, filterName, filterExt, defaultDir }),
+    available: hasShell,
+  });
 
-  // In-app Help (kit drawer over docs/*.md) — the minimal drawer-only shape: no
-  // full-pane reader route yet, so the open-full/open-web buttons stay hidden.
+  // The AI Lab's test input (§7.3, JustWrite's wiring): a picker over the project's languages that fills each
+  // prompt row's variables from a live sample — what a real run of it sends (services/labTestData.js).
+  configureTestData({ sources: LAB_TEST_SOURCES, actions: LAB_TEST_ACTIONS });
 
   // In-app Help (kit drawer over docs/*.md) — the minimal drawer-only shape: no
   // full-pane reader route yet, so the open-full/open-web buttons stay hidden.
@@ -55,6 +71,8 @@ async function boot({ app, router, store: pinia }) {
     return;
   }
   router.beforeEach((to) => (to.path === "/offline" ? to.query.from || "/" : true));
+  // another window's changes on this server: the pages read again (a restore or a reset reloads the window)
+  watchOtherWindows();
   // Prefs before the ui store's FIRST init (its state reads them), theme before mount — the
   // static plate covers this await, so still no flash of the wrong mode (target-tree P9: prefs
   // are server-backed now).

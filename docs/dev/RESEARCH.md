@@ -209,15 +209,160 @@ kit's plan `docs/plans/2026-10-24-engines-the-llama-way.md`, round D2; TASKS).
   and `npm run screenshots` saved that screen as home, setup, review and runs (~1.57 MB each).
   With the model loaded first, the pages come out. — *measured 2026-10-28.*
 
+## The 2026-10-29 round: the English record, run checks, prompt rows
+
+Asked while building the user's approved list of 2026-10-29 (TASKS; the session's 22 items): the
+command line's overwrite, the translation cache's retirement, the run-start checks, and translate /
+confirm / review moving onto the kit's prompt rows.
+
+- **The command line's translate wrote over reviewed strings whenever the project's context
+  changed** — the delta kept a translation only while its cache key matched, and the key held the
+  context's and the glossary's hashes (`shieldlib.js` `cacheKey`, until 2026-10-29). JustWrite's
+  context changed in justwrite-app 1518401 (2026-10-17 16:16), after the cache's last write (16:14):
+  its next command-line translate would have re-sent and overwritten about 3,028 reviewed strings.
+  — *code + measured by an agent's read-only script, 2026-10-29.*
+- **The app's runs never read the cache** — a job passes `force: true` and an empty `existingFlat`
+  (`jobs.js`); only the command line's translate did. Its hit rate on the delta: JustWrite 156 of
+  3,184 keys, docgen 246 of 253. — *code + measured, 2026-10-29.* The cache is gone; its file
+  (`.just-ai-i18n-docgen-cache.json`, which projects' `.gitignore` already covers) holds the English
+  each translation was made from now (`sources.js`).
+- **Keys translated before the English record existed are recorded as current the first time a
+  language is seen** (`seedSources`) — an English change made before that first look can't be
+  found; every later one is a `source-changed` finding. — *code, 2026-10-29.*
+- **A run with no usable engine failed every key slowly** — `makeSend` resolved the preset only
+  inside each call, so the route's 400 never fired and each key spent the whole retry ladder. It
+  resolves once when the run is made now, and a setting error ends the loop (`fatal`). — *code,
+  2026-10-29.*
+- **The kit's 28 tooltips showed nothing in docgen** — the `v-tooltip` directive was never
+  registered (the template's boot registers it). — *code, 2026-10-29.*
+- **Review's Google Translate frame never loaded in the desktop window** — the shell's `app://`
+  CSP had no `frame-src`, and its `cspAdd` could only extend directives the default listed; the
+  kit's 836d134 added both `cspAdd` of a new directive and `resourceIsolation`'s `framePaths`. —
+  *code, 2026-10-29.*
+- **Electron's install script didn't download the binary** (npm's `allowScripts` gate): the app
+  wouldn't start until `node node_modules/electron/install.js` ran. — *measured 2026-10-29,
+  Electron 44.10.0.*
+- **Today's prompts are reproducible byte for byte from rows rendered by the kit, with the
+  optional rules composed in code** — 198/198 of JustWrite's batches and 17/17 of docgen's for
+  translate, every key (3,165 and 261) for confirm and back-translation, each with every optional
+  field set, all empty, and a context holding `{{items}}`, `$&` and `$1`. The values-only form (the
+  rule wording in the row) scored 0/199 once the optional fields were empty: it leaves "never
+  translate these terms: ;" behind. — *measured 2026-10-29 (scratchpad `measure/bytes.js`,
+  `measure2/bytes.js`); `tests/prompts.test.js` holds golden strings.*
+- **The kit's renderer never reads an inserted value as a template** — `render` replaces each
+  `{{name}}` once through a function, so a context sentence holding `{{items}}` is sent as written.
+  — *code: core `llm/prompts.js` `render`; test, 2026-10-29.*
+- **runAction differs from docgen's old send in four ways** — thinking is off under a JSON contract
+  (`_effectiveThink`; docgen sent the preset's think with the schema, and the seeded presets have it
+  off); the schema's name is the action key (`translate`, was `translations`); float tunables go as
+  `PyFloat`s; and a preset with no model makes the provider's default model resident first (the old
+  send loaded a model only when the preset named one). It adds the busy guard and the usage ledger
+  the direct `adapter.chat` call bypassed. — *code: core `llm/prompts.js` `_effectiveThink`,
+  `_responseFormat`, `_plane2Extra`, `ensureLocalReady`, 2026-10-29.*
+- **The kit's model refusals carry `localNotReady`** (the model just stopped by the user, the engine
+  not installed, a load that failed or timed out); retried per key each would load the model again,
+  so a run ends on one. — *code: core `runner/lifecycle.js` `ensureModelReady`, 2026-10-29.*
+- **runAction had no way to run a chosen preset** — escalation needs it; passing provider, model and
+  temperature as overrides still mixed in the assigned preset's samplers and top_p. The kit's
+  df6ee66 added `RunRequest.presetId`. — *code, 2026-10-29.*
+- **The kit's Lab showed the app's data links only on a prompt-less pane** — the row Lab dropped
+  docgen's Context & glossary and Notes doors; the kit's 8bdc2f7 shows them under the test input. —
+  *code: ui `components/FeatureLab.vue`, 2026-10-29.*
+- **The 40-key stress corpus, rebuilt** — the original's was never committed (just-ai-help's tree
+  has no corpus or evidence file; its `docs/models.md` only describes it). Rebuilt from JustWrite's
+  en.json of 2026-10-29 to that description, each count exact: 8 plural-pipe forms, 20
+  interpolations, 10 long paragraphs (160+ characters) with named slots, 7 glossary keys, 15 short
+  labels (three words or fewer, 3 of them questions); glossary terms only in the glossary group;
+  each group evenly spaced over the catalogue's key order. The keys: count.scene, count.concern,
+  count.looseThread, count.chapterDone, richEditor.pendingChanges, projectReplace.matchCount,
+  characterProfile.applyAction, settings.wbCategories.deleteMessage, plotBoard.intro,
+  sessionRecap.threadsBlurb, relations.intro, markers.emptyBody, foreshadowing.reviewDesc,
+  readerKnowledge.intro, analysisView.driftBlurbSet, groups.introList, timeline.intro,
+  settings.backups.thisBookHint, common.countOf, home.viaModel, export.docxTerm,
+  export.stage.loadingEpub, boot.splashAlt, export.zipJvNote, commandPalette.sub.export,
+  settings.coverImage.hint, chapters.ai.twistsDesc, plotBoard.dialog.deleteTitle, chat.deleteTitle,
+  stuck.eyebrow, nav.home, beatSheet.frameworkLabel, sceneLinks.newStrand, chat.storyBibleTerm,
+  richEditor.textColorTip, analysisView.milestones, commandPalette.act.toggleSidebar,
+  panes.search.eyebrow, settings.appearance.preset.editorial.name,
+  characters.sections.voice.title. — *2026-10-29 (scratchpad `m12/corpus.js`).*
+- **Gemma 4 12B (QAT) beside the 26B on that corpus** — one run each, the command line's
+  `translate --no-confirm --force` on a copy of docgen's data folder (JustWrite's context and
+  glossary, Spanish, the seeded preset: temperature 0.2, thinking off; `JUST_AI_HOME` isolated so
+  the family registry wasn't written), nothing else on an RTX 2070 SUPER 8 GB with 32 GB RAM, each
+  from a cold model load:
+  - **12B**: 40/40, 3 requests, 109.0 s; 0 structural; 2 flags, both false positives ("Editorial",
+    "PDF / DOCX / EPUB" are right unchanged); 3 real errors after reading — "Setups your manuscript
+    plants" read as the verb "Configura", "Pin any" as Spain's "Pincha" (it wrote "Fija"
+    elsewhere), `{atLeast}` placed after "métricas".
+  - **26B**: 40/40, 3 requests, 57.7 s; 0 structural; the same 2 false positives; 5 real errors —
+    "back" as "de respaldo" (backup), graph "edges" as "bordes", "Stuck?" as "¿Necesitas ayuda?",
+    "Drop one" as "Suelta uno", the same `{atLeast}` placement.
+  - 24 of the 40 came out identical. One run each at temperature 0.2 is within sampling noise
+    (the original saw a single flag not reproduce), so this says the 12B is as accurate here, not
+    more; the 26B's "most accurate" rests on the original's corpus and the 1,965-key live run.
+    Both keep every Spanish question's opening ¿. — *measured 2026-10-29 (scratchpad
+    `m12/run-*.log`, `m12/es.12b.json`, `m12/es.26b.json`).*
+- **An app's catalog rows never get a revised seeded text on an existing install** — the kit's
+  `seedExtraCatalog` fills only size, draft and physics facts on a row that's there; the known-stale
+  heal (QC-43a) covered the kit's own built-in catalog only. The kit's 5189ddb added
+  `modelCatalogHeals` (a field swapped only while it is exactly a listed old seeded value);
+  docgen registers the 12B row's old description and notes, copied from git, and the user's own
+  database held exactly those. — *code: core `llm/seed.js` `seedExtraCatalog`; read-only query of
+  docgen's `data/app.db`; test `app.test.js`, 2026-10-29.*
+- **docgen's nine new Spanish strings by the agentic review's `--new` run** — export 9 (all NO
+  CANDIDATE: the Lab's language word, Settings → General's four, the source-changed explanation, the
+  not-found page's three); no Spanish donor (the template has no es.json, JustWrite lacks the
+  keys); the translator's entries clean but the expected `untranslated` on "General"; one refuting
+  verifier overturned 0 of 9; apply 9 saves, "General" accepted with its reason, docgen's check
+  262/262, exit 0. This session translated and one independent agent verified, the workflows not
+  being opted into. — *2026-10-29 (scratchpad `es-new-1029/`).*
+- **The prompt rows, end to end in the real window** — Runs → Translate, Spanish, scope all, on
+  docgen's own project: 262/262 keys, 17 requests, 160 s with Gemma 4 26B, 0 failed, state done; the
+  strip on Runs and on Home ("Translating Spanish 16/262 … Cancel"); the confirmation pass ran
+  through the confirm row after it (7 "same" verdicts in 9 s, the identical keys' rows pre-ticked);
+  the 262 proposals discarded after, es.json untouched. — *measured 2026-10-29, the unpacked build,
+  kit a911599.*
+- **Review's Google Translate frame loads in the desktop window** — the iframe's `/v1/gt-frame`
+  page loaded, the Google widget mounted in it, no console error. — *measured 2026-10-29.*
+- **No driver can attach to any family app's packaged build** — all five (docgen, JustWrite,
+  JustVoice, house-paint, the template) set the fuse `enableNodeCliInspectArguments: false`, so
+  Playwright's `_electron.launch` times out on it; the e2e drives `build:unpacked`. And every app's
+  `build:unpacked` is Quasar's `--skip-pkg`, which skips installing the app's dependencies, so no
+  unpacked build can start its own server — its server exits with ERR_MODULE_NOT_FOUND for
+  `node_modules/<server>/src/serve.js`; the e2e runs against a server started first. All five on
+  Electron 44.10.0. — *measured + code (Quasar `electron-builder.js` `#packageFiles`), 2026-10-29.*
+- **A server already on the port is asked to stop** (the kit's shutdown route + the shell's
+  `shutdownPath`): the unpacked and the packaged app each sent it `POST /v1/shutdown`, and it logged
+  "shutdown requested from 127.0.0.1 — stopping engines, then exiting". — *measured 2026-10-29.*
+- **The tray, as a person uses it** (the packaged build, Windows 11, through UI Automation): the
+  icon sits in the "Show Hidden Icons" flyout (`TopLevelWindowForOverflowXamlIsland`), its name the
+  tooltip with a leading space (" Just AI i18n & DocGen"); with keep-running off the window's close
+  quits the app and stops its server; on, the close hides the window and both stay; the icon's
+  left-click shows the window again; the menu's Quit stops every process and the server. The menu
+  read "Quit Just AI i18n  DocGen" — Windows takes "&" as a menu mnemonic; the kit's ca087d0 escapes
+  it. — *measured 2026-10-29.*
+- **The site's `/docs/` index comes only from an app's `docs/README.md`** (the kit's sync-docs);
+  docgen's own retired script wrote it from `toc.json`, so on the kit's script the sidebar's
+  `docs` entry had no page and the site's build failed. docgen has a `docs/README.md` now, as
+  JustWrite does; the in-app Help takes it as its index. — *code + measured (site `build:local`),
+  2026-10-29.*
+- **The single-source text system needs no change in docgen's `extract`** — it writes `lede.<slug>`
+  and `hints.<slug>.<field>` from a doc's front-matter and round-trips a nested catalog: over
+  JustWrite's docs and en.json, `extract --check` answered "27 doc(s), 0 with front-matter → 0
+  key(s), up to date", the file byte-identical. The work is JustWrite's (its toc `hint`s are English
+  literals shown untranslated, and its docgen config has no `docsDir`), the kit's (its help renderer
+  must strip front-matter — b8551d2) and its website's; handed to those sessions with the steps. —
+  *measured 2026-10-29 (read-only); JustWrite's `docs/plans/2026-07-26-i18n-single-source-research.md`.*
+- **A restore re-ran only docgen's settings seed** — the template's runs the whole seed
+  (`seedWorkspace`), so a backup from before the prompt rows restored without them and no run could
+  start until a restart. — *code + test (`data.test.js`), 2026-10-29.*
+
 ---
 
 ## Records not yet distilled
 
 Indexed by subject so they can be found; their facts move into a section above when work next
 touches the subject. History in [`../plans/archive/`](../plans/archive/) is not listed.
-
-**Consistency across the family** —
-[`2026-08-04-consistency-sweep.md`](../plans/2026-08-04-consistency-sweep.md).
 
 **The measured evidence behind every check and rule** — the retired Node original,
 https://github.com/delebash/just-ai-help (`docs/HANDOFF.md`; archived).

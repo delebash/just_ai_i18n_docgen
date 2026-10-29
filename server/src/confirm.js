@@ -35,31 +35,22 @@ import { parseItems } from "./shieldlib.js";
 export const CONFIRM_CODE = "untranslated";
 
 /**
- * Names the four situations explicitly rather than asking "is this right?" — a model asked
- * to judge itself agrees with itself. Asked to TRANSLATE, it does the job it is good at, and
- * answering "SAME" becomes a deliberate refusal, not a shrug.
+ * The confirm row's {{variables}} for one key (seed_feature_prompts.js CONFIRM_PROMPT) — the pass's and the Lab's,
+ * from this one function. One key per call (`source`), never batched: a batch is how the original skip happened.
+ *
+ * The row names the four situations explicitly rather than asking "is this right?" — a model asked to judge itself
+ * agrees with itself. Asked to TRANSLATE, it does the job it is good at, and answering "SAME" becomes a deliberate
+ * refusal, not a shrug.
  */
-export function buildConfirmPrompt({ targetLang, context = "", doNotTranslate = null }) {
-  const never = truthy(doNotTranslate)
-    ? `\nThese terms stay exactly as they are and are always SAME: ${doNotTranslate.join(", ")}.`
-    : "";
-  const ctx = truthy(context) ? ` from ${context}` : "";
-  return `You are checking ONE user-interface string${ctx}.
-
-A translator was asked to translate it from English into ${targetLang} and returned it UNCHANGED.
-Decide which of these happened.
-
-It is genuinely unchanged when:
-  - it is not words — a button glyph ("A", "H2", "B"), a unit ("5s", "12 w"), a symbol
-  - it is a product, brand or file-format name that stays English (EPUB, JSON, RAG)
-  - ${targetLang} simply uses the same word (for Spanish: Color, Error, total)
-
-It was SKIPPED when the string is ordinary text that has a perfectly good ${targetLang} word.
-"books" is not ${targetLang}. "Save" is not ${targetLang}.${never}
-
-Reply with a single item whose translation field is EXACTLY one of:
-  SAME                  — if it is genuinely unchanged
-  the ${targetLang}     — if it was skipped, give the correct translation`;
+export function confirmVariables({ targetLang, context = "", doNotTranslate = null, source }) {
+  return {
+    lang: String(targetLang),
+    from_context: truthy(context) ? ` from ${context}` : "",
+    glossary_line: truthy(doNotTranslate)
+      ? `\nThese terms stay exactly as they are and are always SAME: ${doNotTranslate.join(", ")}.`
+      : "",
+    items: pyJson([{ id: 0, text: source }]),
+  };
 }
 
 /**
@@ -77,15 +68,15 @@ export function isSameVerdict(answer, source) {
 const TRAILING_DOTS = new RegExp(`[.${S.slice(1)}+$`, "u"); // [.\s]+$
 
 /**
- * The default transport: ONE key per call through the resolved preset — never batched,
- * because a batch is how the original skip happened and asking inside another batch invites
- * the model to repeat it for the same reason. Returns an async `ask(system, source)`.
+ * The default transport: ONE key per call through the confirm row and its resolved preset — never
+ * batched, because a batch is how the original skip happened and asking inside another batch
+ * invites the model to repeat it for the same reason. Returns an async `ask(variables)`; made once
+ * per pass, so a broken row or a missing engine is refused before the first key (engine.makeSend).
  */
-export function makeAsk(feature = "confirm") {
-  const send = engine.makeSend(feature);
-  return async function ask(system, source) {
-    const user = `Translate items: ${pyJson([{ id: 0, text: source }])}`;
-    const answer = parseItems(await send(system, user)).get(0);
+export function makeAsk(action = "confirm") {
+  const send = engine.makeSend(action);
+  return async function ask(variables) {
+    const answer = parseItems(await send(variables)).get(0);
     if (typeof answer !== "string") {
       // ValueError on purpose: the MODEL's reply is what is invalid, and confirmIdentical
       // routes it into `failed` like any error.
@@ -117,7 +108,6 @@ export async function confirmIdentical({
   ask,
   onProgress = null,
 }) {
-  const system = buildConfirmPrompt({ targetLang, context, doNotTranslate });
   const cleared = [];
   const proposed = [];
   const failed = [];
@@ -125,10 +115,12 @@ export async function confirmIdentical({
   for (const key of keys) {
     const src = pyGet(sourceFlat, key);
     try {
-      const answer = await ask(system, src);
+      const answer = await ask(confirmVariables({ targetLang, context, doNotTranslate, source: src }));
       if (isSameVerdict(answer, src)) cleared.push({ key, src, dst: pyGet(targetFlat, key) });
       else proposed.push({ key, src, dst: pyGet(targetFlat, key), suggestion: answer });
     } catch (e) {
+      // a setting no retry fixes (engine.js EngineNotConfigured: the prompt, the preset) ends the pass, named
+      if (e?.fatal) throw e;
       failed.push({ key, src, error: errText(e) }); // an engine error is a routed outcome
     }
     if (onProgress) onProgress({ done: cleared.length + proposed.length + failed.length, total: keys.length });

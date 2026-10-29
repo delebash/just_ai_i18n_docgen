@@ -19,16 +19,17 @@
 //
 // The HTTP routes over this class live in `api/workspace_api.js` (+ setup_api /
 // server_auth_api / health_api) — the family tree. This module keeps the domain: the
-// Workspace holder, the write rules, and the prompt-preview builders.
+// Workspace holder, the write rules, and the Lab's test input (labVariables).
 
 import { HttpError } from "@delebash/core/platform/errors";
-import { cmp, isDict, pyGet, pyIter, pyMax, truthy } from "@delebash/core/platform/py";
+import { cmp, isDict, pyGet, pyIter, truthy } from "@delebash/core/platform/py";
 import { pyJson } from "@delebash/core/platform/pyjson";
-import { buildConfirmPrompt } from "./confirm.js";
+import { confirmVariables } from "./confirm.js";
 import { flatten, placeholderRe, readJson, rebuild, writeText } from "./jsonio.js";
 import { exists } from "./paths.js";
-import { allFindings, Project } from "./service.js";
-import { buildSystemPrompt, buildUserMessage, shield } from "./shieldlib.js";
+import { allFindings, Project, runCfg } from "./service.js";
+import { backtranslateVariables, shield, translateVariables } from "./shieldlib.js";
+import { recordSources } from "./sources.js";
 import { dropConfirmation, dropProposal, dropReferences, proposalKeys, reviewStatuses } from "./state.js";
 
 export const _UNLIMITED = 10 ** 9; // a UI scrolls; a CLI report has to truncate
@@ -59,7 +60,9 @@ export class Workspace {
    * almost always differ from the machine's second pass, and without this the reviewer's own
    * fix becomes the evidence against it), the cached second opinion, the staged proposal (a
    * proposal staged against the old string could be applied OVER the newer text, silently
-   * reverting the reviewer's fix — a real bug), and the confirmation verdict.
+   * reverting the reviewer's fix — a real bug), and the confirmation verdict. And it records
+   * the English the new text was written for (sources.js) — a later change to that English is
+   * then a finding.
    */
   writeKey(lang, key, value) {
     const p = this.project;
@@ -78,6 +81,7 @@ export class Workspace {
     dropReferences(p.state, { lang, key });
     dropProposal(p.state, { lang, key });
     dropConfirmation(p.state, { lang, key });
+    recordSources(p.paths.cachePath, lang, new Map([[key, value === null || value === undefined ? null : (p.src.get(key) ?? null)]]));
   }
 
   writeNote(lang, key, note) {
@@ -171,123 +175,43 @@ export class Workspace {
 }
 
 /**
- * The default sample language is the BUSIEST one (the agreed A922 default): most pending keys
- * for translate; for confirm most byte-identical, then most translated. Ties keep target order
- * (Python's max returns the first maximum).
+ * The Lab's test input for one action (the kit's FeatureLab, its language picker — boot/docgen.js): the {{variables}}
+ * a real run of that action sends, over a small live sample of `lang`, from the same functions the runs call,
+ * shielding included — so a Lab test sends what production sends. It replaced the read-only prompt preview
+ * (2026-10-29), when the prompts became editable rows. A finished language still fills the Lab, sampling done keys
+ * (ruling 2026-08-04: "def show the full lab"); the loud 400s are for a catalogue with nothing to sample.
  */
-export function _pickPreviewLang(p, feature) {
-  const targets = pyIter(p.targets);
-  if (!targets.length) return "";
-
-  const counts = (lg) => {
-    const dst = p.targetFlat(lg) ?? new Map();
-    let pending = 0;
-    let identical = 0;
-    let translated = 0;
-    for (const [k, v] of p.src) {
-      if (!dst.has(k)) pending += 1;
-      if (dst.get(k) === v) identical += 1;
-      const d = dst.get(k);
-      if (typeof d === "string" && d) translated += 1;
-    }
-    return [pending, identical, translated];
-  };
-
-  if (feature === "confirm") return pyMax(targets, (lg) => [counts(lg)[1], counts(lg)[2]]);
-  return pyMax(targets, (lg) => counts(lg)[0]);
-}
-
-/**
- * The REAL translate prompt over a small live sample — the same builders the batch loop uses
- * (`loop.translateLanguage`), shielding included, so the kit's promptless Lab shows exactly
- * what a production run sends. A FINISHED language still shows the Lab (ruling 2026-08-04:
- * "def show the full lab" — the prompt SHAPE is identical), sampling already-translated keys
- * and saying so; the loud 400s are for explicit keys that don't exist and a catalogue with no
- * keys at all.
- */
-export function _previewTranslate(p, lang, keys, n = 6) {
-  // The SAME cfg the real run builds (start_job): the per-language conventions line and the
-  // reviewer notes ride the preview too, or the Lab shows a prompt production never sends
-  // (audit 2026-08-05 — both were dropped here). The glossary goes through _glossaryList:
-  // both shapes are legal everywhere.
-  const conv = pyGet(p.conventions, lang);
-  const cfg = {
-    ...p.cfg,
-    conventionsLine: pyGet(truthy(conv) ? conv : {}, "promptLine", ""),
-    notes: flatten(p.readNotes(lang)),
-  };
-  const phRe = placeholderRe(cfg.placeholder);
-  const terms = _glossaryList(cfg);
-  const system = buildSystemPrompt({
-    source: pyGet(cfg, "sourceLanguage", "en"),
-    targetLang: lang,
-    doNotTranslate: terms,
-    conventionsLine: cfg.conventionsLine,
-    pluralSeparator: pyGet(cfg, "pluralSeparator"),
-  });
-  const existing = p.targetFlat(lang) ?? new Map();
-  let sampledDone = false;
-  let pick;
-  if (truthy(keys)) {
-    pick = pyIter(keys)
-      .filter((k) => p.src.has(k))
-      .slice(0, n);
-    if (!pick.length) throw new HttpError(400, "None of the requested keys exist in the source catalogue.");
-  } else {
-    pick = [...p.src.keys()].filter((k) => !existing.has(k)).slice(0, n);
-    if (!pick.length) {
-      pick = [...p.src.keys()].filter((k) => existing.has(k)).slice(0, n);
-      sampledDone = true;
-    }
-    if (!pick.length) throw new HttpError(400, "The source catalogue has no keys to sample.");
-  }
-  const shielded = pick.map((k, i) => {
-    const [sh] = shield(p.src.get(k), phRe, terms);
-    return { key: k, text: p.src.get(k), i, shielded: sh };
-  });
-  const user = buildUserMessage(shielded, cfg);
-  const label = sampledDone
-    ? `every key translated — sampling ${shielded.length} done key(s)`
-    : `${shielded.length} pending key(s)`;
-  return { system, user, sample: `${label} · ${lang}` };
-}
-
-/**
- * The REAL confirm probe prompt: one key, exactly the shape `confirm.makeAsk` sends (one key
- * per call — never batched, by design). Prefers a byte-identical key (confirm's real prey); a
- * healthy project without one still shows the Lab (ruling 2026-08-04: "def show the full
- * lab") — the prompt SHAPE is identical over any key, and the sample line names which
- * fallback fed it. Explicit keys stay loud.
- */
-export function _previewConfirm(p, lang, keys) {
+export function labVariables(p, action, lang, n = 6) {
+  if (!pyIter(p.targets).includes(lang)) throw new HttpError(400, `unknown language: ${lang}`);
   const dst = p.targetFlat(lang) ?? new Map();
-  let picked;
-  let note;
-  if (truthy(keys)) {
-    const same = pyIter(keys).filter((k) => p.src.has(k) && dst.get(k) === p.src.get(k));
-    if (!same.length) throw new HttpError(400, `None of the requested keys are byte-identical in ${lang}.`);
-    [picked, note] = [same[0], "identical key"];
-  } else {
-    const same = [...p.src.keys()].filter((k) => dst.get(k) === p.src.get(k));
-    if (same.length) [picked, note] = [same[0], "identical key"];
-    else {
-      const translated = [...p.src.keys()].filter((k) => typeof dst.get(k) === "string" && dst.get(k));
-      if (translated.length) [picked, note] = [translated[0], "no byte-identical targets right now — sampling"];
-      else if (p.src.size) [picked, note] = [p.src.keys().next().value, "nothing translated yet — sampling"];
-      else throw new HttpError(400, "The source catalogue has no keys to sample.");
-    }
+  const keys = [...p.src.keys()];
+  if (!keys.length) throw new HttpError(400, "The source catalogue has no keys to sample.");
+  if (action === "translate") {
+    const cfg = runCfg(p, lang);
+    const phRe = placeholderRe(cfg.placeholder);
+    const terms = _glossaryList(cfg);
+    // pending keys first; a finished language samples done ones
+    let pick = keys.filter((k) => !dst.has(k)).slice(0, n);
+    if (!pick.length) pick = keys.slice(0, n);
+    const shielded = pick.map((key, i) => ({ key, i, shielded: shield(p.src.get(key), phRe, terms)[0] }));
+    return translateVariables(shielded, cfg, lang, terms);
   }
-  const cfg = p.cfg;
-  const gl = pyGet(cfg, "glossary");
-  const dnt = pyGet(truthy(gl) ? gl : {}, "doNotTranslate");
-  const system = buildConfirmPrompt({
-    targetLang: lang,
-    context: pyGet(cfg, "context", ""),
-    doNotTranslate: truthy(dnt) ? dnt : [],
-  });
-  const src = p.src.get(picked);
-  const user = `Translate items: ${pyJson([{ id: 0, text: src }])}`;
-  return { system, user, sample: `${note} ${picked} · ${lang}` };
+  if (action === "confirm") {
+    // a byte-identical key is the pass's real prey; any key shows the prompt's shape
+    const key = keys.find((k) => dst.get(k) === p.src.get(k)) ?? keys[0];
+    return confirmVariables({
+      targetLang: lang,
+      context: pyGet(p.cfg, "context", ""),
+      doNotTranslate: _glossaryList(p.cfg),
+      source: p.src.get(key),
+    });
+  }
+  if (action === "review") {
+    const key = keys.find((k) => typeof dst.get(k) === "string" && dst.get(k));
+    if (key === undefined) throw new HttpError(400, `Nothing is translated into ${lang} yet — a back-translation reads a translation.`);
+    return backtranslateVariables(dst.get(key), p.cfg, lang);
+  }
+  throw new HttpError(400, `No test input for "${action}".`);
 }
 
 /**

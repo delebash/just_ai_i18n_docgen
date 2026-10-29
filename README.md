@@ -181,7 +181,7 @@ npm run release -- --platform windows
 
 `gh workflow run release.yml -f tag=main -f publish=false` is a dry run: the same builds, kept on the run instead of released.
 
-> The workflow is the kit template's, as it is (`../just-core/template/.github/workflows/release.yml`), with `WEBSITE_REPO` empty: a release never starts the website's workflow — nothing builds unless you start it (the user, 2026-10-28). After a release, publish the site from its repo: `cd ../just-ai-i18n-docgen-website && npm run deploy`.
+> The workflow is the kit template's, as it is (`../just-core/template/.github/workflows/release.yml`): a release never starts another workflow — nothing builds unless you start it (the user, 2026-10-28). After a release, publish the site from its repo: `cd ../just-ai-i18n-docgen-website && npm run deploy`.
 
 ---
 
@@ -240,7 +240,7 @@ A new shell command goes into the kit (its command list in `just-core/packages/c
 
 AI runs through the family's **shared LLM stack** (`../just-core`): `server/src/app.js` mounts the kit's runner router and calls `installLlm`, which mounts the providers, routing, presets and usage API (`/v1/llm-providers`, `/v1/ai/*`), with official-SDK adapters for OpenAI, Anthropic and Gemini plus the OpenAI-compatible shape for local servers. The renderer's **AI Settings** page is the kit's `AiModelsArea`. The bundled llama.cpp runner downloads, tunes and serves local GGUF models — no separate install.
 
-This app registers three features — `translate`, `review`, `confirm` — each routed to an engine preset that owns the provider, model, temperature and think settings (`DEFAULT_ENGINE_PRESETS` in `server/src/app.js`). It builds its own prompts (shielding is a substitution — `server/src/shieldlib.js`), so the kit's prompt store carries none, and its model catalog is translation-measured rows only (`MODEL_CATALOG`). Project configs carry no engine field: the engine seam (`server/src/engine.js`) resolves the feature's preset, the same for the app and the CLI.
+This app registers three features — `translate`, `review`, `confirm` — each routed to an engine preset that owns the provider, model, temperature and think settings (`DEFAULT_ENGINE_PRESETS` in `server/src/app.js`). Each feature has one prompt row (`server/src/seed_feature_prompts.js`), editable in the AI Lab and run by the kit's `runAction`; the strings are shielded before a row renders (shielding is a substitution — `server/src/shieldlib.js`). Its model catalog is translation-measured rows only (`MODEL_CATALOG`). Project configs carry no engine field: the engine seam (`server/src/engine.js`) resolves the feature's preset, the same for the app and the CLI.
 
 ---
 

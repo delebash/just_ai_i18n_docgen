@@ -23,12 +23,16 @@ export default defineConfig(() => {
     boot: ['i18n', 'docgen'],
 
     // The app's stylesheets (src/css/), in the entry stylesheet rather than the boot file's chunk:
-    // the design tokens, every font the Appearance picker offers (the kit's Fontsource set, bundled —
-    // the template's list, app-structure §11), then the app's own styles — ahead of the kit's, as
-    // they have always loaded.
+    // the template's list (app-structure §11), in its order: the design tokens, every font the Appearance picker
+    // offers (the kit's Fontsource set, bundled), the kit's control styles, its Quasar theme, the family's page looks
+    // (the kit's common/app.css — the engines plan's F6, 2026-10-29), then this app's own styles.
     css: [
       'tokens.css',
       '~@delebash/ui/common/fonts.css',
+      '~@delebash/ui/styles.css',
+      '~@delebash/ui/common/styles.css',
+      '~@delebash/ui/quasar/theme.css',
+      '~@delebash/ui/common/app.css',
       'app.scss',
     ],
 

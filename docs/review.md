@@ -61,6 +61,10 @@ Each queued key shows its source, an editable target, and one or more flags:
   differently; worth a look, never a failure.
 - `terminology` — *advisory*: this key translates a term inconsistently with the
   rest of your catalogue.
+- `source-changed` — the English changed since this was translated; the flag shows
+  the English it was made from. Fix it and Save, or accept it if the translation still
+  says the same. A run of **pending** keys picks these up. (Keys translated before
+  docgen started noting this are taken as up to date the first time it sees them.)
 
 ## The actions
 

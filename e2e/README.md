@@ -52,8 +52,10 @@ the installed app — and read `<data>/logs/*.log` plus `<data>/ai-cache/llamacp
   presets (that write IS the assertion — a wizard that corrupts routing must fail here) and
   then restores them, verifying the restore. It also starts a real load and cancels it.
 - `npm run screenshots` — captures every surface as PNGs into `e2e/shots/` (gitignored).
-  Start the server on :8742 first if you want shots with data; `CAPTURE_NO_SIDECAR=0` lets
-  the app start its own server instead.
+  Start the server on :8742 first. The unpacked build can't start a server of its own (Quasar's
+  `--skip-pkg` skips installing its dependencies), so `CAPTURE_NO_SIDECAR=0` only shows the
+  connection-error screen; the packaged build (`npm run build`) carries its server, but its fuses
+  forbid this driver (`enableNodeCliInspectArguments: false`) — the same in every family app.
 
 ## Gotchas
 

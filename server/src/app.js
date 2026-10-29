@@ -11,12 +11,13 @@
 // one points at an engine preset that owns provider+model+temperature/think:
 //
 //     translate — the batch loop (the old `translate.js`)
-//     review    — back-translation + the confirmation pass (`confirm.js`)
-//     confirm   — the second-opinion pass on byte-identical targets
+//     review    — Review's back-translation
+//     confirm   — the second-opinion pass on byte-identical targets (`confirm.js`)
 //
-// `featurePrompts: {}` is DELIBERATE and load-bearing: this tool builds its own prompts
-// (shielding is a substitution — see shieldlib.js) and dispatches directly. The shared prompt
-// store never carries them.
+// Each has one PROMPT ROW of the same key (seed_feature_prompts.js), editable in the AI Lab and
+// run by the kit's runAction (engine.js). Until 2026-10-29 `featurePrompts` was `{}`: docgen built
+// its prompts in code and the Lab showed a read-only preview. Shielding is still a substitution
+// done before a row renders (shieldlib.js): the model sees ⟦n⟧ tokens, never a placeholder.
 //
 // What stays JSON, per the 2026-08-01 ruling: `config.json`, `<lang>.accepted.json`,
 // `<lang>.notes.json` — they belong to the app being translated and live in ITS repo. Machine
@@ -34,17 +35,23 @@ import { FeatureCatalogEntry } from "@delebash/core/llm/routing_api";
 import {
   bearerAuth,
   CAPACITOR_ORIGINS,
+  ChangeCounter,
   createServer,
   csrfOrigin,
   installFileLog,
   installLogRing,
+  JobRegistry,
   MaintenanceGate,
   makeDiskRouter,
   makeJobsRouter,
   makeLogsRouter,
   makePrefsRouter,
+  makeShutdownRouter,
+  makeSyncRevRouter,
   openDatabase,
   resolveDataDir,
+  resourceIsolation,
+  SHUTDOWN_PATH,
   serveUi,
   starletteCors,
 } from "@delebash/core/platform";
@@ -54,13 +61,17 @@ import { errText } from "@delebash/core/platform/py";
 import { router as healthRouter } from "./api/health_api.js";
 import { router as serverAuthRouter } from "./api/server_auth_api.js";
 import { router as setupRouter } from "./api/setup_api.js";
+import { router as settingsRouter } from "./api/settings_api.js";
 import { router as workspaceRouter } from "./api/workspace_api.js";
 import { AppState, getState, setState } from "./app_state.js";
 import * as appmeta from "./appmeta.js";
 import { readAuth } from "./auth.js";
 import { router as dataRouter } from "./data_admin.js";
 import { isDir } from "./paths.js";
+import { DEFAULT_FEATURE_PROMPTS } from "./seed_feature_prompts.js";
+import { DEFAULT_TEST_SAMPLES } from "./seed_test_samples.js";
 import { PRODUCT } from "./version.js";
+import { getAppSetting, seedSettings, setAppSetting, upgradeSettings } from "./settings.js";
 import { Workspace } from "./workspace.js";
 
 const log = getLogger("just_ai_i18n_docgen.app");
@@ -161,12 +172,12 @@ export const MODEL_CATALOG = [
       "accurate AND fastest on the stress corpus and the 1,965-key live run",
     notes: "The default pick when it fits (needs ~24 GB RAM for expert offload).",
   },
-  // The ONE recorded exception to the measured-only rule (user ruling 2026-08-06: "replace
-  // gemma 3 with gemma 4 even though it is untested"): Gemma 4 12B (QAT) takes the 12B slot
-  // on strong expectation, but it has NOT run the translation corpus yet. The description says
-  // so honestly; the measurement task is in TASKS, and Gemma 3 12B's measured row ("0
-  // structural, 1 semantic flag") returns from git if the numbers disappoint. Row facts from
-  // JW's audited seed.
+  // Gemma 4 12B (QAT) took the 12B slot untested (user ruling 2026-08-06: "replace gemma 3 with
+  // gemma 4 even though it is untested") and was measured 2026-10-29 on the rebuilt 40-key corpus
+  // beside the 26B, one run each on an 8 GB card (docs/dev/RESEARCH.md): both 0 structural, the
+  // 12B 3 real errors after reading and the 26B 5, the 12B 109.0 s and the 26B 57.7 s with a cold
+  // load. The original's corpus was never committed, so these compare with the 26B only, not
+  // with the original's numbers. Row facts from JW's audited seed.
   {
     id: "gemma-4-12b-qat",
     name: "Gemma 4 12B (QAT)",
@@ -191,10 +202,10 @@ export const MODEL_CATALOG = [
     architecture: "gemma4",
     experts: 0,
     description:
-      "12B dense (QAT) · 256k context · NOT yet measured on the " +
-      "translation corpus — expected to beat Gemma 3 12B (newer " +
-      "family, quantization-aware quant); measure to confirm",
-    notes: "The 8-12 GB-card pick, pending its measurement run.",
+      "12B dense (QAT) · 256k context · MEASURED on the rebuilt 40-key corpus: " +
+      "0 structural, 3 real errors after reading (the 26B: 5) · about half the " +
+      "26B's speed on an 8 GB card",
+    notes: "The pick when the 26B doesn't fit (it needs ~24 GB RAM): as accurate on the rebuilt corpus, at about half the speed.",
   },
   {
     id: "hy-mt2-7b",
@@ -216,6 +227,17 @@ export const MODEL_CATALOG = [
     notes: "Small and fast. Caveat, measured: the family can drop Spanish opening ¿ — keep the checks on.",
   },
 ];
+
+// A catalog text revised between versions reaches an install that still holds the old one: the kit's
+// modelCatalogHeals (5189ddb; app-structure §19 "An app's AI seed revised between versions") swaps a field only
+// while it is exactly an old seeded value, so a user's own edit is never touched. Each old value is copied from git.
+export const MODEL_CATALOG_HEALS = {
+  // seeded 2026-08-06 → 2026-10-29, before the row's measurement
+  "gemma-4-12b-qat": {
+    description: ["12B dense (QAT) · 256k context · NOT yet measured on the translation corpus — expected to beat Gemma 3 12B (newer family, quantization-aware quant); measure to confirm"],
+    notes: ["The 8-12 GB-card pick, pending its measurement run."],
+  },
+};
 
 // The flagship's MEASURED class tunes (decision ④, 2026-08-05: class tunes are per-app data
 // and travel with the model). Registered under the id the family MEASURED them on; the
@@ -358,11 +380,13 @@ export function _retireGemma3Row() {
 const llmArgs = (h, dataDir) => ({
   db: h,
   featureCatalog: FEATURE_CATALOG,
-  featurePrompts: {}, // prompts are OURS — see the header
+  featurePrompts: DEFAULT_FEATURE_PROMPTS, // one row per feature — see the header
+  testSamples: DEFAULT_TEST_SAMPLES, // the Lab's Sample input for each row (seed_test_samples.js)
   enginePresets: DEFAULT_ENGINE_PRESETS,
   featurePresets: DEFAULT_FEATURE_PRESETS,
   defaultPresetId: DEFAULT_PRESET_ID,
   modelCatalogExtra: MODEL_CATALOG,
+  modelCatalogHeals: MODEL_CATALOG_HEALS,
   classTunesSeed: CLASS_TUNES,
   classTuneIdentity: CLASS_TUNE_IDENTITY,
   dataDir,
@@ -424,8 +448,20 @@ export async function bootLlmStack(dataDir = null, app = null) {
 export function seedLlmStack() {
   seedLlm();
   _retireGemma3Row();
+  // the app's own settings: the missing ones added, one still at an earlier default upgraded (settings.js)
+  try {
+    seedSettings(llmDb.session());
+    upgradeSettings(llmDb.session());
+  } catch (e) {
+    log.warning(`the settings seed failed: ${errText(e)}`);
+  }
   loadFromConfigs(stores.getProviderStore().list());
 }
+
+/** The writes that change what another window shows: a translation saved, accepted, undone or applied, a note, a
+ *  run started or cancelled, the project's setup, the reviewer, the app's settings. Not one: a window's own prefs, a
+ *  back-translation (a second opinion), a log line, the tokens. */
+export const DATA_WRITES = /^\/v1\/(save|accept|undo|notes|proposals|setup|jobs|reviewer|settings)(\/|$)/;
 
 /** The Hono app: the kit, the data/prefs/logs/disk routers, the workspace and the UI. */
 export async function createApp(dataDir = null, configPath = null) {
@@ -445,8 +481,19 @@ export async function createApp(dataDir = null, configPath = null) {
   // in that order, before any router: a CSRF 403 carries no CORS headers; CORS answers
   // preflights before auth sees them and stamps auth's 401/403.
   //
+  // A reverse proxy's public names (JUST_AI_I18N_DOCGEN_ALLOWED_HOSTS, comma-separated): the browser's Origin there
+  // (https://docgen.example.com) is the server's own though the server sees another scheme and host behind the
+  // proxy, and bearer auth's DNS-rebinding guard takes the name as this computer's (the template's app.js).
+  const allowedHosts = (process.env.JUST_AI_I18N_DOCGEN_ALLOWED_HOSTS || "").split(",").map((h) => h.trim()).filter(Boolean);
+  const proxyOrigins = allowedHosts.flatMap((h) => [`https://${h}`, `http://${h}`]);
   // CSRF: reject cross-site browser mutations to /v1 (no token — can never lock anyone out).
-  app.use("*", csrfOrigin({ appOrigins: APP_ORIGINS, typeBase: TYPE_BASE }));
+  app.use("*", csrfOrigin({ appOrigins: APP_ORIGINS, extraOrigins: proxyOrigins, typeBase: TYPE_BASE }));
+  // …and a READ the browser marks cross-site (Fetch Metadata — a cross-site <img> of /v1/data/backup made backups,
+  // the kit's nineteenth review), but the app's own windows by their Origin and a navigation to the UI's pages —
+  // the template's resourceIsolation, which docgen lacked until 2026-10-29.
+  // Review's Google frame (GET /v1/gt-frame — an echo of the text it is given, no data) is the one page the app's
+  // window frames; a frame carries no Origin, so it is named here (the kit's framePaths).
+  app.use("*", resourceIsolation({ appOrigins: APP_ORIGINS, extraOrigins: proxyOrigins, typeBase: TYPE_BASE, framePaths: ["/v1/gt-frame"] }));
   // CORS answers the app's own origins only — the desktop window (app://), Quasar's dev server
   // (:1450), the phone's webview origins (the kit's CAPACITOR_ORIGINS) — which call :8742 DIRECTLY
   // (the kit's origin-aware resolver), so without them every request dies as a silent CORS block
@@ -455,17 +502,26 @@ export async function createApp(dataDir = null, configPath = null) {
   // computer's server, backups and keys included (the template's app.js; the kit's security
   // review, 2026-10-19). The kit's Starlette 1.3.1 port.
   app.use("*", starletteCors({ allowOrigins: [...APP_ORIGINS, ...CAPACITOR_ORIGINS], allowMethods: ["*"], allowHeaders: ["*"] }));
-  // Bearer auth — OFF unless tokens are configured (Settings → Server). Gates /v1/* only.
-  app.use("*", bearerAuth({ readAuth, typeBase: TYPE_BASE }));
+  // Bearer auth — OFF unless tokens are configured (Settings → Server). Gates /v1/* only, and refuses a page that
+  // renamed itself to reach this computer (DNS rebinding); the desktop shell's POST /v1/shutdown carries no token
+  // and stays open from this machine (the route refuses anyone else itself).
+  app.use("*", bearerAuth({ readAuth, typeBase: TYPE_BASE, loopbackOpenPaths: [SHUTDOWN_PATH], allowedHosts }));
   // While a restore or a reset replaces the data, every other window's write is refused (503,
   // Retry-After) and the ones already running finish first — never a save that lands half-way or
-  // answers 200 and is lost (the kit's MaintenanceGate; the data router closes it). This app's
-  // shell sends no shutdown request, so nothing is exempt but the data router's own routes.
-  const gate = new MaintenanceGate();
+  // answers 200 and is lost (the kit's MaintenanceGate; the data router closes it). The shell's shutdown always
+  // passes.
+  const gate = new MaintenanceGate({ exempt: [SHUTDOWN_PATH] });
   app.use("*", gate.middleware());
+  // Each window's writes that succeed are counted apart (the kit's ChangeCounter — its X-Client-Id), so the other
+  // windows' pages read again (GET /v1/sync/rev); a restore and a reset are everyone's change (data_admin.js) — the
+  // engines plan's F1, the template's.
+  const changes = new ChangeCounter({ writes: DATA_WRITES, getSetting: getAppSetting, setSetting: setAppSetting });
+  app.use("*", changes.middleware());
 
   // Awaited, so the stack is booted when createApp returns.
   await bootLlmStack(dataDir, app);
+  // the data's epoch is kept in the database (a restore or a reset renews it)
+  changes.useDatabase(llmDb.session());
   // Settings → Backups: backup / restore / reset (data_admin.js), behind the gate above.
   app.route("/", dataRouter(dataDir, { gate }));
 
@@ -478,13 +534,20 @@ export async function createApp(dataDir = null, configPath = null) {
   // `configPath` pre-loads one for a configured launch. The handle lives in app_state (the
   // family setState/getState seam).
   const workspace = new Workspace(configPath);
-  setState(new AppState(dataDir, workspace));
+  // A run's end is its window's change (the kit's JobRegistry onFinish — house-paint's): the others read again.
+  setState(new AppState(dataDir, workspace, new JobRegistry({ onFinish: (job) => changes.note(job.clientId) }), { changes }));
   // The app's jobs — a translation run (jobs.js) — through the kit's routes: the running ones
   // (GET /v1/jobs?kind=translate), one (GET /v1/jobs/:id), its events (GET /v1/jobs/:id/events)
   // and its cancel (DELETE /v1/jobs/:id). The start is the workspace's POST /v1/jobs.
   app.route("/", makeJobsRouter(() => getState().jobs));
   app.route("/", healthRouter());
+  // POST /v1/shutdown — the desktop shell's clean stop of this app's server it finds on its port
+  // (src-electron/electron-main.js `shutdownPath`); the AI engine runs in this process's kill-on-close job and
+  // ends with it (the template's).
+  app.route("/", makeShutdownRouter());
   app.route("/", serverAuthRouter());
+  app.route("/", makeSyncRevRouter(changes, { pollSeconds: () => getAppSetting(llmDb.session(), "windows.checkSeconds") }));
+  app.route("/", settingsRouter());
   app.route("/", setupRouter());
   app.route("/", workspaceRouter());
 

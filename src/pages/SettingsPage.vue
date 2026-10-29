@@ -17,6 +17,7 @@ import {
   SETTINGS_SECTION_ORDER, pushToast, renderHelpMarkdown,
   safeRequest,
 } from "@delebash/ui";
+import GeneralSection from "../components/settings/GeneralSection.vue";
 import { LOCALE_CODES } from "../i18n/index.js";
 import { loadDoc } from "../services/helpDocs.js";
 import {
@@ -39,14 +40,16 @@ const project = useProjectStore();
 // own (tool identity — no family equivalent) and interleaves before About.
 // The ORDER lives in settingsSections.js so the canon contract test asserts
 // exactly what renders (slice 11).
-// The family's shared sections take the kit's words (`kit.settingsSections.*`); Reviewer is this app's.
+// The family's shared sections take the kit's words (`kit.settingsSections.*`); General and Reviewer are this
+// app's, one t() per section so the i18n report sees each key.
 const { t } = useI18n();
 const FAMILY_SECTIONS = new Set(SETTINGS_SECTION_ORDER);
+const OWN = computed(() => ({ general: t("settings.sections.general"), reviewer: t("settings.reviewer.title") }));
 const SECTIONS = computed(() => SETTINGS_SECTION_IDS.map((id) => ({
   id,
-  label: FAMILY_SECTIONS.has(id) ? t(`kit.settingsSections.${id}`) : t("settings.reviewer.title"),
+  label: FAMILY_SECTIONS.has(id) ? t(`kit.settingsSections.${id}`) : OWN.value[id],
 })));
-const active = ref(props.section || "appearance");
+const active = ref(props.section || SETTINGS_SECTION_IDS[0]);
 watch(() => props.section, (s) => { if (s) active.value = s; });
 
 // Updates — release notes for the kit UpdatesPanel (JW's pattern: source +
@@ -117,8 +120,11 @@ onMounted(async () => {
          this page invented died in the 2026-08-04 consistency pass). -->
     <PaneHeader :eyebrow="t('settings.eyebrow')" :title="t('settings.title')" help-key="settings" />
     <SettingsShell :sections="SECTIONS" :model-value="active" @update:model-value="go">
+      <!-- General — the app's own settings (/v1/settings): the template's section -->
+      <GeneralSection v-if="active === 'general'" />
+
       <!-- Appearance — the kit AppearancePanel (JV's donor rows, one shared surface) -->
-      <template v-if="active === 'appearance'">
+      <template v-else-if="active === 'appearance'">
         <section class="card">
           <h2>{{ t("kit.settingsSections.appearance") }}</h2>
           <p class="hint">{{ t("settings.appearanceHint") }}</p>

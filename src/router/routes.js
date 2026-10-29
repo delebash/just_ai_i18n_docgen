@@ -21,6 +21,8 @@ const pageRoutes = [
     component: () => import("../pages/SettingsPage.vue"),
     props: true,
   },
+  // anything else, inside the chrome, so the nav still works (the template's page)
+  { path: ":catchAll(.*)*", component: () => import("../pages/NotFoundPage.vue") },
 ];
 
 // The CLI's shape: every page inside the app's layout (layouts/MainLayout.vue — the title bar, the

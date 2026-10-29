@@ -1,14 +1,23 @@
 // SPDX-License-Identifier: MIT
 // Port of tests/test_shieldlib.py — the loop's pure parts, tested without a model: shielding,
-// restore, the prompt, the cache key (ported from just-ai-help's `test/loop.test.js` minus the
+// restore, the prompt (ported from just-ai-help's `test/loop.test.js` minus the
 // buildRequest/effectiveTemperature cases — the request body belongs to the kit's
-// adapters, and per-request temperature to the engine preset).
+// adapters, and per-request temperature to the engine preset). The prompt is the seeded
+// translate row rendered by the kit with translateVariables (2026-10-29); its exact bytes are
+// tests/prompts.test.js's.
+import { render } from "@delebash/core/llm";
 import { expect, test } from "vitest";
 import { placeholderRe } from "../src/jsonio.js";
-import { buildSystemPrompt, buildUserMessage, cacheKey, parseItems, restore, shield } from "../src/shieldlib.js";
+import { TRANSLATE_PROMPT } from "../src/seed_feature_prompts.js";
+import { parseItems, restore, shield, translateVariables } from "../src/shieldlib.js";
 
 const RE = placeholderRe({ prefix: "{", suffix: "}" });
-const itemsOf = (msg) => JSON.parse(/Translate items: (\[.*\])$/s.exec(msg)[1]);
+const itemsOf = (vars) => JSON.parse(vars.items);
+
+/** The translate row's system prompt for `cfg` (sourceLanguage, conventionsLine, pluralSeparator) into `lang`. */
+const systemPrompt = (cfg, lang, terms = null) => render(TRANSLATE_PROMPT.system, translateVariables([], cfg, lang, terms));
+/** The translate row's user message for a batch. */
+const userMessage = (shielded, cfg) => render(TRANSLATE_PROMPT.user, translateVariables(shielded, cfg, "es"));
 
 test("shield_swaps_interpolations_and_restore_puts_them_back", () => {
   const src = 'Its {n} chapter will move to "{into}". | Its {n} chapters will move to "{into}".';
@@ -48,29 +57,28 @@ test("longer_glossary_terms_win_over_shorter_ones_they_contain", () => {
 });
 
 test("the_prompt_carries_every_rule_and_drops_the_empty_slots", () => {
-  const full = buildSystemPrompt({
-    source: "en",
-    targetLang: "es",
-    doNotTranslate: ["JustWrite"],
-    conventionsLine: "Spanish opens questions with ¿",
-    pluralSeparator: "|",
-  });
+  const full = systemPrompt(
+    { sourceLanguage: "en", conventionsLine: "Spanish opens questions with ¿", pluralSeparator: "|" },
+    "es",
+    ["JustWrite"],
+  );
   expect(full).toContain("en→es");
   expect(full).toContain("untouchable placeholders");
   expect(full).toContain("never translate these terms: JustWrite");
   expect(full).toContain("Spanish opens questions with ¿");
   expect(full).toContain("plural forms");
 
-  const bare = buildSystemPrompt({ source: "en", targetLang: "fr" });
+  const bare = systemPrompt({ sourceLanguage: "en" }, "fr");
   expect(bare).not.toContain("never translate these terms");
   expect(bare, "an empty slot must not leave a dangling separator").not.toContain("; ;");
+  expect(bare, "nor a rule with nothing in it").not.toContain("terms: ;");
 });
 
 test("bites_the_plural_rule_is_built_from_the_configured_separator", () => {
   // This rule was the literal `" | "` for the whole life of the Node tool, which made
   // pluralSeparator a half-honoured setting: the checks split on YOUR value while the model
   // was told about a pipe.
-  const semi = buildSystemPrompt({ source: "en", targetLang: "de", pluralSeparator: ";;" });
+  const semi = systemPrompt({ sourceLanguage: "en", pluralSeparator: ";;" }, "de");
   expect(semi, "the prompt must name the separator the checks will enforce").toContain('";;"');
   expect(semi, "the old hardcoded pipe must be gone").not.toContain('" | "');
 });
@@ -78,19 +86,9 @@ test("bites_the_plural_rule_is_built_from_the_configured_separator", () => {
 test("bites_a_catalogue_with_no_plural_forms_is_not_told_about_a_separator", () => {
   // i18next keeps plurals as separate keys, so a null separator is legitimate — telling the
   // model that some character marks plural forms is then simply a false instruction.
-  const none = buildSystemPrompt({ source: "en", targetLang: "ja", pluralSeparator: null });
+  const none = systemPrompt({ sourceLanguage: "en", pluralSeparator: null }, "ja");
   expect(none).not.toContain("plural forms");
   expect(none).not.toContain("; ;");
-});
-
-test("the_cache_key_changes_when_anything_that_could_change_the_answer_changes", () => {
-  const base = { text: "Save", lang: "es", contextHash: "c", glossaryHash: "g" };
-  const k = cacheKey(base);
-  expect(cacheKey({ ...base, text: "Save now" })).not.toBe(k);
-  expect(cacheKey({ ...base, lang: "fr" })).not.toBe(k);
-  expect(cacheKey({ ...base, contextHash: "c2" }), "a changed context must re-translate").not.toBe(k);
-  expect(cacheKey({ ...base, glossaryHash: "g2" }), "a changed glossary must re-translate").not.toBe(k);
-  expect(cacheKey(base), "and it is stable").toBe(k);
 });
 
 // ── Per-key notes ────────────────────────────────────────────────────────────
@@ -98,25 +96,26 @@ test("the_cache_key_changes_when_anything_that_could_change_the_answer_changes",
 // sent WITH that key next time, so the same defect does not have to be found twice.
 
 test("a_note_is_attached_to_its_key_and_to_no_other", () => {
-  const msg = buildUserMessage(
+  const vars = translateVariables(
     [
       { i: 0, key: "characterAudit.why", shielded: "Why:" },
       { i: 1, key: "settings.save", shielded: "Save" },
     ],
     { context: "an app", notes: { "characterAudit.why": "a label above the reasoning, not a question" } },
+    "es",
   );
-  const items = itemsOf(msg);
+  const items = itemsOf(vars);
   expect(items[0].note).toBe("a label above the reasoning, not a question");
   expect("note" in items[1], "an un-noted key must not carry one").toBe(false);
 });
 
 test("no_notes_at_all_changes_nothing_about_the_message", () => {
   const shielded = [{ i: 0, key: "a", shielded: "Save" }];
-  expect(buildUserMessage(shielded, { context: "an app" })).toBe(buildUserMessage(shielded, { context: "an app", notes: {} }));
+  expect(userMessage(shielded, { context: "an app" })).toBe(userMessage(shielded, { context: "an app", notes: {} }));
 });
 
 test("the_system_prompt_tells_the_model_what_a_note_is", () => {
-  const p = buildSystemPrompt({ source: "en", targetLang: "es" });
+  const p = systemPrompt({ sourceLanguage: "en" }, "es");
   expect(p, "a field the model is never told about is a field it ignores").toContain("note");
 });
 

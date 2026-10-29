@@ -21,13 +21,14 @@ import { confirmations, putConfirmation } from "../src/state.js";
 import { tmpDir } from "./helpers.js";
 
 const EN = { greet: "Hello {name}", sidebar: { books: "Books" }, common: { no: "No" } };
-const itemsOf = (user) => JSON.parse(/Translate items: (\[.*\])$/s.exec(user)[1]);
+// the batch the loop sends: the translate row's {{items}} (shieldlib.js translateVariables)
+const itemsOf = (vars) => JSON.parse(vars.items);
 
 /** Deterministic engine: real Spanish for the two translatable keys, the cognate left
  * identical — the shape of a real catalogue. */
-function fakeSend(_system, user) {
+function fakeSend(vars) {
   const answers = { "Hello ⟦0⟧": "Hola ⟦0⟧", Books: "Libros", No: "No" };
-  return JSON.stringify({ items: itemsOf(user).map((it) => ({ id: it.id, translation: answers[it.text] ?? `XX ${it.text}` })) });
+  return JSON.stringify({ items: itemsOf(vars).map((it) => ({ id: it.id, translation: answers[it.text] ?? `XX ${it.text}` })) });
 }
 
 function makeProject() {
@@ -119,9 +120,9 @@ test("probe_writes_its_sidecar_and_disagreements_are_advisory", async () => {
   vi.spyOn(service, "requireProbeTemperature").mockImplementation(() => {});
   const project = makeProject();
   const calls = { n: 0 };
-  const twoMinds = (system, user) => {
+  const twoMinds = (vars) => {
     calls.n += 1;
-    const out = fakeSend(system, user);
+    const out = fakeSend(vars);
     // The second pass words one key differently — the model wandering where unsure.
     return calls.n > 1 ? out.replace("Libros", "Los libros") : out;
   };
@@ -153,8 +154,8 @@ test("escalate_redoes_only_flagged_keys_and_retires_their_probe_entries", async 
   writeFileSync(project.paths.probeFile("es"), JSON.stringify({ common: { no: "Nop" }, sidebar: { books: "Los libros" } }), "utf8");
 
   const sentTexts = [];
-  const strongSend = (_system, user) => {
-    const items = itemsOf(user);
+  const strongSend = (vars) => {
+    const items = itemsOf(vars);
     sentTexts.push(...items.map((it) => it.text));
     return JSON.stringify({ items: items.map((it) => ({ id: it.id, translation: `ES ${it.text}` })) });
   };

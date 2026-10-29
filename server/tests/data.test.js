@@ -53,6 +53,16 @@ test("backup, change, restore: the backup's rows come back", async () => {
   expect(await reviewer()).toBe("Before the backup");
 });
 
+test("a backup from before the prompt rows gets them when it is restored", async () => {
+  // a version before 2026-10-29 seeded no prompt rows (featurePrompts {}): its backup restores without them, and the
+  // restore seeds them as a start does (the template's seedWorkspace) — or no run could start until a restart
+  llmDb.session().exec("delete from feature_prompts");
+  const backup = await client.get("/v1/data/backup");
+  expect((await restore(backup.rawPayload)).status).toBe(200);
+  const keys = llmDb.session().all('select "key" from feature_prompts order by "key"').map((r) => r.key);
+  expect(keys).toEqual(["confirm", "review", "translate"]);
+});
+
 /** A stand-in translation run on the app's jobs: it runs until it is cancelled. */
 function runUntilCancelled() {
   return getState().jobs.start(

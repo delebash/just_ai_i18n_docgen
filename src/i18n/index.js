@@ -9,11 +9,22 @@ import { catalogsFromFiles, kitMessages } from "@delebash/ui/i18n/index.js";
 
 const own = catalogsFromFiles(import.meta.glob("./locales/*.json", { eager: true }));
 
+// Named date formats (vue-i18n's datetimeFormats), JustWrite's shape: the Intl options are the same in every
+// language — Intl writes each one's order and names — but every language lists them, since vue-i18n formats a
+// named format in the language it found it in.
+const dateFormats = {
+  // a date and time to the second (Runs' history)
+  dateTime: { year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit", second: "2-digit" },
+  // a date and time to the minute (Home's last run)
+  dateTimeShort: { year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" },
+};
+
 export const i18n = createI18n({
   legacy: false,
   locale: "en",
   fallbackLocale: "en",
   messages: kitMessages(),
+  datetimeFormats: Object.fromEntries(Object.keys(own).map((code) => [code, dateFormats])),
   missingWarn: false,
   fallbackWarn: false,
 });

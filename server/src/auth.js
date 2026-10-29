@@ -28,7 +28,8 @@ export function readAuth() {
     if (!isDict(cfg)) throw new Error(`'${Array.isArray(cfg) ? "list" : typeof cfg}' object has no attribute 'get'`);
     const tokens = pyGet(cfg, "tokens");
     const list = truthy(tokens) ? tokens : [];
-    return [Array.from(list).filter((t) => typeof t === "string" && t), truthy(pyGet(cfg, "requireForLoopback"))];
+    // trimmed as the guard trims what it is sent: one stored padded (before 2026-10-29) matches again
+    return [Array.from(list).filter((t) => typeof t === "string").map((t) => t.trim()).filter(Boolean), truthy(pyGet(cfg, "requireForLoopback"))];
   } catch (e) {
     // never let an auth-config read 500
     log.warning(`auth config read failed (treating as no-auth): ${errText(e)}`);

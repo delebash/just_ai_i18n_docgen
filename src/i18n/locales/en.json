@@ -33,7 +33,6 @@
     "discard": "Discard",
     "couldNotStart": "Could not start",
     "couldNotSave": "Could not save",
-    "clearing": "Clearing…",
     "checking": "Checking…"
   },
   "nav": {
@@ -71,6 +70,11 @@
     "title": "Providers, routing & usage",
     "linkContext": "Context & glossary",
     "linkNotes": "Per-key notes"
+  },
+  "lab": {
+    "source": {
+      "language": "language"
+    }
   },
   "home": {
     "intro": {
@@ -191,6 +195,14 @@
     },
     "about": {
       "blurb": "Simple translation & help docs for your application — translated locally or online, verified, and reviewed by you."
+    },
+    "sections": {
+      "general": "General"
+    },
+    "general": {
+      "windowsTitle": "Other windows",
+      "windowsHint": "The app open in more than one place at once — the desktop app, a browser on this server, a phone: how often each one looks for what the others changed. It shows their changes by itself.",
+      "checkSeconds": "Look for other windows' changes every (seconds)"
     }
   },
   "review": {
@@ -206,7 +218,8 @@
       "blank": "the translation is empty",
       "missing": "this key has no translation at all",
       "disagreement": "a second pass worded this differently — the model was unsure here",
-      "terminology": "this uses a different word than the rest of the catalogue does for the same term"
+      "terminology": "this uses a different word than the rest of the catalogue does for the same term",
+      "sourceChanged": "the English changed since this was translated — it was: “{was}”"
     },
     "bucket": {
       "needs": "Needs review",
@@ -315,5 +328,10 @@
     "preset": {
       "confirm": "Confirm"
     }
+  },
+  "notFound": {
+    "title": "There's no page here",
+    "message": "The address doesn't match any page of the app.",
+    "home": "Go to Home"
   }
 }

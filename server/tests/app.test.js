@@ -8,13 +8,14 @@
 // `lockout_escape_…`: Python patched the kit's `_is_loopback` to say yes; the JS sends the
 // request from 127.0.0.1 instead (the kit's middleware calls isLoopback directly, so a spy can't
 // reach it — and a real loopback address is the honest version anyway).
+import * as llmDb from "@delebash/core/llm/db";
 import { getLogger } from "@delebash/core/platform/log";
 import { pyPath } from "@delebash/core/runner/cache_registry";
 import * as lifecycle from "@delebash/core/runner/lifecycle";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, expect, test, vi } from "vitest";
-import { createApp, FEATURE_CATALOG, seedLlmStack } from "../src/app.js";
+import { createApp, FEATURE_CATALOG, MODEL_CATALOG, MODEL_CATALOG_HEALS, seedLlmStack } from "../src/app.js";
 import { testClient, tmpDir, useHermeticKit } from "./helpers.js";
 
 useHermeticKit();
@@ -42,6 +43,25 @@ test("the_stack_boots_seeded_and_wired", async () => {
   expect(body.models.length, "the seeded model catalog reaches the runner").toBeGreaterThan(0);
 
   expect((await client.get("/v1/ai-usage")).statusCode).toBe(200);
+});
+
+test("a_catalog_row_still_holding_its_old_seeded_text_gets_the_measured_one", () => {
+  // The 12B row said "NOT yet measured" until 2026-10-29; an install seeded then gets the measured text at its next
+  // start (the kit's modelCatalogHeals), and a text its owner wrote is never touched.
+  const h = llmDb.session();
+  const row12b = () => h.get("model_catalog", "gemma-4-12b-qat");
+  const seeded = MODEL_CATALOG.find((r) => r.id === "gemma-4-12b-qat");
+  const [oldDescription] = MODEL_CATALOG_HEALS["gemma-4-12b-qat"].description;
+  const [oldNotes] = MODEL_CATALOG_HEALS["gemma-4-12b-qat"].notes;
+  h.update("model_catalog", { description: oldDescription, notes: oldNotes }, { id: "gemma-4-12b-qat" });
+  seedLlmStack();
+  expect(row12b().description).toBe(seeded.description);
+  expect(row12b().notes).toBe(seeded.notes);
+  expect(row12b().description).toContain("MEASURED");
+
+  h.update("model_catalog", { description: "my own words" }, { id: "gemma-4-12b-qat" });
+  seedLlmStack();
+  expect(row12b().description).toBe("my own words");
 });
 
 test("the_three_routed_features_are_registered", async () => {
@@ -107,6 +127,23 @@ test("bearer_auth_gates_v1_only_when_tokens_exist", async () => {
   expect((await client.get("/v1/setup/state")).statusCode).toBe(200);
 });
 
+test("a_token_is_kept_trimmed_and_one_with_other_characters_is_refused_in_words", async () => {
+  // the template's rules (2026-10-29): a token pasted with a space at its end was stored as it came
+  // and never matched what a client sends
+  const r = await client.put("/v1/server-auth", { json: { tokens: ["  pasted-token \n", ""] } });
+  expect(r.json().tokens).toEqual(["pasted-token"]);
+  try {
+    expect((await client.get("/v1/setup/state", { headers: { authorization: "Bearer pasted-token" } })).statusCode).toBe(200);
+    const bad = await client.put("/v1/server-auth", { json: { tokens: ["has a space"] }, headers: { authorization: "Bearer pasted-token" } });
+    expect(bad.statusCode).toBe(422);
+    expect(JSON.stringify(bad.json())).toContain("no spaces, accents");
+    const many = await client.put("/v1/server-auth", { json: { tokens: Array.from({ length: 51 }, (_, i) => `t${i}`) }, headers: { authorization: "Bearer pasted-token" } });
+    expect(many.statusCode).toBe(422);
+  } finally {
+    await client.put("/v1/server-auth", { json: { tokens: [] }, headers: { authorization: "Bearer pasted-token" } });
+  }
+});
+
 test("lockout_escape_health_and_auth_door_stay_open_from_loopback", async () => {
   // audit 2026-08-05: requireForLoopback + a lost token gated even /v1/health (the desktop's
   // boot gate died on ConnectionError FOREVER) and /v1/server-auth (the very door to fix it).
@@ -162,4 +199,36 @@ test("the_headless_ui_is_the_kits_serveUi", async () => {
   expect(write.statusCode).toBe(405);
   expect(write.headers.allow).toBe("GET, HEAD");
   expect((await c.post("/v1/nothing-here", { json: {} })).statusCode).toBe(404);
+});
+
+test("a_cross_site_read_is_refused_unless_it_comes_from_the_apps_own_window", async () => {
+  // the template's resourceIsolation (2026-10-29): a cross-site <img> of /v1/data/backup made backups
+  const crossSite = { "sec-fetch-site": "cross-site", "sec-fetch-mode": "no-cors", "sec-fetch-dest": "image" };
+  expect((await client.get("/v1/data/backup", { headers: crossSite })).statusCode).toBe(403);
+  // the desktop window fetches its server cross-site, with its Origin
+  const fromWindow = { "sec-fetch-site": "cross-site", "sec-fetch-mode": "cors", origin: "app://just-ai-i18n-docgen" };
+  expect((await client.get("/v1/health", { headers: fromWindow })).statusCode).toBe(200);
+  // no Fetch Metadata at all (curl, another program) passes as before
+  expect((await client.get("/v1/health")).statusCode).toBe(200);
+});
+
+test("the_shutdown_route_answers_only_this_machine", async () => {
+  // the desktop shell's clean stop (src-electron shutdownPath): from elsewhere it is refused
+  expect((await client.post("/v1/shutdown", { json: {} })).statusCode).toBe(403);
+  // from this machine, with no running server registered (a test), it says it isn't exiting
+  const res = await client.app.request("http://127.0.0.1:8742/v1/shutdown", { method: "POST", headers: { host: "127.0.0.1:8742" } }, {
+    incoming: { socket: { remoteAddress: "127.0.0.1" } },
+  });
+  expect(res.status).toBe(200);
+  expect(await res.json()).toEqual({ ok: true, exiting: false });
+});
+
+test("the_google_frame_is_the_one_page_the_window_may_frame", async () => {
+  // Review's Google second opinion: an <iframe> over GET /v1/gt-frame from the desktop window (cross-site, no
+  // Origin). Named in resourceIsolation's framePaths; framing anything else stays refused.
+  const frame = { "sec-fetch-site": "cross-site", "sec-fetch-mode": "navigate", "sec-fetch-dest": "iframe" };
+  const ok = await client.get("/v1/gt-frame", { params: { text: "Save", tl: "es" }, headers: frame });
+  expect(ok.statusCode).toBe(200);
+  expect(ok.body).toContain("google_translate_element");
+  expect((await client.get("/v1/data/backup", { headers: frame })).statusCode).toBe(403);
 });

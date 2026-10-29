@@ -29,8 +29,9 @@ import { CONFIRM_CODE, confirmIdentical, makeAsk } from "../confirm.js";
 import * as engine from "../engine.js";
 import { JobBusyError, startTranslateRun, TRANSLATE } from "../jobs.js";
 import { firstOf, flatten, pyStr } from "../jsonio.js";
-import { parseItems } from "../shieldlib.js";
-import { unfilteredFindings } from "../service.js";
+import { backtranslateVariables, parseItems } from "../shieldlib.js";
+import { runCfg, unfilteredFindings } from "../service.js";
+import { recordSources } from "../sources.js";
 import {
   actionHistory,
   dropAllProposals,
@@ -50,7 +51,7 @@ import {
   setReviewStatus,
 } from "../state.js";
 import { checkKeyTerms, checkTerms, termUsage } from "../terms.js";
-import { _glossaryList, _pickPreviewLang, _previewConfirm, _previewTranslate, _UNLIMITED } from "../workspace.js";
+import { _glossaryList, _UNLIMITED, labVariables } from "../workspace.js";
 import * as self from "./workspace_api.js";
 import { BODY } from "./server_auth_api.js";
 
@@ -62,7 +63,7 @@ import { BODY } from "./server_auth_api.js";
 export const SCOPES = new Set(["flagged", "unsure", "all", "keys", "pending"]);
 
 /** The engine seam Python's tests patch on this module. */
-export const makeSend = (feature = "translate", presetId = null) => engine.makeSend(feature, presetId);
+export const makeSend = (action = "translate", presetId = null) => engine.makeSend(action, presetId);
 
 const q = (props) => ({ querystring: T.Object(props) });
 const optStr = () => T.Optional(T.String());
@@ -97,23 +98,14 @@ export function router() {
   });
 
   /**
-   * The family contract for pipeline-owned prompts (app-structure.md): the kit's promptless
-   * Lab POSTs {feature, lang?, keys?} and renders the REAL generated prompt read-only. Loud
-   * named 400s; 409 needsSetup like every project route.
+   * The Lab's test input (the kit's FeatureLab, its language picker — boot/docgen.js): the {{variables}} a real run
+   * of `action` sends, over a small live sample of `lang` (workspace.js labVariables). Loud named 400s; 409
+   * needsSetup like every project route. It replaced POST /v1/ai/prompt-preview (2026-10-29), when the prompts
+   * became editable rows.
    */
-  app.post("/v1/ai/prompt-preview", input({ body: BODY }), async (c) => {
-    const body = c.req.valid("json");
-    const p = project();
-    const f = pyGet(body, "feature");
-    const feature = pyStr(truthy(f) ? f : "");
-    const l = pyGet(body, "lang");
-    const lang = pyStr(truthy(l) ? l : "") || _pickPreviewLang(p, feature);
-    if (!lang) throw new HttpError(400, "No target languages configured — add one in Setup.");
-    const k = pyGet(body, "keys");
-    const keys = truthy(k) ? k : null;
-    if (feature === "translate") return c.json(_previewTranslate(p, lang, keys));
-    if (feature === "confirm") return c.json(_previewConfirm(p, lang, keys));
-    throw new HttpError(400, `No prompt preview for "${feature}" yet — routing still picks its engine preset.`);
+  app.get("/v1/ai/test-variables", input(q({ action: T.String(), lang: T.String() })), async (c) => {
+    const { action, lang } = c.req.valid("query");
+    return c.json({ variables: labVariables(project(), action, lang) });
   });
 
   app.get("/v1/rows", input(q({ lang: optStr() })), async (c) => {
@@ -250,6 +242,9 @@ export function router() {
       // A machine's opinion has served its purpose once a human has ruled.
       dropConfirmation(p.state, { lang, key: k });
     }
+    // Accepted as right for TODAY's English: what each translation is now taken to be made from
+    // (sources.js — a `source-changed` finding accepted is answered, and the next change flags again).
+    recordSources(p.paths.cachePath, lang, new Map(wanted.filter((k) => targetFlat.has(k)).map((k) => [k, p.src.get(k)])));
     return c.json({ lang, keys: wanted, recorded: added.length, by: by || null });
   });
 
@@ -456,15 +451,11 @@ export function router() {
     if (!dst) throw new HttpError(404, `no translation for ${key}`);
     const cached = getReference(p.state, { lang, key, engine: "backtranslate" });
     if (truthy(cached)) return c.json({ key, lang, english: cached.value, cached: true });
-    const sourceLang = pyGet(p.cfg, "sourceLanguage", "en");
-    const system =
-      `You are a translator, ${lang}→${sourceLang}. Translate the text ` +
-      "literally, preserving any {placeholders} exactly. Output ONLY JSON " +
-      "matching the schema.";
     let english;
     try {
+      // the review row (seed_feature_prompts.js BACKTRANSLATE_PROMPT), on the review feature's preset
       const send = self.makeSend("review");
-      const out = await send(system, `Translate items: ${pyJson([{ id: 0, text: dst }])}`);
+      const out = await send(backtranslateVariables(dst, p.cfg, lang));
       english = parseItems(out).get(0);
     } catch (e) {
       // A dead second opinion must never block reviewing. (EngineNotConfigured is a
@@ -531,14 +522,8 @@ export function router() {
       if (e instanceof engine.EngineNotConfigured) throw new HttpError(400, errText(e));
       throw e;
     }
-    const conv = pyGet(p.conventions, lang);
-    const cfg = {
-      ...p.cfg,
-      conventionsLine: pyGet(truthy(conv) ? conv : {}, "promptLine", ""),
-      // notes MUST be here: the note a reviewer writes on a key is sent when they press
-      // re-translate on that same key — the one place it matters.
-      notes: flatten(p.readNotes(lang)),
-    };
+    // the conventions line and the reviewer's notes, as the CLI's run sends them
+    const cfg = runCfg(p, lang);
 
     // The confirmation pass for APP runs (the design's pre-tick, 2026-08-04 — only CLI
     // `translate` ran it before): called by the job worker with the DONE run's byte-identical
@@ -593,7 +578,8 @@ export function router() {
         scope,
         subset,
         cfg,
-        cachePath: p.paths.cachePath,
+        // the window that started it (the kit's X-Client-Id): its end is that window's change, the others read again
+        clientId: c.req.header("x-client-id") || null,
         confirm: confirmPass,
       });
     } catch (e) {

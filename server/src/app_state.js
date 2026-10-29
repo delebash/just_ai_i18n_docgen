@@ -11,10 +11,12 @@ import { JobRegistry } from "@delebash/core/platform";
 import { RuntimeError } from "@delebash/core/platform/py";
 
 export class AppState {
-  constructor(dataDir, workspace, jobs = new JobRegistry()) {
+  /** `changes`: the kit's ChangeCounter (other windows' changes — a restore or a reset is everyone's). */
+  constructor(dataDir, workspace, jobs = new JobRegistry(), { changes = null } = {}) {
     this.dataDir = dataDir;
     this.workspace = workspace;
     this.jobs = jobs;
+    this.changes = changes;
   }
 }
 

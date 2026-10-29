@@ -8,11 +8,14 @@
 // `vi.spyOn(workspaceApi, "makeSend")` (the module calls it through `self.`).
 import { mkdirSync, readFileSync, unlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { render } from "@delebash/core/llm";
 import { AsyncEvent } from "@delebash/core/platform/asyncutil";
 import { beforeEach, expect, test, vi } from "vitest";
 import * as workspaceApi from "../src/api/workspace_api.js";
+import { EngineNotConfigured } from "../src/engine.js";
 import { createApp } from "../src/app.js";
 import { getState } from "../src/app_state.js";
+import { DEFAULT_FEATURE_PROMPTS } from "../src/seed_feature_prompts.js";
 import { getReference, proposals, putProposal, putReference } from "../src/state.js";
 import { existsSync } from "node:fs";
 import { testClient, tmpDir, until, useHermeticKit } from "./helpers.js";
@@ -21,7 +24,8 @@ useHermeticKit();
 
 const EN = { greet: "Hello {name}", sidebar: { books: "Books" }, common: { no: "No" } };
 const readJson = (p) => JSON.parse(readFileSync(p, "utf8"));
-const itemsOf = (user) => JSON.parse(/Translate items: (\[.*\])$/s.exec(user)[1]);
+// the batch the loop sends: the translate row's {{items}} (shieldlib.js translateVariables)
+const itemsOf = (vars) => JSON.parse(vars.items);
 
 function makeProject(root) {
   const appDir = join(root, "myapp");
@@ -51,8 +55,8 @@ beforeEach(async () => {
 });
 
 /** A fake engine that answers every item with "NUEVO <text>". */
-const fakeSend = (_system, user) =>
-  JSON.stringify({ items: itemsOf(user).map((it) => ({ id: it.id, translation: `NUEVO ${it.text}` })) });
+const fakeSend = (vars) =>
+  JSON.stringify({ items: itemsOf(vars).map((it) => ({ id: it.id, translation: `NUEVO ${it.text}` })) });
 const patchSend = () => vi.spyOn(workspaceApi, "makeSend").mockImplementation(() => fakeSend);
 
 /** A run's end: its snapshot once it stopped running (the app's JobRegistry). */
@@ -194,9 +198,9 @@ test("a_run_is_the_kits_job_listed_followed_and_cancelled_through_v1_jobs", asyn
   // what runs, its events and its cancel are the kit's routes. The engine is held mid-batch so
   // the run is still running while it is looked at.
   const gate = new AsyncEvent();
-  vi.spyOn(workspaceApi, "makeSend").mockImplementation(() => async (system, user) => {
+  vi.spyOn(workspaceApi, "makeSend").mockImplementation(() => async (vars) => {
     await gate.wait(10000);
-    return fakeSend(system, user);
+    return fakeSend(vars);
   });
   const r = await client.post("/v1/jobs", { json: { lang: "es", scope: "all" } });
   expect(r.statusCode).toBe(202);
@@ -234,6 +238,16 @@ test("a_run_is_the_kits_job_listed_followed_and_cancelled_through_v1_jobs", asyn
   const [run] = (await client.get("/v1/runs")).json().runs;
   expect(run).toMatchObject({ lang: "es", scope: "all", total: 3 });
   expect(run.state).not.toBeNull();
+});
+
+test("a_run_with_no_usable_engine_is_refused_before_it_starts", async () => {
+  vi.spyOn(workspaceApi, "makeSend").mockImplementation(() => {
+    throw new EngineNotConfigured('feature "translate" resolves to no engine preset');
+  });
+  const r = await client.post("/v1/jobs", { json: { lang: "es", scope: "all" } });
+  expect(r.statusCode).toBe(400);
+  expect(r.json().detail).toContain("no engine preset");
+  expect((await client.get("/v1/jobs", { params: { kind: "translate" } })).json().jobs).toEqual([]);
 });
 
 test("an_unknown_scope_must_not_start_a_job", async () => {
@@ -305,6 +319,32 @@ test("an_externally_changed_source_is_picked_up_without_a_restart", async () => 
   expect(keys, "the new source key surfaces as work (missing)").toContain("docs.intro");
 });
 
+test("a_changed_english_string_is_found_and_a_save_or_an_accept_answers_it", async () => {
+  // sources.js (2026-10-29): the English each translation was made from. The rows are read once
+  // (first sight: today's English taken as current), then the English of two keys changes.
+  const enPath = join(dirname(dirname(configPath)), "src", "locales", "en.json");
+  await client.get("/v1/rows", { params: { lang: "es" } });
+  const en = readJson(enPath);
+  en.greet = "Hello there {name}";
+  en.sidebar.books = "Your books";
+  writeFileSync(enPath, JSON.stringify(en), "utf8");
+  const t = Date.now() / 1000 + 2;
+  utimesSync(enPath, t, t);
+
+  const flagged = async () =>
+    (await client.get("/v1/rows", { params: { lang: "es" } })).json().rows
+      .filter((r) => r.flags.some((f) => f.code === "source-changed"))
+      .map((r) => [r.key, r.flags.find((f) => f.code === "source-changed").detail]);
+  expect(await flagged(), "each shows the English it was translated from").toEqual([
+    ["greet", "Hello {name}"],
+    ["sidebar.books", "Books"],
+  ]);
+  // a Save is a translation for today's English; an accept says the old one still says it
+  await client.post("/v1/save", { json: { lang: "es", key: "greet", value: "Hola de nuevo {name}" } });
+  await client.post("/v1/accept", { json: { lang: "es", key: "sidebar.books" } });
+  expect(await flagged()).toEqual([]);
+});
+
 test("discarding_proposals_is_undoable_and_counts_honestly", async () => {
   // Discard destroys staged work by hand — so it records ONE undoable action (audit
   // 2026-08-05: it recorded nothing, and the next undo silently reversed some OLDER action
@@ -349,20 +389,34 @@ test("accepting_an_advisory_terminology_finding_is_recorded", async () => {
   expect(w7 === undefined || !w7.flags.map((f) => f.code).includes("terminology"), "the accepted advisory finding leaves the page").toBe(true);
 });
 
-test("prompt_preview_carries_conventions_and_notes_like_the_real_run", async () => {
-  // Preview fidelity (audit 2026-08-05): the Lab must show EXACTLY what a production run sends
-  // — the per-language conventions line and the reviewer's per-key note were both dropped here
-  // while the real run carried them.
+test("the_labs_test_input_carries_conventions_and_notes_like_the_real_run", async () => {
+  // Fidelity (audit 2026-08-05, when it was the read-only preview): the Lab sends EXACTLY what a production run
+  // sends — the per-language conventions line and the reviewer's per-key note were both dropped once while the
+  // real run carried them.
   const es = readJson(esPath);
   delete es.greet; // pending → the sample picks it first
   writeFileSync(esPath, JSON.stringify(es), "utf8");
   await client.put("/v1/notes", { json: { lang: "es", key: "greet", note: "a greeting, not a farewell" } });
 
-  const body = (await client.post("/v1/ai/prompt-preview", { json: { feature: "translate", lang: "es" } })).json();
-  expect(body.user, "the note rides the preview").toContain("a greeting, not a farewell");
-  expect(body.system, "the packaged es conventions line rides the preview system prompt").toContain(
+  const r = await client.get("/v1/ai/test-variables", { params: { action: "translate", lang: "es" } });
+  expect(r.statusCode).toBe(200);
+  const { variables } = r.json();
+  expect(variables.items, "the note rides the batch").toContain("a greeting, not a farewell");
+  expect(variables.conventions_rule, "the packaged es conventions line rides the rules").toContain(
     "Spanish punctuation is paired",
   );
+  // every name the seeded row uses is filled — the Lab's boxes are exactly the run's
+  const row = DEFAULT_FEATURE_PROMPTS.translate;
+  expect(() => render(`${row.system}\n${row.user_template}`, variables)).not.toThrow();
+
+  // confirm and review fill their rows too; a language the project doesn't have, or an action with no input, is a 400
+  for (const action of ["confirm", "review"]) {
+    const v = (await client.get("/v1/ai/test-variables", { params: { action, lang: "es" } })).json().variables;
+    const rw = DEFAULT_FEATURE_PROMPTS[action];
+    expect(() => render(`${rw.system}\n${rw.user_template}`, v), action).not.toThrow();
+  }
+  expect((await client.get("/v1/ai/test-variables", { params: { action: "translate", lang: "xx" } })).statusCode).toBe(400);
+  expect((await client.get("/v1/ai/test-variables", { params: { action: "extract", lang: "es" } })).statusCode).toBe(400);
 });
 
 test("an_edit_retires_the_stale_machine_opinions", async () => {

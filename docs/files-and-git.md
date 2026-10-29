@@ -18,7 +18,10 @@ against `config.json` in that folder — run the CLI from anywhere.
 ## Gitignore these (machine state — the Setup page prints the block to paste)
 
 - `<lang>.probe.json` — the probe's second-pass sample.
-- `.just-ai-i18n-docgen-cache.json` / `.just-ai-i18n-docgen-probe-cache.json` — translation caches.
+- `.just-ai-i18n-docgen-cache.json` — the English each translation was made from (how a
+  changed English string is found). Deleting it costs nothing but that: the current
+  translations are taken as up to date. (`.just-ai-i18n-docgen-probe-cache.json` is no
+  longer written; an old one can go.)
 - `.just-ai-i18n-docgen-state.json` — your review cursor, the undo log, staged proposals, the
   back-translation cache, run history. **Deleting it costs your place and your
   undo history — never your work**: applied translations are in your locale

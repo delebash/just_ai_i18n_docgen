@@ -16,6 +16,11 @@ its progress and its Cancel.
 Rules a run always follows:
 
 - **One job at a time.** Starting a second is refused, not queued.
+- **A run that can't work doesn't start.** No engine set up for the feature, or a
+  prompt that can't work ([AI features](ai-features.md)): the run is refused with the
+  reason and the fix. A setting that breaks mid-run — the prompt edited, the preset
+  deleted, the built-in engine unable to load its model — ends the run with the
+  reason instead of failing every key; what was staged stays staged.
 - **Cancel keeps staged work.** Everything already translated stays staged for
   review; nothing is thrown away.
 - **Exhausted keys are NAMED.** If a key fails every retry (the engine kept

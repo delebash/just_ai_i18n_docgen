@@ -2,6 +2,9 @@
 
 **App Settings** in the sidebar, sections across the top:
 
+- **General** — **Other windows**: the app open in more than one place at once (the desktop
+  app, a browser on this server, a phone) shows what the others change by itself; this is
+  how often each one looks, in seconds (3 to start). A restore or a reset reloads every window.
 - **Appearance** — light/dark/system theme, interface size, UI font, accent hue.
   (The title-bar moon button cycles the theme from anywhere.) Below them, **Language** — the
   interface language, each named in itself; the choice is kept and applies at once. The AI page's
@@ -27,10 +30,14 @@
   the engine's logs. Your PROJECT files are not here — they live in your app's repo
   (see [Your files](files-and-git.md)).
 - **Server** — for headless use: the address to open in a browser, with **Copy**;
-  access tokens (off while the list is empty) — paste one or **Generate** it,
+  access tokens (off while the list is empty) — paste one or **Generate** it (letters,
+  digits and keyboard signs only; spaces around a pasted one are dropped),
   **Copy the address with this token** for a browser on another computer (it
   opens signed in), and **Require a token on this computer too** if even local
-  requests must authenticate. **Keep server running after the app
+  requests must authenticate. Behind a reverse proxy on the same computer, name its
+  public address in `JUST_AI_I18N_DOCGEN_ALLOWED_HOSTS` (the server answers its own
+  computer only under its own names) and keep a token on: requests through a proxy
+  always need one. **Keep server running after the app
   closes**: with it on, closing the window hides the app to the system tray and
   the server keeps serving — left-click the tray icon to bring the window back.
   The tray menu carries 📺 Show / 🔵 Hide window, ▶️ Start / ⏹ Stop / 🔄 Restart

@@ -15,6 +15,14 @@
     "by": "Claude (AI review, 2026-10-17)",
     "at": "2026-10-18"
   },
+  "1b7cc42997ac5550": {
+    "key": "settings.sections.general",
+    "code": "untranslated",
+    "src": "General",
+    "dst": "General",
+    "by": "Claude (AI review, 2026-10-29)",
+    "at": "2026-10-29"
+  },
   "361bb4ff7648ae2d": {
     "key": "connectionError.devHint",
     "code": "terminology",

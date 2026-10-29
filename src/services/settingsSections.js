@@ -4,6 +4,8 @@
 // the canon RELATIVE order (kit familyContract SETTINGS_SECTION_ORDER); Reviewer is
 // app-own (tool identity — no family equivalent) and interleaves before About.
 export const SETTINGS_SECTION_IDS = [
+  // the app's own settings (/v1/settings — Settings → General), first, as the template's
+  "general",
   "appearance",
   "backups",
   "storage",
