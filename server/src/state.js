@@ -298,7 +298,11 @@ export function dropReferences(s, { lang, key }) {
 // "How did this catalogue get here" — two full catalogue runs in July 2026 were
 // unreproducible because nothing recorded what produced them.
 
-export function startRun(s, { lang, engine, scope }) {
+// A record keeps how the run ended (`state`: done · cancelled · error — the kit job's words — and a
+// failed run's `error`), the keys it set out to do (`total`) and the exhausted ones BY NAME
+// (`failedKeys`): the Runs page reads the last run from here after a reload, since the kit's job
+// registry forgets a finished job (round D2, 2026-10-28). Records from before then have none of them.
+export function startRun(s, { lang, engine, scope, total = 0 }) {
   return s.mutate((d) => {
     const runId = d.nextRunId;
     d.nextRunId += 1;
@@ -307,10 +311,15 @@ export function startRun(s, { lang, engine, scope }) {
       lang,
       engine,
       scope,
+      total,
       keys: 0,
       requests: 0,
       elapsedMs: 0,
       failed: 0,
+      failedKeys: [],
+      // set when it finishes: a record a stopped server left unfinished says nothing it doesn't know
+      state: null,
+      error: null,
       startedAt: nowIso(),
       finishedAt: null,
     });
@@ -318,10 +327,12 @@ export function startRun(s, { lang, engine, scope }) {
   });
 }
 
-export function finishRun(s, runId, { keys = 0, requests = 0, elapsedMs = 0, failed = 0 } = {}) {
+export function finishRun(s, runId, { keys = 0, requests = 0, elapsedMs = 0, failed = 0, failedKeys = [], state = "done", error = null } = {}) {
   s.mutate((d) => {
     for (const r of d.runs) {
-      if (r.id === runId) Object.assign(r, { keys, requests, elapsedMs, failed, finishedAt: nowIso() });
+      if (r.id === runId) {
+        Object.assign(r, { keys, requests, elapsedMs, failed, failedKeys: [...failedKeys], state, error, finishedAt: nowIso() });
+      }
     }
   });
 }

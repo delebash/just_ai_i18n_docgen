@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
-// The review workspace API — the project surface, jobs, and the GT frame. The port of
-// api/workspace_api.py.
+// The review workspace API — the project surface, a run's start, and the GT frame. The port of
+// api/workspace_api.py. A run is the kit's job (jobs.js): what runs, one run, its events and
+// its cancel are the kit's /v1/jobs routes (makeJobsRouter, mounted in app.js).
 //
 // Routes live at /v1 like every family route (/api was a Node-era habit, corrected
 // 2026-08-02). The write rules the handlers obey (WHAT WRITES WHAT) are the Workspace class's
@@ -15,7 +16,7 @@
 // Python's tests patch `workspace_api.make_send`: it is this module's own export, called as
 // `self.makeSend` (build sheet rule 18).
 
-import { Hono, input, stream } from "@delebash/core/platform";
+import { Hono, input } from "@delebash/core/platform";
 import { HttpError } from "@delebash/core/platform/errors";
 import { T } from "@delebash/core/platform/models";
 import { errText, pyGet, pyIter, pySorted, RuntimeError, truthy, ValueError } from "@delebash/core/platform/py";
@@ -26,7 +27,7 @@ import { getState } from "../app_state.js";
 import { buildContext, checkOne, isTranslated } from "../checks.js";
 import { CONFIRM_CODE, confirmIdentical, makeAsk } from "../confirm.js";
 import * as engine from "../engine.js";
-import { JobBusyError } from "../jobs.js";
+import { JobBusyError, startTranslateRun, TRANSLATE } from "../jobs.js";
 import { firstOf, flatten, pyStr } from "../jsonio.js";
 import { parseItems } from "../shieldlib.js";
 import { unfilteredFindings } from "../service.js";
@@ -83,14 +84,13 @@ export function router() {
   const app = new Hono();
   // ── the project surface ────────────────────────────────────────────────────
 
+  // (what runs is the kit's GET /v1/jobs?kind=translate — one way to ask, round D2)
   app.get("/v1/state", async (c) => {
-    const ws = getState().workspace;
     const p = project();
     const targets = pyIter(p.targets);
     return c.json({
       langs: p.targets,
       source: pyGet(p.cfg, "sourceLanguage"),
-      job: ws.jobs.status(),
       progress: Object.fromEntries(targets.map((lg) => [lg, reviewProgress(p.state, lg)])),
       proposals: Object.fromEntries(targets.map((lg) => [lg, proposalCount(p.state, lg)])),
     });
@@ -160,7 +160,6 @@ export function router() {
       keyCount: p.src.size,
       configPath: p.configPath,
       langs,
-      job: ws.jobs.status(),
     });
   });
 
@@ -478,8 +477,10 @@ export function router() {
     return c.json({ key, lang, english, cached: false });
   });
 
-  // ── jobs ───────────────────────────────────────────────────────────────────
+  // ── a run's start ──────────────────────────────────────────────────────────
 
+  /** Starts a translation run: 202 with the job's snapshot (the kit's job contract — the screen's
+   *  runServerJob follows it from there), 409 while one runs. */
   app.post("/v1/jobs", input({ body: BODY }), async (c) => {
     const body = c.req.valid("json");
     const ws = getState().workspace;
@@ -493,7 +494,8 @@ export function router() {
     if (!SCOPES.has(scope)) {
       throw new HttpError(400, `unknown scope: ${pyStr(scope)}. Use one of ${pySorted(SCOPES).join(", ")}`);
     }
-    if (ws.jobs.busy) throw new HttpError(409, "a job is already running");
+    const { jobs } = getState();
+    if (jobs.busy([TRANSLATE])) throw new HttpError(409, "a job is already running");
 
     let wanted;
     if (scope === "keys") wanted = truthy(keys) ? pyIter(keys) : [];
@@ -583,7 +585,8 @@ export function router() {
 
     let status;
     try {
-      status = ws.jobs.start({
+      status = startTranslateRun(jobs, {
+        store: p.state,
         lang,
         engine: truthy(presetId) ? presetId : "translate",
         send,
@@ -597,65 +600,7 @@ export function router() {
       if (e instanceof JobBusyError) throw new HttpError(409, errText(e));
       throw e;
     }
-    return c.json({ job: status }, 202);
-  });
-
-  app.get("/v1/jobs/current", async (c) => {
-    project();
-    return c.json({ job: getState().workspace.jobs.status() });
-  });
-
-  app.post("/v1/jobs/cancel", async (c) => {
-    project();
-    return c.json({ job: getState().workspace.jobs.cancel() });
-  });
-
-  /**
-   * Server-sent events for a running job. The subscription is a queue the manager's
-   * plain-callback subscriber feeds — transport stays out of jobs.js. A 15 s keepalive while
-   * idle; the stream ends after the `done` event (or when the client goes away).
-   */
-  app.get("/v1/jobs/stream", async (c) => {
-    const ws = getState().workspace;
-    project();
-    // Starlette's StreamingResponse: status 200, the media type with its charset, our
-    // cache-control. Headers a middleware already set on `c` (CORS) ride along.
-    c.header("Content-Type", "text/event-stream; charset=utf-8");
-    c.header("Cache-Control", "no-cache");
-    // The stream stays open until `finish` resolves it: after the `done` event, or when the
-    // client goes away (`onAbort`). Writes queue in order on the stream's writer.
-    return stream(
-      c,
-      (s) =>
-        new Promise((resolve) => {
-          let closed = false;
-          let keepalive = null;
-          const off = ws.jobs.subscribe((e) => {
-            if (closed) return;
-            s.write(`event: ${e.type}\ndata: ${pyJson(e)}\n\n`);
-            armKeepalive();
-            if (e.type === "done") finish();
-          });
-          const armKeepalive = () => {
-            clearTimeout(keepalive);
-            keepalive = setTimeout(() => {
-              if (closed) return;
-              s.write(": keepalive\n\n");
-              armKeepalive();
-            }, 15000);
-          };
-          const finish = () => {
-            if (closed) return;
-            closed = true;
-            clearTimeout(keepalive);
-            off();
-            resolve();
-          };
-          s.onAbort(finish);
-          s.write(`event: hello\ndata: ${pyJson(ws.jobs.status())}\n\n`);
-          armKeepalive();
-        }),
-    );
+    return c.json(status, 202);
   });
 
   // ── the Google Translate frame ─────────────────────────────────────────────

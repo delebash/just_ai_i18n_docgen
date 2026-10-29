@@ -1,10 +1,10 @@
 <script setup>
 // SPDX-License-Identifier: MIT
-// Runs — start a job (202, streamed, cancellable, rejoinable), watch it, and read the
+// Runs — start a job (202, followed, cancellable, rejoinable), watch it, and read the
 // history ("how did this catalogue get here"). A job stages PROPOSALS only; applying
 // is the review page's explicit human action. Close the tab and come back: the page
-// rejoins the run it did not start.
-import { computed, onMounted, onUnmounted } from "vue";
+// rejoins the run it did not start, and a finished run's card is read from its record.
+import { computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { PaneHeader, UiButton, UiProgress, UiSelect, UiTable, pushToast, pageFlow } from "@delebash/ui";
 import { ref } from "vue";
@@ -22,11 +22,10 @@ onMounted(async () => {
   await project.refresh();
   lang.value = project.langs[0] ?? null;
   await jobs.refresh();
-  if (jobs.job?.state === "running") jobs.watch();
 });
-onUnmounted(() => jobs.unwatch());
 
-const running = computed(() => jobs.job?.state === "running");
+const running = computed(() => jobs.running);
+const run = computed(() => jobs.run);
 
 // History on the SHARED table (2026-08-03) — this page had a hand-rolled `table.plain`
 // beside the dashboard's UiTable, which is two table looks in one app and the exact
@@ -45,7 +44,11 @@ const historyColumns = computed(() => [
 const SCOPES = ["pending", "flagged", "unsure", "all"];
 const scopeOptions = computed(() => SCOPES.map((s) => ({ label: t(`runs.scope.${s}`), value: s })));
 const scopeWord = (s) => (te(`runs.scope.${s}`) ? t(`runs.scope.${s}`) : s);
-const stateWord = (s) => (te(`runs.state.${s}`) ? t(`runs.state.${s}`) : s);
+// the kit job's states in this page's words: a running job's phase, and "error" said as failed
+const stateWord = (r) => {
+  const s = r.state === "running" ? (r.phase === "confirming" ? "confirming" : "running") : r.state === "error" ? "failed" : r.state;
+  return te(`runs.state.${s}`) ? t(`runs.state.${s}`) : s;
+};
 
 async function start() {
   try {
@@ -76,15 +79,15 @@ async function start() {
       <p v-if="jobs.error" class="mono" style="color: var(--danger)">{{ jobs.error }}</p>
     </div>
 
-    <div class="card" v-if="jobs.job">
-      <h2>{{ t(running ? "runs.jobRunning" : "runs.jobLast", { lang: jobs.job.lang, scope: scopeWord(jobs.job.scope) }) }}</h2>
+    <div class="card" v-if="run">
+      <h2>{{ t(running ? "runs.jobRunning" : "runs.jobLast", { lang: run.lang, scope: scopeWord(run.scope) }) }}</h2>
       <p class="hint">
-        {{ t("runs.jobProgress", { done: jobs.job.done, total: jobs.job.total, requests: jobs.job.requests, state: stateWord(jobs.job.state) }) }}
-        <template v-if="jobs.job.error"> · {{ jobs.job.error }}</template>
+        {{ t("runs.jobProgress", { done: run.done, total: run.total, requests: run.requests, state: stateWord(run) }) }}
+        <template v-if="run.error"> · {{ run.error }}</template>
       </p>
-      <UiProgress :value="jobs.job.done" :max="jobs.job.total" />
-      <p v-if="jobs.job.failed?.length" class="mono" style="color: var(--danger); margin-bottom: 0">
-        {{ t("runs.exhausted", { n: jobs.job.failed.length, keys: jobs.job.failed.join(", ") }, jobs.job.failed.length) }}
+      <UiProgress :value="run.done" :max="run.total" />
+      <p v-if="run.failed.length" class="mono" style="color: var(--danger); margin-bottom: 0">
+        {{ t("runs.exhausted", { n: run.failed.length, keys: run.failed.join(", ") }, run.failed.length) }}
       </p>
     </div>
 

@@ -37,7 +37,7 @@ registerBootSmoke({
     "/v1/prefs": {}, // the prefs DOCUMENT is the top-level object (empty = defaults)
     // the dashboard's summary, in the server's shape (server/src/api/workspace_api.js /v1/summary):
     // since the Quasar move the boot resolves the first route before mount, so Home renders here
-    "/v1/summary": { source: "en", keyCount: 0, configPath: "i18n.json", langs: [], job: null },
+    "/v1/summary": { source: "en", keyCount: 0, configPath: "i18n.json", langs: [] },
   },
   // boot() surfaces failures on window.__bootErr — rethrow so the waitFor loop
   // fails fast with the real error instead of timing out.

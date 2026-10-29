@@ -12,6 +12,7 @@ import * as llmDb from "@delebash/core/llm/db";
 import * as lifecycle from "@delebash/core/runner/lifecycle";
 import { beforeEach, expect, test, vi } from "vitest";
 import { createApp, seedLlmStack } from "../src/app.js";
+import { getState } from "../src/app_state.js";
 import { deleteSetting, getSetting } from "../src/appmeta.js";
 import { testClient, tmpDir, useHermeticKit } from "./helpers.js";
 
@@ -50,6 +51,33 @@ test("backup, change, restore: the backup's rows come back", async () => {
 
   expect((await restore(backup.rawPayload)).status).toBe(200);
   expect(await reviewer()).toBe("Before the backup");
+});
+
+/** A stand-in translation run on the app's jobs: it runs until it is cancelled. */
+function runUntilCancelled() {
+  return getState().jobs.start(
+    { kind: "translate", key: "es" },
+    ({ signal }) =>
+      new Promise((_resolve, reject) =>
+        signal.addEventListener("abort", () => reject(Object.assign(new Error("cancelled"), { name: "AbortError" })), { once: true }),
+      ),
+  );
+}
+
+test("a reset and a restore cancel the running translation first", async () => {
+  // a restore replaces the presets and the engine under a run, a reset deletes them — the run is
+  // cancelled and waited for before either (house-paint's teardown; the kit's cancelAll); what it
+  // staged is the project's and stays
+  const { jobs } = getState();
+  const backup = (await client.get("/v1/data/backup")).rawPayload;
+
+  const before = runUntilCancelled();
+  expect((await restore(backup)).status).toBe(200);
+  expect(jobs.get(before.id).state).toBe("cancelled");
+
+  const again = runUntilCancelled();
+  expect((await client.post("/v1/data/reset")).statusCode).toBe(200);
+  expect(jobs.get(again.id).state).toBe("cancelled");
 });
 
 test("reset returns the first-run state but keeps the access tokens", async () => {

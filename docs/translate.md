@@ -10,6 +10,8 @@ Tick the languages you want and press **Translate**. Languages run one after
 another, each as a job with scope **pending** — every key that is *missing* in
 that language plus every key the checks *flagged*. The run strip shows live
 progress; the AI-tasks button in the title bar hosts the same view from anywhere.
+Reload the window or open a second one mid-run and it picks the run up again —
+its progress and its Cancel.
 
 Rules a run always follows:
 
@@ -21,7 +23,9 @@ Rules a run always follows:
   silently skipped.
 
 The **Runs** page offers the same start controls plus scope choices
-(`pending` / `flagged` / `unsure` / `all`) and the full run history. One honest
+(`pending` / `flagged` / `unsure` / `all`) and the full run history. Its card shows
+the running run, or the last one — how it ended and the keys it couldn't deliver —
+after a reload too. One honest
 note: `unsure` selects keys the [probe](verification.md) marked as disagreements —
 and today the probe only runs from the CLI, so on an app-only workflow that scope
 finds nothing.

@@ -25,7 +25,6 @@ import { HttpError } from "@delebash/core/platform/errors";
 import { cmp, isDict, pyGet, pyIter, pyMax, truthy } from "@delebash/core/platform/py";
 import { pyJson } from "@delebash/core/platform/pyjson";
 import { buildConfirmPrompt } from "./confirm.js";
-import { JobManager } from "./jobs.js";
 import { flatten, placeholderRe, readJson, rebuild, writeText } from "./jsonio.js";
 import { exists } from "./paths.js";
 import { allFindings, Project } from "./service.js";
@@ -34,19 +33,17 @@ import { dropConfirmation, dropProposal, dropReferences, proposalKeys, reviewSta
 
 export const _UNLIMITED = 10 ** 9; // a UI scrolls; a CLI report has to truncate
 
-/** One (optional) loaded project + the job manager + caches. A factory-style holder so tests
- * can point it at a temp directory. */
+/** One (optional) loaded project + caches. A factory-style holder so tests can point it at a
+ * temp directory. Its translation runs are the app's jobs (app_state's JobRegistry, jobs.js). */
 export class Workspace {
   constructor(configPath = null) {
     this.project = null;
-    this.jobs = new JobManager();
     this.termCache = new Map();
     if (configPath) this.load(configPath);
   }
 
   load(configPath) {
     this.project = new Project(configPath);
-    this.jobs = new JobManager({ store: this.project.state });
     this.termCache = new Map();
   }
 

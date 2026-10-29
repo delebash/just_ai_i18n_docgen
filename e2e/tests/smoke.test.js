@@ -74,19 +74,27 @@ test("the AI tasks nav row is a REAL toggle: opens, STAYS open, second click clo
   // BEHAVIOUR, not presence — the first build shipped an open-then-instantly-close
   // bug under a presence check (the nav row lacked data-panel-toggle, so the
   // opening click was also the panel's outside-click dismiss).
+  // The panel by its id (the kit's AI_TASKS_PANEL_ID, which the row's aria-controls names) — not
+  // by `[aria-label="AI tasks"]`: the titlebar's AiStatusButton, idle, carries that label too, so
+  // that selector matched whether the panel was open or not.
   const clickRow = `[...document.querySelectorAll('.navlink')].find(n => /AI tasks/.test(n.textContent)).click();`;
+  const panel = "#ai-tasks-panel";
+  assert.equal(await d.exists(panel), false, "the panel starts closed");
   await d.exec(clickRow);
   await d.sleep(400); // long enough for a buggy dismiss to have fired
-  assert.equal(await d.exists('[aria-label="AI tasks"]'), true, "panel must open AND STAY open");
+  assert.equal(await d.exists(panel), true, "panel must open AND STAY open");
   await d.exec(clickRow);
-  await d.sleep(300);
-  assert.equal(await d.exists('[aria-label="AI tasks"]'), false, "second click must close it");
+  // the panel is the kit's QDialog since 2026-10-20 (AiStatusPanel): it slides shut, so it is
+  // gone once its leave transition ends — waited for, never a fixed 300 ms
+  await d.waitUntil(`return !document.querySelector(${JSON.stringify(panel)})`, { timeout: 3_000 }).catch(() => {});
+  assert.equal(await d.exists(panel), false, "second click must close it");
 });
 
 test("routing by feature shows the THREE routed features; the promptless pane AGREES with the API", async () => {
   await d.navigate("#/ai");
   await d.waitUntil(`return /Routing by feature/i.test(document.body.textContent)`, { timeout: 15_000 });
-  await d.exec(`[...document.querySelectorAll('a,button')].find(x => /Routing by feature/i.test(x.textContent))?.click();`);
+  // the AI page's sections are the kit's tabs since 2026-10-20 (`.lu-subnav [role=tab]`, the kit's TASKS)
+  await d.exec(`[...document.querySelectorAll('.lu-subnav [role=tab]')].find(x => /Routing by feature/i.test(x.textContent))?.click();`);
   // feature_prompts={} here — the kit renders promptless rows with the assigned-preset
   // line on each card. Extract left the catalog 2026-08-04: it never calls the engine
   // (pure front-matter parsing), so a routing row for it was a lie; it returns the day

@@ -61,7 +61,10 @@
   },
   "jobs": {
     "translating": "Translating {lang}",
-    "translatingThen": "Translating {lang} · then {queue}"
+    "translatingThen": "Translating {lang} · then {queue}",
+    "confirming": "Confirming {n} identical key — its pre-tick appears when it finishes. | Confirming {n} identical keys — pre-ticks appear when it finishes.",
+    "confirmFailed": "Confirmation pass failed",
+    "confirmFailedBody": "{message} — the run's translations are staged; the pre-ticks just didn't happen."
   },
   "ai": {
     "eyebrow": "AI",

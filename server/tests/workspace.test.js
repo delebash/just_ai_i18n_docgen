@@ -8,13 +8,14 @@
 // `vi.spyOn(workspaceApi, "makeSend")` (the module calls it through `self.`).
 import { mkdirSync, readFileSync, unlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { AsyncEvent } from "@delebash/core/platform/asyncutil";
 import { beforeEach, expect, test, vi } from "vitest";
 import * as workspaceApi from "../src/api/workspace_api.js";
 import { createApp } from "../src/app.js";
 import { getState } from "../src/app_state.js";
 import { getReference, proposals, putProposal, putReference } from "../src/state.js";
 import { existsSync } from "node:fs";
-import { testClient, tmpDir, useHermeticKit } from "./helpers.js";
+import { testClient, tmpDir, until, useHermeticKit } from "./helpers.js";
 
 useHermeticKit();
 
@@ -54,10 +55,19 @@ const fakeSend = (_system, user) =>
   JSON.stringify({ items: itemsOf(user).map((it) => ({ id: it.id, translation: `NUEVO ${it.text}` })) });
 const patchSend = () => vi.spyOn(workspaceApi, "makeSend").mockImplementation(() => fakeSend);
 
+/** A run's end: its snapshot once it stopped running (the app's JobRegistry). */
+async function ended(id) {
+  const { jobs } = getState();
+  await until(() => jobs.get(id).state !== "running");
+  return jobs.get(id);
+}
+
 test("state_reports_langs_progress_and_no_job", async () => {
   const s = (await client.get("/v1/state")).json();
   expect(s.langs).toEqual(["es"]);
-  expect(s.job).toBeNull();
+  // what runs is the kit's /v1/jobs (round D2) — not a field here
+  expect(s).not.toHaveProperty("job");
+  expect((await client.get("/v1/jobs", { params: { kind: "translate" } })).json().jobs).toEqual([]);
   expect(s.progress.es).toEqual({ reviewed: 0, skipped: 0 });
 });
 
@@ -138,9 +148,7 @@ test("a_job_stages_proposals_and_never_touches_the_locale_file", async () => {
 
   const r = await client.post("/v1/jobs", { json: { lang: "es", scope: "all" } });
   expect(r.statusCode).toBe(202);
-  const ws = getState().workspace;
-  await ws.jobs.settled();
-  expect(ws.jobs.status().state).toBe("done");
+  expect((await ended(r.json().id)).state).toBe("done");
 
   expect(readFileSync(esPath, "utf8"), "a job must write ONLY proposals — the locale file is untouched").toBe(before);
   const props = (await client.get("/v1/proposals", { params: { lang: "es" } })).json().proposals;
@@ -164,8 +172,7 @@ test("applying_many_proposals_is_ONE_undo", async () => {
   patchSend();
   const before = readJson(esPath);
 
-  await client.post("/v1/jobs", { json: { lang: "es", scope: "all" } });
-  await getState().workspace.jobs.settled();
+  await ended((await client.post("/v1/jobs", { json: { lang: "es", scope: "all" } })).json().id);
 
   const keys = (await client.get("/v1/proposals", { params: { lang: "es" } })).json().proposals.map((p) => p.key);
   expect(keys.length).toBeGreaterThan(1);
@@ -180,6 +187,53 @@ test("applying_many_proposals_is_ONE_undo", async () => {
   expect(readJson(esPath)).toEqual(before);
   // …and there is nothing left to undo: the batch was a single action.
   expect((await client.post("/v1/undo", { json: {} })).statusCode).toBe(404);
+});
+
+test("a_run_is_the_kits_job_listed_followed_and_cancelled_through_v1_jobs", async () => {
+  // Round D2 (2026-10-28): the start is docgen's POST /v1/jobs (202 with the job's snapshot);
+  // what runs, its events and its cancel are the kit's routes. The engine is held mid-batch so
+  // the run is still running while it is looked at.
+  const gate = new AsyncEvent();
+  vi.spyOn(workspaceApi, "makeSend").mockImplementation(() => async (system, user) => {
+    await gate.wait(10000);
+    return fakeSend(system, user);
+  });
+  const r = await client.post("/v1/jobs", { json: { lang: "es", scope: "all" } });
+  expect(r.statusCode).toBe(202);
+  const job = r.json();
+  expect(job).toMatchObject({ kind: "translate", key: "es", state: "running" });
+  try {
+    await until(() => getState().jobs.get(job.id).data.total === 3);
+    expect(getState().jobs.get(job.id).data).toMatchObject({ lang: "es", scope: "all", total: 3, done: 0, phase: "translating" });
+    // one run at a time: a second start is refused while it runs
+    const again = await client.post("/v1/jobs", { json: { lang: "es", scope: "all" } });
+    expect(again.statusCode).toBe(409);
+    // a reloaded page finds it
+    const listed = (await client.get("/v1/jobs", { params: { kind: "translate" } })).json().jobs;
+    expect(listed.map((j) => j.id)).toEqual([job.id]);
+    // followed: the snapshot first, then the cancel, then its end — the stream closes after it
+    const events = client.get(`/v1/jobs/${job.id}/events`);
+    await new Promise((res) => setTimeout(res, 20));
+    const cancelled = await client.delete(`/v1/jobs/${job.id}`);
+    expect(cancelled.statusCode).toBe(200);
+    gate.set();
+    const frames = (await events).body
+      .split("\n\n")
+      .filter((f) => f.startsWith("data: "))
+      .map((f) => JSON.parse(f.slice(6)));
+    expect(frames[0]).toMatchObject({ type: "job", job: { id: job.id, state: "running" } });
+    expect(frames.map((f) => f.type)).toContain("cancelling");
+    expect(frames.at(-1).type).toBe("end");
+    expect(frames.at(-1).job.state).not.toBe("running");
+  } finally {
+    gate.set();
+    await ended(job.id);
+  }
+  expect((await client.get("/v1/jobs", { params: { kind: "translate" } })).json().jobs).toEqual([]);
+  // its record, for the Runs page after a reload
+  const [run] = (await client.get("/v1/runs")).json().runs;
+  expect(run).toMatchObject({ lang: "es", scope: "all", total: 3 });
+  expect(run.state).not.toBeNull();
 });
 
 test("an_unknown_scope_must_not_start_a_job", async () => {
@@ -216,9 +270,7 @@ test("pending_scope_selects_missing_plus_flagged_keys", async () => {
 
   const r = await client.post("/v1/jobs", { json: { lang: "es", scope: "pending" } });
   expect(r.statusCode).toBe(202);
-  const ws = getState().workspace;
-  await ws.jobs.settled();
-  expect(ws.jobs.status().state).toBe("done");
+  expect((await ended(r.json().id)).state).toBe("done");
 
   const staged = new Set((await client.get("/v1/proposals", { params: { lang: "es" } })).json().proposals.map((p) => p.key));
   expect(staged.has("greet"), "the missing key must be in a pending run").toBe(true);

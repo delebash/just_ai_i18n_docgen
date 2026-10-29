@@ -2,6 +2,11 @@
 
 ## v0.1.0
 
+- **A run's card survives a reload.** The Runs page shows the last run after a reload or
+  a restart — how it ended, why it failed, and the keys it couldn't deliver — and a window
+  opened mid-run picks the run up with its progress and Cancel ([Running a translation](translate.md))
+- **A restore or a reset stops a running translation first.** What it staged stays staged; the
+  run no longer carries on under AI settings that were just replaced ([App Settings](settings.md))
 - **Every font in the Appearance picker shows.** The fonts ship with the app, so choosing one
   changes the interface's type — offline too ([App Settings](settings.md))
 - **"Can't reach the server" says why.** When another program or another person's copy of the

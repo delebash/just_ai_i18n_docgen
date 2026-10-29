@@ -139,6 +139,35 @@ standard").
   passes no `isDataWrite`, as the template. — *code: core `platform/maintenance.js`;
   `server/tests/data.test.js`, 2026-10-24.*
 
+## A run on the kit's jobs (round D2, 2026-10-28)
+
+Asked while moving a translation run off docgen's JobManager onto the kit's job registry (the
+kit's plan `docs/plans/2026-10-24-engines-the-llama-way.md`, round D2; TASKS).
+
+- **The kit's registry lists running jobs only** — `GET /v1/jobs?kind=` answers the ones still
+  running; a finished job stays readable by id for 10 minutes (`keepMs`), then its end only (410).
+  docgen's `/v1/jobs/current` answered the last run until a project load or a restart, so the Runs
+  page's card for a finished run now reads the newest run record (`state.js`: `state`, `error`,
+  `total`, `failedKeys`). — *code: core `platform/jobs.js` `list`, `sweep`, 2026-10-28.*
+- **A job ends "done" whenever its work returns, cancelled or not** — only a throw while aborted
+  (or an AbortError) ends it "cancelled". The loop reports a cancel on a batch boundary
+  (`cancelled: true`), so the run throws an AbortError after staging; a Cancel during the
+  confirmation pass or during the LAST batch still ends "done" (the loop checks before each batch
+  only — as the JobManager did). — *code: core `platform/jobs.js` `start`; `server/src/loop.js`,
+  2026-10-28.*
+- **The data router calls `beforeReplace` for a restore only** — a reset runs `runReset` alone,
+  so `resetWorkspace` cancels the run itself (house-paint's `teardown`, the same split). The gate
+  never waits on an open event stream: GETs pass it uncounted. — *code: core
+  `platform/data_api.js` l.943–987, `platform/maintenance.js` l.65, 2026-10-28.*
+- **`runServerJob` before kit 0384b39 had two gaps docgen hit** — the job's end never reached
+  `onJob` (a store keeping the job stayed "running"), and a job cancelled anywhere but its own
+  task (another window, the Runs page's Cancel, a restore) failed the task red; both fixed in the
+  kit at docgen's ask. — *code: ui `services/serverJob.js`, `services/appTask.js` l.91,
+  2026-10-28.*
+- **The strip shows its own `done/total` when a task gives no text** — so the run's `describe`
+  returns that readout and needs no catalog word. — *code: ui `components/AiTaskStrip.vue`
+  l.136, 2026-10-28.*
+
 ---
 
 ## Records not yet distilled

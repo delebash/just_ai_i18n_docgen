@@ -1,99 +1,127 @@
 // SPDX-License-Identifier: MIT
-// Runs — start (202), watch (SSE with polling fallback), cancel, history. A job stages
+// Runs — start (202), follow, cancel, history. A run is the kit's server job (the engines plan's
+// round D2, 2026-10-28): the server's JobRegistry holds it, and this store follows it with the
+// kit's runServerJob — one task per language in the shared AI-task queue (the strip, the
+// AI-tasks panel, their Cancel: the AI-call convention 2026-08-08), its events through the
+// server transport (the access token rides), polling again if the stream drops. A job stages
 // PROPOSALS only; the review store's applyProposal is the human action that writes.
-//
-// Every job REGISTERS in the kit's shared AI-task queue via the withAiTask
-// runner (AI-call convention 2026-08-08) — the batch-owner pattern: one task per
-// language, setProgress renders "n/m" in the strip and the AI-tasks panel, and
-// the panel's Cancel aborts through the shared controller into POST
-// /v1/jobs/cancel. This is what makes translate runs visible (and cancellable)
-// from the same window as model downloads — one task surface, no bespoke strip
-// (JobStrip died 2026-08-03).
 import { defineStore } from "pinia";
-import { get, post, pushToast, safeRequest, serverUrl, withAiTask } from "@delebash/ui";
+import { del, post, pushToast, runServerJob, safeRequest } from "@delebash/ui";
 import { i18n } from "../i18n/index.js";
 import { langName } from "../services/langs.js";
 
+const t = (...args) => i18n.global.t(...args);
+
+/** A run's card in one shape, from the job this window follows or from a run record. (The start's
+ *  answer is the job before its work's first update: its fields arrive with the first frame.) */
+function jobView(job) {
+  const d = job.data || {};
+  return {
+    lang: d.lang ?? job.key,
+    scope: d.scope ?? "",
+    total: d.total ?? 0,
+    done: d.done ?? 0,
+    requests: d.requests ?? 0,
+    failed: d.failed ?? [],
+    state: job.state,
+    phase: d.phase ?? null,
+    error: job.error?.message ?? null,
+  };
+}
+function recordView(r) {
+  return {
+    lang: r.lang,
+    scope: r.scope,
+    total: r.total ?? 0,
+    done: r.keys ?? 0,
+    requests: r.requests ?? 0,
+    failed: r.failedKeys ?? [],
+    state: r.state,
+    phase: null,
+    error: r.error ?? null,
+  };
+}
+
 export const useJobsStore = defineStore("jobs", {
   state: () => ({
-    job: null,
+    job: null, // the run this window follows, or the last one it followed (the kit job's snapshot)
     runs: [],
     starting: false,
     error: "",
-    queue: [],          // languages still waiting when a multi-select run goes sequential
+    queue: [], // languages still waiting when a multi-select run goes sequential
     queueScope: null,
-    _source: null,
-    _task: null,        // the runner's handle for the RUNNING job (one per language)
-    _taskLife: null,    // settles the withAiTask callback when the SSE outcome lands
+    _following: null, // the id of the job being followed
   }),
+  getters: {
+    running: (s) => s.job?.state === "running",
+    /** The Runs page's card: the running job, else the newest run record — the registry forgets a finished
+     *  job, so after a reload the record is what says how the last run ended and which keys it couldn't
+     *  deliver. A record from before round D2 has no state and shows no card. */
+    run(s) {
+      if (s.job?.state === "running") return jobView(s.job);
+      const last = s.runs[0];
+      return last?.state ? recordView(last) : null;
+    },
+  },
   actions: {
     async refresh() {
-      const cur = await safeRequest("/v1/jobs/current", null);
-      this.job = cur?.job ?? null;
-      // Rejoining a live run (page reload mid-job): the strip/panel task must
-      // exist too, not only the SSE stream — without this the rejoined run was
-      // invisible everywhere but the raw state (audit 2026-08-05).
-      if (this.job && !this._task
-          && (this.job.state === "running" || this.job.state === "confirming")) {
-        this._openTask(this.job.lang);
-        this._task?.setProgress(this.job.done, this.job.total);
-      }
-      const hist = await safeRequest("/v1/runs", null);
+      const [live, hist] = await Promise.all([safeRequest("/v1/jobs?kind=translate", null), safeRequest("/v1/runs", null)]);
       this.runs = hist?.runs ?? [];
+      // Rejoining a live run (a reload mid-run, another window's): it gets its task on the strip and
+      // the AI-tasks panel and its events, as a run started here — a rejoined run was invisible
+      // everywhere but the raw state once (audit 2026-08-05).
+      const job = live?.jobs?.[0];
+      if (job) this._follow(job);
     },
-    _openTask(lang) {
-      this._closeTask("superseded");
-      const remaining = this.queue.length;
-      // The kit runner owns the lifecycle (AI-call convention 2026-08-08).
-      // A translate job's life is EVENT-shaped — it ends when the SSE stream
-      // reports an outcome, not when a call returns — so the callback holds
-      // the task open on a deferred that _closeTask settles.
-      let settle = null;
-      const life = new Promise((resolve, reject) => { settle = { resolve, reject }; });
-      this._taskLife = settle;
-      withAiTask({
+    /** Follow `job` (a snapshot) to its end, then the next language in the queue. */
+    _follow(job) {
+      if (this._following === job.id) return;
+      this._following = job.id;
+      this.job = job;
+      const lang = job.data?.lang ?? job.key;
+      runServerJob({
+        start: async () => job,
         feature: "translate",
-        label: remaining
-          ? i18n.global.t("jobs.translatingThen", { lang: langName(lang), queue: this.queue.map(langName).join(", ") })
-          : i18n.global.t("jobs.translating", { lang: langName(lang) }),
+        label: this.queue.length
+          ? t("jobs.translatingThen", { lang: langName(lang), queue: this.queue.map(langName).join(", ") })
+          : t("jobs.translating", { lang: langName(lang) }),
         meta: { lang },
-      }, (handle) => {
-        handle.markStreaming();
-        // The panel's Cancel aborts the shared controller — route it to the server.
-        handle.signal.addEventListener("abort", () => {
-          post("/v1/jobs/cancel", {}).catch(() => {});
-          this.queue = [];
+        // the strip's own n/m readout, while the run knows its size
+        describe: (j) => (j.data?.total ? `${j.data.done ?? 0}/${j.data.total}` : ""),
+        onJob: (j) => {
+          this.job = j;
+        },
+        onEvent: (e) => this._onEvent(e),
+      })
+        .then(
+          () => "done",
+          // a failure is on the task's row already (the strip, the panel); a cancel ends the queue
+          (e) => (e?.name === "AbortError" ? "cancelled" : "failed"),
+        )
+        .then(async (outcome) => {
+          if (this._following === job.id) this._following = null;
+          if (outcome === "cancelled") this.queue = [];
+          await this.refresh();
+          this._advanceQueue();
         });
-        this._task = handle;
-        return life;
-      }).catch(() => {
-        // A failed run's row already carries the error (failed lingers until
-        // dismissed); the store's own `error` state is set by the SSE path.
-      });
     },
-    _closeTask(outcome) {
-      const t = this._task;
-      const settle = this._taskLife;
-      this._task = null;
-      this._taskLife = null;
-      if (!t || !settle) return;
-      if (outcome === "failed") settle.reject(new Error(this.job?.error || "run failed"));
-      else if (outcome === "cancelled" || outcome === "superseded") {
-        // cancel() records the outcome; the runner's finish then no-ops
-        // (first-outcome-wins). The old code finished these as DONE rows.
-        t.cancel();
-        settle.resolve({});
-      } else settle.resolve({});
+    // The confirmation pass (2026-08-05: the server emitted these and nobody listened —
+    // pre-ticks appeared unexplained or silently never appeared).
+    _onEvent(e) {
+      if (e.type === "confirming") pushToast({ message: t("jobs.confirming", { n: e.count }, e.count) });
+      else if (e.type === "confirm-error") {
+        pushToast({ kind: "error", title: t("jobs.confirmFailed"), description: t("jobs.confirmFailedBody", { message: e.message }) });
+      }
     },
     async start({ lang, scope, keys = null, presetId = null }) {
       this.error = "";
       this.starting = true;
       try {
-        const out = await post("/v1/jobs", { lang, scope, keys, presetId });
-        this.job = out.job;
-        this._openTask(lang);
-        this.watch();
-        return out;
+        // the start answers first, so a refusal (409 while one runs, a scope that selects nothing)
+        // reaches the caller before any task opens
+        const job = await post("/v1/jobs", { lang, scope, keys, presetId });
+        this._follow(job);
+        return job;
       } catch (e) {
         this.error = e?.message || String(e);
         throw e;
@@ -102,8 +130,7 @@ export const useJobsStore = defineStore("jobs", {
       }
     },
     // The dashboard's multi-select: the server runs ONE job at a time (by design —
-    // one engine, one queue), so extra languages wait client-side and each `done`
-    // event starts the next.
+    // one engine, one queue), so extra languages wait here and each run's end starts the next.
     async startMany(langs, scope) {
       const [first, ...rest] = langs;
       this.queue = rest;
@@ -118,7 +145,7 @@ export const useJobsStore = defineStore("jobs", {
       }
     },
     async _advanceQueue() {
-      if (!this.queue.length || this.job?.state === "running" || this.job?.state === "confirming") return;
+      if (!this.queue.length || this.running) return;
       const lang = this.queue.shift();
       try {
         await this.start({ lang, scope: this.queueScope || "pending" });
@@ -126,82 +153,10 @@ export const useJobsStore = defineStore("jobs", {
         this.queue = []; // a failed start must not strand a silent queue
       }
     },
-    watch() {
-      this.unwatch();
-      try {
-        const es = new EventSource(serverUrl("/v1/jobs/stream"));
-        this._source = es;
-        const update = (e) => {
-          try {
-            const data = JSON.parse(e.data);
-            if (data.job) this.job = data.job;
-            else if (data.done !== undefined && this.job) {
-              this.job = { ...this.job, done: data.done, total: data.total };
-            }
-            if (this.job?.total) this._task?.setProgress(this.job.done, this.job.total);
-          } catch { /* keepalive */ }
-        };
-        for (const t of ["hello", "start", "progress", "done", "cancelling", "error"]) {
-          es.addEventListener(t, update);
-        }
-        // The confirmation pass (2026-08-05: the server emitted these and nobody
-        // listened — pre-ticks appeared unexplained or silently never appeared).
-        es.addEventListener("confirming", (e) => {
-          try {
-            const { count } = JSON.parse(e.data);
-            pushToast({ message: `Confirming ${count} identical key(s) — pre-ticks appear when it finishes.` });
-          } catch { /* info-only */ }
-        });
-        es.addEventListener("confirm-error", (e) => {
-          try {
-            const { message } = JSON.parse(e.data);
-            pushToast({ kind: "error", title: "Confirmation pass failed",
-                        description: `${message} — the run's translations are staged; the pre-ticks just didn't happen.` });
-          } catch { /* toast-only */ }
-        });
-        es.addEventListener("done", async () => {
-          this.unwatch();
-          await this.refresh();
-          const state = this.job?.state;
-          this._closeTask(state === "done" ? "done" : state === "cancelled" ? "cancelled" : "failed");
-          this._advanceQueue();
-        });
-        // A dropped stream must not freeze the page on a stale state (audit
-        // 2026-08-05: onerror closed the stream and nothing took over). Fall
-        // back to the poll loop — it re-arms nothing when the job is over.
-        es.onerror = () => { this.unwatch(); this._pollTick(); };
-      } catch {
-        // SSE unavailable — poll instead.
-        this._pollTick();
-      }
-    },
-    _pollTick() {
-      const tick = async () => {
-        await this.refresh();
-        if (this.job && (this.job.state === "running" || this.job.state === "confirming")) {
-          setTimeout(tick, 1500);
-        } else if (this.job) {
-          const state = this.job.state;
-          this._closeTask(state === "done" ? "done" : state === "cancelled" ? "cancelled" : "failed");
-          this._advanceQueue();
-        }
-      };
-      tick();
-    },
-    unwatch() {
-      if (this._source) {
-        this._source.close();
-        this._source = null;
-      }
-    },
+    /** Stop the running translation (it keeps what it staged): its task ends as cancelled on the strip. */
     async cancel() {
       this.queue = []; // cancelling means stop — never auto-start the next language
-      const out = await post("/v1/jobs/cancel", {});
-      this.job = out.job ?? this.job;
-      this._closeTask("cancelled");
-    },
-    async proposals(lang) {
-      return get(`/v1/proposals?lang=${encodeURIComponent(lang)}`);
+      if (this.job?.state === "running") await del(`/v1/jobs/${encodeURIComponent(this.job.id)}`);
     },
   },
 });

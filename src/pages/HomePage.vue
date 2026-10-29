@@ -38,7 +38,6 @@ const retry = usePoll(async () => {
 }, 3000);
 onMounted(async () => {
   await Promise.all([project.refresh(), project.fetchSummary(), jobs.refresh()]);
-  if (jobs.job?.state === "running") jobs.watch();
   retry.start();
 });
 
@@ -47,7 +46,7 @@ watch(() => jobs.job?.state, async (state, prev) => {
   if (prev === "running" && state && state !== "running") await project.fetchSummary();
 });
 
-const running = computed(() => jobs.job?.state === "running");
+const running = computed(() => jobs.running);
 const translateTask = useSurfaceTask("translate");
 const rows = computed(() =>
   (project.summary?.langs ?? []).map((l) => ({ ...l, name: langTitle(l.code) })),

@@ -40,6 +40,7 @@ import {
   installLogRing,
   MaintenanceGate,
   makeDiskRouter,
+  makeJobsRouter,
   makeLogsRouter,
   makePrefsRouter,
   openDatabase,
@@ -54,7 +55,7 @@ import { router as healthRouter } from "./api/health_api.js";
 import { router as serverAuthRouter } from "./api/server_auth_api.js";
 import { router as setupRouter } from "./api/setup_api.js";
 import { router as workspaceRouter } from "./api/workspace_api.js";
-import { AppState, setState } from "./app_state.js";
+import { AppState, getState, setState } from "./app_state.js";
 import * as appmeta from "./appmeta.js";
 import { readAuth } from "./auth.js";
 import { router as dataRouter } from "./data_admin.js";
@@ -478,6 +479,10 @@ export async function createApp(dataDir = null, configPath = null) {
   // family setState/getState seam).
   const workspace = new Workspace(configPath);
   setState(new AppState(dataDir, workspace));
+  // The app's jobs — a translation run (jobs.js) — through the kit's routes: the running ones
+  // (GET /v1/jobs?kind=translate), one (GET /v1/jobs/:id), its events (GET /v1/jobs/:id/events)
+  // and its cancel (DELETE /v1/jobs/:id). The start is the workspace's POST /v1/jobs.
+  app.route("/", makeJobsRouter(() => getState().jobs));
   app.route("/", healthRouter());
   app.route("/", serverAuthRouter());
   app.route("/", setupRouter());

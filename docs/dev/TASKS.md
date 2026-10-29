@@ -16,6 +16,33 @@
 > item points to — **read that doc before coding the item**. Close = delete — git
 > keeps history. A tracker line is a claim, not evidence — verify against code.
 
+## A translation run on the kit's jobs — round D2 [2026-10-28]
+STATE:  BUILT 2026-10-28 in a docgen session; the e2e and a real run open (OPEN). The decision is the kit's
+        (its TASKS, its plan `docs/plans/2026-10-24-engines-the-llama-way.md` round D2), the user's answer to
+        "Which way?": **"Fold into the kit (Recommended)"** — "The kit's job system gains a live event stream
+        beside polling, plus a run history. docgen moves onto it in a docgen session I start." This session's
+        plan and its decisions, the user: "your rec on all" — (1) the run record keeps how the run ended, its
+        total and the exhausted keys by name, and the Runs card reads the newest record when no run is followed;
+        (2) the new words English only, Spanish with docgen's next catalog run; (3) a restore AND a reset cancel
+        a running translation first (house-paint's teardown); (4) `job` leaves `/v1/state` and `/v1/summary`
+        (what runs is `GET /v1/jobs?kind=translate`); and the two `runServerJob` gaps asked of the kit's session
+        (built there, kit 0384b39).
+BUILT:  server — `jobs.js` `startTranslateRun` on the app's `JobRegistry` (app_state; kind `translate`, key the
+        language; 409 while `busy(["translate"])`; fields `{lang, engine, scope, total, done, requests, failed,
+        phase}`; events `item`, `confirming`, `confirm-error`; a cancelled translate throws AbortError after
+        staging); the kit's `makeJobsRouter` in app.js; `POST /v1/jobs` answers the snapshot (202);
+        `/v1/jobs/current`, `/cancel`, `/stream` gone; `state.js` run records gain `total`, `state`, `error`,
+        `failedKeys`; `data_admin.js` `teardown` (cancelAll, then the runner) before a restore and in a reset.
+        Renderer — `stores/jobs.js` on the kit's `runServerJob` (onJob, onEvent; the queue in the window;
+        rejoin from `GET /v1/jobs?kind=translate`; Cancel = `DELETE /v1/jobs/:id`), RunsPage's card from
+        `jobs.run`, the confirmation toasts' words in the catalog (`jobs.confirming`, `jobs.confirmFailed`,
+        `jobs.confirmFailedBody`). Tests: `server/tests/jobs.test.js` (the three rules, exhausted keys named,
+        the confirm pass), `workspace.test.js` (the route surface: 202, 409, list, events, DELETE),
+        `data.test.js` (restore and reset cancel the run), `src/stores/jobs.test.js`. User docs translate.md,
+        settings.md, whats-new.md; RESEARCH "A run on the kit's jobs".
+OPEN:   `npm run build:unpacked && npm test`, and a real run in the window (docgen's own catalog project, scope
+        keys); es.json lacks the three new words until the catalog run.
+
 ## The kit's page looks, the window counter and the settings upgrade — adopt them [2026-10-24]
 OPEN:   the kit grew three standards on 2026-10-24 (its plan `../just-core/docs/plans/2026-10-24-engines-the-llama-way.md`,
         round A2 — under the user's go there, "fix it all your rec do it right like a professional go"); the template
