@@ -62,3 +62,5 @@ the installed app — and read `<data>/logs/*.log` plus `<data>/ai-cache/llamacp
 - The unpacked app has no `node_modules` of its own: it finds the kit's shell in the checkout's,
   and its server data folder is `<repo>/data` (`JUST_AI_I18N_DOCGEN_DATA_DIR` overrides it).
 - Don't run capture while your own dev window is open on the same server.
+- Capture with the model already loaded: the window's start-up loads the routed model, and while it
+  loads that screen covers every page — the shots come out as the start-up plate (~1.5 MB each).

@@ -177,12 +177,12 @@ npm run release -- --platform windows
 1. Builds the Windows installer (NSIS), the macOS .dmg and .zip, and the Linux AppImage on per-platform runners, each with the kit checked out beside the app at that commit.
 2. Starts each packaged app as a user would, its server on its own through the launcher, and checks both use one data folder; opens the AppImage on Ubuntu 24.04.
 3. Only when every check passed: creates the GitHub release `v<version>` (a draft until every file is attached) with the installers and electron-updater's feed (`latest*.yml`, the `.blockmap`s).
-4. Packs the user docs (`docs/*.md`, `docs/toc.json`) into `docs.tar.gz` and attaches it.
-5. Dispatches `docs-updated` to the website repo (`delebash/just-ai-i18n-docgen-website`), which rebuilds from those docs.
+4. Packs the user docs (`docs/*.md`, `docs/toc.json`) into `docs.tar.gz` and attaches it while the release is still a draft.
+5. Dispatches `docs-updated` to the website repo (`WEBSITE_REPO` at the top of the workflow: `delebash/just-ai-i18n-docgen-website`), which rebuilds from those docs.
 
 `gh workflow run release.yml -f tag=main -f publish=false` is a dry run: the same builds, kept on the run instead of released.
 
-> The **`WEBSITE_DISPATCH_TOKEN`** secret (a token with `repo` scope on the website repo) drives step 5. Without it the step logs a skip; run the website's deploy workflow by hand.
+> The **`WEBSITE_DISPATCH_TOKEN`** secret (a fine-grained token on the website repo with Contents read and write) drives step 5. Without it the step logs a skip, and the site picks the docs up on its next build. The workflow is the kit template's, as it is (`../just-core/template/.github/workflows/release.yml`) — only `WEBSITE_REPO` is docgen's.
 
 ---
 
@@ -268,4 +268,4 @@ A change is done when `npm run lint && npm run test:server && npm run test:unit`
 
 ## License
 
-MIT — every source file carries `SPDX-License-Identifier: MIT`. Models and APIs are subject to their providers' terms.
+MIT — see [`LICENSE`](LICENSE); every source file carries `SPDX-License-Identifier: MIT`. Code copied or ported from other projects, with its licence, is listed in [`NOTICE.md`](NOTICE.md). Models and APIs are subject to their providers' terms.

@@ -167,6 +167,16 @@ kit's plan `docs/plans/2026-10-24-engines-the-llama-way.md`, round D2; TASKS).
 - **The strip shows its own `done/total` when a task gives no text** — so the run's `describe`
   returns that readout and needs no catalog word. — *code: ui `components/AiTaskStrip.vue`
   l.136, 2026-10-28.*
+- **A real run in the real window, end to end** — Runs → Translate (Spanish, pending) on docgen's
+  own project: 7 keys, 1 request, 21.2 s with Gemma 4 26B loading first; a reload mid-run found it
+  again (the card "Running", the AI-tasks count 1); it ended "Last job · 7/7 staged · state: done"
+  with no red badge, Home counting "7 staged", the record `state: done`, `total: 7`, no
+  `failedKeys`. The 7 proposals were discarded after (the approved check), es.json untouched. —
+  *measured 2026-10-28, the unpacked build, kit 0384b39.*
+- **A capture while the app loads its model shows the start-up load over every page** — the
+  window's boot warm-loads the routed model (BootModelLoad, "Loading it into your graphics card"),
+  and `npm run screenshots` saved that screen as home, setup, review and runs (~1.57 MB each).
+  With the model loaded first, the pages come out. — *measured 2026-10-28.*
 
 ---
 
