@@ -5,6 +5,7 @@
   "description": "Translate i18n catalogues with a verifying AI pipeline.",
   "productName": "Just AI i18n & DocGen",
   "author": "delebash",
+  "homepage": "https://delebash.github.io/just-ai-i18n-docgen-website/",
   "type": "module",
   "workspaces": [
     "server"
