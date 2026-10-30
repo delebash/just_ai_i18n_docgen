@@ -33,6 +33,7 @@
   "dependencies": {
     "@delebash/core": "file:../just-core/packages/core",
     "@quasar/extras": "^2.1.0",
+    "github-slugger": "^2.0.0",
     "quasar": "^2.35.0"
   },
   "devDependencies": {
