@@ -16,6 +16,19 @@ delete process.env.npm_config_allow_scripts
 const root = import.meta.dirname
 const kitUi = path.resolve(root, '../just-core/packages/ui')
 
+// The licence files the installer carries beside the app — MIT, Apache-2.0 §4(a) and BSD-3-Clause
+// cl. 2 ask for the licence texts and notices to travel with every copy (the template's, app-structure
+// §Q.2): the app's own LICENSE and NOTICE.md, and THIRD_PARTY_NOTICES.md, the licences of the packages
+// bundled into the renderer, which Vite writes into the renderer's build (`build.license`,
+// extendViteConf below; Quasar builds the desktop renderer into dist/electron/UnPackaged). Electron's
+// own (LICENSE.electron.txt, LICENSES.chromium.html) electron-builder adds itself, and the server's
+// packages keep their LICENSE files inside the app. `to` is the launcher's folder, per platform.
+const notices = (to) => [
+  { from: path.join(root, 'LICENSE'), to },
+  { from: path.join(root, 'NOTICE.md'), to },
+  { from: path.join(root, 'dist', 'electron', 'UnPackaged', 'THIRD_PARTY_NOTICES.md'), to }
+]
+
 export default defineConfig(() => {
   return {
     // vue-i18n first (boot/i18n.js), then the renderer's start-up (the old src/main.js), awaited
@@ -69,6 +82,10 @@ export default defineConfig(() => {
         }
         // The dev server reads the repo and the sibling kit's UI, consumed from source.
         viteConf.server.fs = { ...(viteConf.server.fs || {}), allow: [ root, kitUi ] }
+        // The bundled packages' licences, one file beside index.html in every build — the installer
+        // carries it (`notices` above), the headless server and the phone app serve it with the page
+        // (vite.dev/config/build-options#build-license; the template's)
+        viteConf.build = { ...(viteConf.build || {}), license: { fileName: 'THIRD_PARTY_NOTICES.md' } }
       },
     },
 
@@ -141,7 +158,7 @@ export default defineConfig(() => {
         win: {
           target: 'nsis',
           executableName: 'just_ai_i18n_docgen',
-          extraResources: [ { from: path.join(root, 'build', 'launcher'), to: '..', filter: [ '*.cmd' ] } ]
+          extraResources: [ { from: path.join(root, 'build', 'launcher'), to: '..', filter: [ '*.cmd' ] }, ...notices('..') ]
         },
         nsis: {
           oneClick: false,
@@ -160,7 +177,7 @@ export default defineConfig(() => {
         },
         mac: {
           category: 'public.app-category.developer-tools',
-          extraResources: [ { from: path.join(root, 'build', 'launcher'), to: '.', filter: [ '!*.cmd' ] } ]
+          extraResources: [ { from: path.join(root, 'build', 'launcher'), to: '.', filter: [ '!*.cmd' ] }, ...notices('.') ]
         },
         // the AppImage; a .deb also needs `linux.maintainer` ("name <email>", published in the package)
         // and `homepage` in package.json (electron-builder stops on "Please specify project homepage" —
@@ -172,7 +189,7 @@ export default defineConfig(() => {
           // is the product name, and electron-builder refuses its "&" ("productFilename contains characters that cannot
           // be safely used in file paths" — the release's dry run 40826540251, 2026-10-29); the menu still shows the name
           executableName: 'just_ai_i18n_docgen',
-          extraResources: [ { from: path.join(root, 'build', 'launcher'), to: '..', filter: [ '!*.cmd' ] } ]
+          extraResources: [ { from: path.join(root, 'build', 'launcher'), to: '..', filter: [ '!*.cmd' ] }, ...notices('..') ]
         },
         // the AppImage on the AppImage project's static runtime (type2-runtime 20251108): it needs no FUSE 2
         // library, which Ubuntu 24.04 doesn't install — the legacy toolset's AppImage stopped there with
