@@ -2,6 +2,10 @@
 
 ## v0.1.0
 
+- **Your Claude or ChatGPT plan instead of an API key (2026-11-07).** When Claude Code is installed on
+  this computer and signed in, the online providers offer it — **Connect** runs translations on your
+  own Claude plan; an **OpenAI** provider has **Sign in with ChatGPT** for a Plus or Pro plan. Calls on a
+  plan show $0 in the usage ([Set up the AI engine](ai-providers.md#online-providers)).
 - **Errors say what went wrong, where it went wrong.** A value the server refuses is said under its
   box — Setup's path when no catalog is there, a translation or a note that is too long; when the
   server couldn't finish something, the message carries a **Reference** that finds its line in

@@ -51,6 +51,25 @@ Any OpenAI-compatible provider (or OpenAI/Anthropic/Gemini directly) can be adde
 under Providers & models — add the base URL and key, set it as default, and runs
 route through it instead of the local engine.
 
+Your own plan instead of a key:
+
+- **Your Claude plan (through Claude Code)** — when Claude Code is installed on this
+  computer, the online tab says so; **Connect** makes it a provider that runs on the
+  Claude plan you already pay for (not signed in, it gives the command,
+  `claude auth login`, and **Look again**). Its row shows how much of this week's
+  plan is used. Each request starts Claude Code afresh, so the first word takes a
+  few seconds, and the plan's limits are meant for ordinary personal use — a long
+  translation run is better on a key or the local engine. Anthropic's terms allow
+  your own subscription in the unmodified Claude Code; how they apply to apps that
+  run it isn't settled, and any enforcement would fall on your account.
+- **Sign in with ChatGPT** — a saved **OpenAI** provider has **Sign in with
+  ChatGPT** under **Edit**: it signs in at OpenAI in this computer's browser and
+  then uses your ChatGPT Plus or Pro plan instead of the key.
+
+Calls on a plan cost nothing per call (the usage shows $0; the tokens still count),
+and temperature and a reply-length limit don't apply to them. A Google AI Pro or
+Ultra plan includes monthly Google Cloud credits that can pay for a Gemini key's use.
+
 ## Routing by feature
 
 The **Routing by feature** tab shows which engine preset each feature uses —
