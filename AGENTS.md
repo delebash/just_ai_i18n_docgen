@@ -29,7 +29,7 @@ npm run i18n:lint      # no word written into a template or built in code (must 
 npm run i18n:report    # keys used but missing from the English catalog (must be none)
 npm run bump 0.2.0     # the version (package.json and server/package.json)
 npm run release        # the release: installers + the update feed built on GitHub (.github/workflows/release.yml, manual only)
-node ../just-core/scripts/check-family.js   # the family guard — must pass before a commit
+node ../just-core/scripts/check-family.js   # the family guard — with the suites, once when the job's list is done (never before each commit)
 
 # The CLI door (same service functions as the workspace — one resolver, two doors):
 npm run cli -- translate|check|escalate|accept|extract <config>

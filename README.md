@@ -131,7 +131,7 @@ Run from the repo root.
 | `npm run bump <version>` | The version in `package.json`, `server/package.json` and the lockfile (`npm version`). Doesn't commit or tag. |
 | `npm run release -- [version]` | Starts the release workflow (`gh workflow run`) — `--platform windows\|macos\|linux`, `--yes` to skip the question. |
 
-The family guard, `node ../just-core/scripts/check-family.js`, must pass before a commit, beside `npm run lint && npm run test:server && npm run test:unit`.
+The family guard, `node ../just-core/scripts/check-family.js`, runs with `npm run lint && npm run test:server && npm run test:unit` once, when the job's whole list is done — never before each commit.
 
 ---
 
