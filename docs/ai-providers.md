@@ -49,7 +49,9 @@ still mangle placeholders.
 
 Any OpenAI-compatible provider (or OpenAI/Anthropic/Gemini directly) can be added
 under Providers & models — add the base URL and key, set it as default, and runs
-route through it instead of the local engine.
+route through it instead of the local engine. A Claude (Anthropic) provider takes
+no temperature or samplers: Anthropic's current API refuses them on every Claude
+model, so a run on Claude uses Claude's own defaults.
 
 Your own plan instead of a key:
 
