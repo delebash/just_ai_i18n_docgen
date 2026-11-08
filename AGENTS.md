@@ -42,10 +42,14 @@ this app's settings. The installer ships `just-ai-i18n-docgen-server` and `just-
 (the CLI) as launchers beside `just_ai_i18n_docgen.exe` — the app's own exe run as Node.
 **A launcher is never named like the exe**: Windows resolves a bare name to the exe first.
 
-**Must pass before a commit:** `npm run lint && npm run test:server && npm run test:unit` and the
-family guard, `node ../just-core/scripts/check-family.js`. A change a user can see also passes
-`npm run i18n:lint`, updates `docs/*.md`, and `npm run build:unpacked && npm test` (hermetic) — and the
-acceptance start on your real data, `npm run build && node scripts/start-packaged.js --data-dir data` (`e2e/README.md`).
+**When the checks run: once, when the job's whole list is done — never before each commit.** Write each change's
+test as you go; at the end run `npm run lint && npm run test:server && npm run test:unit`, the family guard
+`node ../just-core/scripts/check-family.js`, and for a change a user can see `npm run i18n:lint` and
+`npm run build:unpacked && npm test` (hermetic) and the acceptance start on your real data,
+`npm run build && node scripts/start-packaged.js --data-dir data` (`e2e/README.md`), then fix until green. A commit made before that run is reported as
+unverified; a lone small repair runs only its own test. All by hand: no hook runs anything on a commit (the user,
+2026-10-29: no commit hooks, family-wide). A change a user can see also updates `docs/*.md`. (The user, 2026-11-07:
+"stop running tests when you dont need to".)
 
 ## What bites
 
