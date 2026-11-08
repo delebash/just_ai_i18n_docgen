@@ -78,6 +78,9 @@ function clearPrefix(obj, prefix, flat) {
   return n;
 }
 
+/** The docs folder when a config names none, relative to the config's folder. */
+export const DEFAULT_DOCS_DIR = "../docs";
+
 /** `sorted(paths)` — pathlib compares Windows paths case-insensitively. */
 const pathSortKey = (p) => (process.platform === "win32" ? p.toLowerCase() : p);
 
@@ -91,7 +94,9 @@ const pathSortKey = (p) => (process.platform === "win32" ? p.toLowerCase() : p);
  */
 export function runExtract(project, { check = false, log = console.log } = {}) {
   const cfg = project.cfg;
-  const docsRel = String(pyGet(cfg, "docsDir", "docs"));
+  // Unset, it is the app's own docs/ beside its package.json: Setup writes the config one folder down
+  // (<app>/just-ai-i18n-docgen/config.json — init.js), and every path anchors to the config.
+  const docsRel = String(pyGet(cfg, "docsDir", DEFAULT_DOCS_DIR));
   const docsDir = resolvePath(isAbsolutePy(docsRel) ? docsRel : path.join(project.paths.configDir, docsRel));
   const ledePrefix = pyGet(cfg, "ledePrefix", "lede");
   const hintsPrefix = pyGet(cfg, "hintsPrefix", "hints");

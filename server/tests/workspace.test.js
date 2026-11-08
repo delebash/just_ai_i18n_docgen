@@ -464,6 +464,24 @@ test("setup_flow_no_project_then_inspect_then_save_goes_live", async () => {
   const cfg = readJson(config);
   expect(cfg.source).toBe("../src/locales/en.json");
   expect("engine" in cfg, "engines are presets in the shared DB now, never config").toBe(false);
+
+  // The next start on the same data folder reopens it — no --config, no Setup again (the docs pass, 2026-11-07:
+  // "docgen forgets its project on every restart").
+  const again = testClient(await createApp(join(r0, "data")));
+  const state = (await again.get("/v1/setup/state")).json();
+  expect(state.loaded).toBe(true);
+  expect(state.configPath).toBe(r2.json().configPath);
+  expect((await again.get("/v1/state")).json().langs).toEqual(["es"]);
+
+  // A config deleted since starts on Setup, as a first start does — never a failed boot.
+  unlinkSync(config);
+  const gone = testClient(await createApp(join(r0, "data")));
+  expect((await gone.get("/v1/setup/state")).json().loaded).toBe(false);
+  expect((await gone.get("/v1/state")).statusCode).toBe(409);
+  // …and one broken since, the same.
+  writeFileSync(config, "{ not json", "utf8");
+  const broken = testClient(await createApp(join(r0, "data")));
+  expect((await broken.get("/v1/setup/state")).json().loaded).toBe(false);
 });
 
 test("setup_save_preserves_fields_it_does_not_manage", async () => {

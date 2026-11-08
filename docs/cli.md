@@ -42,7 +42,8 @@ app-data location — see [Getting started](getting-started.md).
 
 The server itself: `just-ai-i18n-docgen-server serve --host --port --data-dir --config`
 (`npm run server` from a source checkout) — the headless door; open the served UI in a
-browser. On Windows it sits beside the app's exe; on Linux beside the executable (an
+browser. `--config` opens that project; without it the server reopens the project loaded
+last on that data folder. On Windows it sits beside the app's exe; on Linux beside the executable (an
 AppImage: run it with `--appimage-extract` first, the launcher is in `squashfs-root/`); on
 macOS in the app's `Contents/Resources`.
 

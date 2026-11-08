@@ -122,7 +122,7 @@ Port **8742** (JW 17495 · JV 17494). Data-dir env: `JUST_AI_I18N_DOCGEN_DATA_DI
 | For | Read |
 |---|---|
 | **THE family app structure — every app** | `../just-core/docs/app-structure.md` (§Q the layout, §11 the chrome, §15–§18 the contracts); its reference app is the kit's `template/` |
-| **THE REAL PROJECT — what this tool translates** | JustWrite: source `E:\Dev\Web\justwrite-app\src\i18n\locales\en.json`, config `justwrite-app/just-ai-i18n-docgen/config.json` (the app creates it via Setup; the server loads it via `--config` or a live Setup save — nothing persists across restarts) |
+| **THE REAL PROJECT — what this tool translates** | JustWrite: source `E:\Dev\Web\justwrite-app\src\i18n\locales\en.json`, config `justwrite-app/just-ai-i18n-docgen/config.json` (the app creates it via Setup; the server loads it via `--config` or a live Setup save, and reopens the last one loaded at its next start — `app_settings` row `project.lastConfig`) |
 | Open work — the live tracker | `docs/dev/TASKS.md` |
 | Adopting the shared LLM stack | `../just-core/packages/core/README.md` "Consume it" |
 | The measured evidence behind every check and rule | the retired Node original: https://github.com/delebash/just-ai-help (docs/HANDOFF.md; archived) |

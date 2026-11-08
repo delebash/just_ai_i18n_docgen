@@ -70,6 +70,11 @@ export function deleteSetting(key, h = session()) {
 export const getReviewer = () => getSetting("reviewer");
 export const setReviewer = (name) => setSetting("reviewer", name);
 
+// The project the workspace loaded last (its config.json's path), so the next start reopens it — a desktop app opens
+// on what you had open. Machine-level like the reviewer: the prefs clear keeps it.
+export const getLastProject = () => getSetting("project.lastConfig");
+export const setLastProject = (configPath) => setSetting("project.lastConfig", configPath);
+
 // ── Renderer prefs (the kit /v1/prefs hooks) — `pref.<key>` rows, JSON values ──
 
 const PREF_PREFIX = "pref.";

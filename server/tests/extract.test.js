@@ -9,6 +9,7 @@ import { dirname, join } from "node:path";
 import { expect, test } from "vitest";
 import { runExtract } from "../src/extract.js";
 import { parseFrontMatter } from "../src/frontmatter.js";
+import { planInit, writeInit } from "../src/init.js";
 import { Project } from "../src/service.js";
 import { tmpDir } from "./helpers.js";
 
@@ -38,6 +39,23 @@ test("extracts_lede_and_hints_keyed_by_slug_and_leaves_handwritten_keys_alone", 
   const en = readEn(config);
   expect(en.lede.writing).toBe("The heart of the app.");
   expect(en.hints.writing.status).toBe("Whether it is done.");
+  expect(en.common.save).toBe("Save");
+});
+
+test("a_setup_made_config_with_no_docsDir_reads_the_apps_own_docs_folder", () => {
+  // Setup's layout (init.js): <app>/package.json, <app>/docs, the config in <app>/just-ai-i18n-docgen/. The docs pass,
+  // 2026-11-07: the default once resolved to <app>/just-ai-i18n-docgen/docs and extract found no docs.
+  const app = tmpDir();
+  writeFileSync(join(app, "package.json"), "{}", "utf8");
+  mkdirSync(join(app, "docs"));
+  writeFileSync(join(app, "docs", "writing.md"), FM, "utf8");
+  mkdirSync(join(app, "src", "locales"), { recursive: true });
+  writeFileSync(join(app, "src", "locales", "en.json"), `${JSON.stringify({ common: { save: "Save" } })}\n`, "utf8");
+  const config = writeInit(planInit(join(app, "src", "locales", "en.json"), { targets: [] }));
+  expect(JSON.parse(readFileSync(config, "utf8")).docsDir).toBeUndefined();
+  runExtract(new Project(config), { log: quiet });
+  const en = JSON.parse(readFileSync(join(app, "src", "locales", "en.json"), "utf8"));
+  expect(en.lede.writing).toBe("The heart of the app.");
   expect(en.common.save).toBe("Save");
 });
 

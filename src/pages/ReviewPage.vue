@@ -175,8 +175,11 @@ const codesInBucket = computed(() => {
   return Object.entries(n).sort((a, b2) => b2[1] - a[1]);
 });
 
-const hard = computed(() => (review.activeRow?.flags ?? []).filter((f) => !f.advisory));
-const soft = computed(() => (review.activeRow?.flags ?? []).filter((f) => f.advisory));
+/** The selected row's findings, the hard ones first. */
+const findings = computed(() => {
+  const flags = review.activeRow?.flags ?? [];
+  return [...flags.filter((f) => !f.advisory), ...flags.filter((f) => f.advisory)];
+});
 /** Placeholders marked, so what must survive translation is impossible to miss. */
 const marked = computed(() => {
   const t = review.activeRow?.source ?? "";
@@ -446,11 +449,10 @@ async function discardAll() {
         </p>
         <!-- why is this flagged — the code, plus what the check looks for in plain English -->
         <div v-if="review.activeRow.flags.length" style="margin-bottom: 8px">
-          <div v-for="(f, i) in hard" :key="`h${i}`" class="finding">
-            <span class="code">{{ f.code }}</span>{{ WHY_KEYS[f.code] ? t(WHY_KEYS[f.code], { was: f.detail }) : f.detail }}
-          </div>
-          <div v-for="(f, i) in soft" :key="`s${i}`" class="finding advisory">
-            <span class="code">{{ f.code }}</span>{{ f.detail }}
+          <!-- hard findings first, then the advisory ones; the confirmation pass's verdict under whichever finding it
+               annotates (it annotates `untranslated`, a hard one — shown only under advisory ones until 2026-11-08) -->
+          <div v-for="(f, i) in findings" :key="i" class="finding" :class="{ advisory: f.advisory }">
+            <span class="code">{{ f.code }}</span>{{ !f.advisory && WHY_KEYS[f.code] ? t(WHY_KEYS[f.code], { was: f.detail }) : f.detail }}
             <template v-if="f.confirmed">
               <br /><span class="muted">{{ t("review.engineSays", { verdict: f.confirmed === 'same' ? t('review.engineSame') : t('review.engineSkipped') }) }}
               <template v-if="f.suggestion">{{ t("review.engineSuggests", { suggestion: f.suggestion }) }}</template>

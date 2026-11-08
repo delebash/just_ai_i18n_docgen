@@ -32,4 +32,5 @@ hint into every language.
 The tool owns everything under its two prefixes (`lede.*`, `hints.*` by default)
 and touches nothing else in your locale file. The prefixes and the docs folder
 are configurable in `config.json` (`docsDir`, `ledePrefix`, `hintsPrefix`) — by
-hand; there is no UI for them.
+hand; there is no UI for them. `docsDir` counts from the config's own folder, and
+when it isn't set it is `../docs`: your app's `docs/` beside its `package.json`.

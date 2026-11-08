@@ -2,6 +2,13 @@
 
 ## v0.1.0
 
+- **Your project opens with the app.** The app reopens the project you set up last instead of asking for
+  it again on every start ([Point it at your app](project-setup.md#what-save-writes)).
+- **Docs → keys finds your docs folder.** With no `docsDir` in the config, extract reads your app's own
+  `docs/` beside its `package.json` ([Help docs → locale keys](docs-authoring.md#ownership)).
+- **Review shows what the engine said.** Under a string that came back identical, the detail pane says the
+  confirmation pass's verdict — correct as-is or looks skipped, with its suggestion and which engine
+  ([Review](review.md)).
 - **Your Claude or ChatGPT plan instead of an API key (2026-11-07).** When Claude Code is installed on
   this computer and signed in, the online providers offer it — **Connect** runs translations on your
   own Claude plan; an **OpenAI** provider has **Sign in with ChatGPT** for a Plus or Pro plan. Calls on a

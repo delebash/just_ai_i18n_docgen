@@ -140,6 +140,7 @@ export function router() {
     if (!isDict(existing)) throw new TypeError(`'${pyTypeName(existing)}' object is not a mapping`);
     writeInit({ ...plan, cfg: mergeDicts(existing, plan.cfg) }, { force: true });
     ws.load(configPath);
+    appmeta.setLastProject(ws.project.configPath);
     return c.json({ ok: true, configPath, langs: ws.project.targets });
   });
 

@@ -463,6 +463,23 @@ export function seedLlmStack() {
  *  back-translation (a second opinion), a log line, the tokens. */
 export const DATA_WRITES = /^\/v1\/(save|accept|undo|notes|proposals|setup|jobs|reviewer|settings)(\/|$)/;
 
+/** The project loaded last, reopened. A config deleted, moved or broken since is logged and skipped: the app starts on
+ *  Setup, as on a first start, and the row stays until another project loads. */
+function reopenLastProject(workspace) {
+  const last = appmeta.getLastProject();
+  if (!last) return;
+  if (!existsSync(last)) {
+    log.warning(`the last project's config is gone (${last}) — starting on Setup`);
+    return;
+  }
+  try {
+    workspace.load(last);
+    log.info(`reopened the last project: ${last}`);
+  } catch (e) {
+    log.warning(`the last project (${last}) didn't load: ${errText(e)} — starting on Setup`);
+  }
+}
+
 /** The Hono app: the kit, the data/prefs/logs/disk routers, the workspace and the UI. */
 export async function createApp(dataDir = null, configPath = null) {
   dataDir = dataDir ? purePath(String(dataDir)) : defaultDataDir();
@@ -530,10 +547,12 @@ export async function createApp(dataDir = null, configPath = null) {
   app.route("/", makeLogsRouter(PRODUCT));
   app.route("/", makeDiskRouter(dataDir));
 
-  // The review workspace: starts with NO project (the setup screen creates one);
-  // `configPath` pre-loads one for a configured launch. The handle lives in app_state (the
-  // family setState/getState seam).
+  // The review workspace: `configPath` pre-loads one for a configured launch; without it the project loaded last
+  // reopens; with neither it starts with NO project (the setup screen creates one). The handle lives in app_state
+  // (the family setState/getState seam).
   const workspace = new Workspace(configPath);
+  if (workspace.project) appmeta.setLastProject(workspace.project.configPath);
+  else reopenLastProject(workspace);
   // A run's end is its window's change (the kit's JobRegistry onFinish — house-paint's): the others read again.
   setState(new AppState(dataDir, workspace, new JobRegistry({ onFinish: (job) => changes.note(job.clientId) }), { changes }));
   // The app's jobs — a translation run (jobs.js) — through the kit's routes: the running ones

@@ -20,8 +20,10 @@ press "tick the N the engine calls correct" — a suggested selection, nothing
 more) and **Approve** them in one click, one undo.
 
 On the right, the **detail pane** — everything a reviewer once left the page to
-find out: why it's flagged in plain English, the source with placeholders
-marked, the engine's proposal, a **Google Translate second opinion** (an
+find out: why it's flagged in plain English — and, under a *came back identical*
+finding the confirmation pass looked at, what the engine said ("engine says: correct
+as-is" or "looks skipped", with its suggestion and which engine) — the source with
+placeholders marked, the engine's proposal, a **Google Translate second opinion** (an
 independent reading — neither source is reliably better; copy it across only if
 you agree), a **back-translation**, the namespace siblings, and the note box.
 

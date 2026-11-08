@@ -30,7 +30,9 @@ red, until you change it.
 ## What Save writes
 
 **Save project** writes `just-ai-i18n-docgen/config.json` beside your app's
-`package.json` and hot-loads it — no restart. The page also shows the
+`package.json` and hot-loads it — no restart. The next time the app starts it reopens
+this project by itself; if its config has been deleted or moved since, the app opens on
+Setup instead. The page also shows the
 `.gitignore` lines to paste into your app's repo (the tool's cache and state
 files stay out of git; the config and review records go in — see
 [Your files](files-and-git.md)).
