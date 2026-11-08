@@ -36,7 +36,7 @@ identical rule.
 1. The boot splash may show a model bar — that's the app warming your default
    local AI model into memory so the first translation doesn't pay the load cost.
    **Continue without waiting** always skips straight into the app; the load finishes in the
-   background.
+   background. **Cancel** stops the load and leaves **Continue without waiting** to go in.
 2. If the window shows *"Can't reach the server"*, the server didn't start or
    stopped — the window keeps asking every few seconds and opens the app the moment it
    answers. If it doesn't, see [Troubleshooting](troubleshooting.md).

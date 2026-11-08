@@ -6,6 +6,8 @@
   it again on every start ([Point it at your app](project-setup.md#what-save-writes)).
 - **Docs → keys finds your docs folder.** With no `docsDir` in the config, extract reads your app's own
   `docs/` beside its `package.json` ([Help docs → locale keys](docs-authoring.md#ownership)).
+- **Cancel on the start screen no longer strands you.** Cancelling the model's load at start-up left the start
+  screen up with no button; **Continue without waiting** now stays ([Getting started](getting-started.md#first-launch)).
 - **Review shows what the engine said.** Under a string that came back identical, the detail pane says the
   confirmation pass's verdict — correct as-is or looks skipped, with its suggestion and which engine
   ([Review](review.md)).
