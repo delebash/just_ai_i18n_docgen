@@ -9,7 +9,8 @@ import { QUASAR_TEST_OPTIONS } from "@delebash/ui/quasar/install.js";
 import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia } from "pinia";
 import * as quasar from "quasar";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { h } from "vue";
 import { createMemoryHistory, createRouter } from "vue-router";
 
 const { i18n } = await import("../i18n/index.js");
@@ -25,7 +26,15 @@ const row = (key, flags) => ({
 });
 
 let wrapper;
-afterEach(() => wrapper?.unmount());
+beforeEach(() => {
+  // what jsdom lacks and Quasar's layout reads (MainLayout.test.js's stubs)
+  vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+  vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} })));
+});
+afterEach(() => {
+  wrapper?.unmount();
+  document.body.innerHTML = "";
+});
 
 async function mountWith(rows) {
   const router = createRouter({ history: createMemoryHistory(), routes: [{ path: "/review", component: ReviewPage }] });
@@ -43,12 +52,14 @@ async function mountWith(rows) {
     review.activeKey = key;
   };
   Object.assign(review, { rows, lang: "es", loaded: true, bucket: "all", activeKey: rows[0].key });
-  wrapper = mount(ReviewPage, {
+  // a q-page renders only inside a q-layout's page container, as MainLayout gives it in the app
+  const Host = { render: () => h(quasar.QLayout, { view: "hHh lpR fFf" }, () => h(quasar.QPageContainer, null, () => h(ReviewPage))) };
+  wrapper = mount(Host, {
     attachTo: document.body,
     global: { plugins: [[quasar.Quasar, { ...QUASAR_TEST_OPTIONS, components: QUASAR_COMPONENTS }], i18n, pinia, router] },
   });
   await flushPromises();
-  return wrapper.find(".review-detail");
+  return document.body.querySelector(".review-detail");
 }
 
 test("the engine's verdict shows under the untranslated finding it annotates", async () => {
@@ -57,8 +68,8 @@ test("the engine's verdict shows under the untranslated finding it annotates", a
       { code: "untranslated", detail: "identical to the source string", advisory: false, suggestion: null, confirmed: "same", confirmedBy: "Gemma 4 26B" },
     ]),
   ]);
-  expect(detail.exists()).toBe(true);
-  const text = detail.text();
+  expect(detail).not.toBeNull();
+  const text = detail.textContent;
   expect(text).toContain("untranslated");
   expect(text).toContain("engine says: correct as-is");
   expect(text).toContain("(Gemma 4 26B)");
@@ -71,12 +82,12 @@ test("a skipped verdict with a suggestion says both, and a finding without one s
       { code: "disagreement", detail: "the second pass differs", advisory: true, suggestion: null, confirmed: null, confirmedBy: null },
     ]),
   ]);
-  const findings = detail.findAll(".finding");
+  const findings = [...detail.querySelectorAll(".finding")];
   expect(findings).toHaveLength(2);
   // hard first, then advisory
-  expect(findings[0].text()).toContain("untranslated");
-  expect(findings[0].text()).toContain("engine says: looks skipped");
-  expect(findings[0].text()).toContain("“Vale”");
-  expect(findings[1].classes()).toContain("advisory");
-  expect(findings[1].text()).not.toContain("engine says");
+  expect(findings[0].textContent).toContain("untranslated");
+  expect(findings[0].textContent).toContain("engine says: looks skipped");
+  expect(findings[0].textContent).toContain("“Vale”");
+  expect(findings[1].classList.contains("advisory")).toBe(true);
+  expect(findings[1].textContent).not.toContain("engine says");
 });
