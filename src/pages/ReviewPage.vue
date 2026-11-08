@@ -99,7 +99,8 @@ const editing = () => {
 };
 function onKey(e) {
   if (e.metaKey || e.ctrlKey) {
-    if (e.key.toLowerCase() === "z" && !e.shiftKey) {
+    // not while typing: a text box keeps its own undo (docs/review.md, "Keys never fire while you type")
+    if (!editing() && e.key.toLowerCase() === "z" && !e.shiftKey) {
       e.preventDefault();
       undoLast();
     }

@@ -72,15 +72,17 @@ Each queued key shows its source, an editable target, and one or more flags:
   re-flags or clears on the spot.
 - **Accept as correct** — "I looked; this is right." The flag stops appearing.
 - **Unaccept** — take it back.
-- **Apply proposal** — take the engine's staged suggestion for this one key.
-- **What does it say?** — a back-translation of the current target into your
-  language, from the same engine that translated it. A sanity mirror, not proof.
+- **Apply** (under *Proposed by …*) — take the engine's staged suggestion for this
+  one key; **Use this** copies it into the box to edit first.
+- **What it says in English** (**Read it back**) — a back-translation of the current
+  target into your language, from the same engine that translated it. A sanity mirror, not proof.
 - **Note for the next run** — see below.
 - **Siblings** — nearby keys (same prefix), for consistency checks.
 - **Undo** — one click undoes the last action, even when that action was a bulk
   apply of two thousand keys.
-- **Accept N pre-ticked** — bulk-accepts rows whose only flag is `untranslated`
-  and which the confirmation pass verified as genuinely-the-same. The pass runs
+- **Approve N** — in *Came back identical*, bulk-accepts the ticked rows;
+  **tick the N the engine calls correct** ticks the ones the confirmation pass
+  verified as genuinely-the-same. The pass runs
   after CLI `translate` runs AND after app-started runs (since 2026-08-04): when
   a run finishes, its byte-identical proposals get the second opinion, and the
   rows arrive pre-ticked the moment you apply them. The engine still never signs
@@ -101,6 +103,6 @@ review record says "unknown" forever.
 ## Notes — teaching the next run
 
 A note rides with its key into the next translation prompt. The canonical
-example: the engine translated a button labeled "Why?" literally, when the app
-wanted the interrobang tone of "¿Por qué?" — a one-line note fixed it on the next
-run and every run after. Notes live in `<lang>.notes.json`, committed.
+example: "Why:", a label above a reasoning block, came back as the question
+"¿Por qué?" — a one-line note ("a label above a reasoning block, not a question")
+fixed it on the next run and every run after. Notes live in `<lang>.notes.json`, committed.

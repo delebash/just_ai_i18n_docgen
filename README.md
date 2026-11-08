@@ -36,7 +36,7 @@ A fresh install opens on a welcome screen — **1 Point · 2 Translate · 3 Revi
 ### ✶ Verify — every string checked, four ways
 
 - **Offline checks.** Placeholders, plural halves, glossary, punctuation edges (¿…? in Spanish), numbers, brackets, doubled words, whitespace — deterministic, no engine. A translation that adds plural forms is checked form by form.
-- **The probe.** Re-translates a sample with the same engine and flags where the two passes disagree; it refuses to run at temperature 0 (CLI: `translate --probe`).
+- **The probe.** Translates every key a second time with the same engine and flags where the two passes disagree; it refuses to run at temperature 0 (CLI: `translate --probe`).
 - **The confirmation pass.** Asks the engine, one key at a time, only about targets identical to their source, and pre-ticks the ones it confirms. It never writes an acceptance.
 - **Terminology.** A key that renders a term differently from the rest of your catalogue gets an advisory flag.
 - **Escalation.** Re-translate only the stubborn keys with a stronger preset (CLI: `escalate <config> <preset-id>`); what the everyday model got right stays untouched.
@@ -45,7 +45,7 @@ A fresh install opens on a welcome screen — **1 Point · 2 Translate · 3 Revi
 
 - **A queue that sorts the work.** Buckets with live counts — *Needs review*, *Unsure*, *Terminology*, *Missing*, *Came back identical*, *Proposed*, *All flagged*, *Accepted* — a per-check breakdown, and search.
 - **Everything beside the string.** Why it's flagged in plain words, the source with placeholders marked, the engine's proposal, a Google Translate second opinion, a back-translation, the namespace siblings, the note box.
-- **The staged pile.** **Apply all** writes `<lang>.json` and re-runs the checks on what was written; **Discard** drops the proposals (undoable too).
+- **The staged pile.** **Apply all** writes `<lang>.json` and re-runs the checks on what was written; **Discard them** drops the proposals (undoable too).
 - **Acceptances that expire.** An acceptance covers one exact pair of strings — key, flag, source and target; change either side and the finding comes back. Each is stamped with the reviewer's name, in `<lang>.accepted.json`, committed. **Un-accept** takes one back.
 - **One undo per click.** Undo reverts the last action — even applying two thousand proposals at once.
 - **Bulk where it's honest.** In *Came back identical*, tick rows (or the engine's suggested ones) and approve them in one click, one undo.
@@ -66,7 +66,7 @@ A fresh install opens on a welcome screen — **1 Point · 2 Translate · 3 Revi
 ### ✶ Command line — the same brain, no window
 
 - **Five commands.** `translate`, `check`, `escalate`, `accept`, `extract` — `check` exits 1 on failures, so it gates CI.
-- **One implementation, two doors.** The CLI and the app share every decision; a CLI run shows up in Review exactly like an app run.
+- **One implementation, two doors.** The CLI and the app share every decision; `translate` on the command line writes `<lang>.json` itself (only the app stages proposals), and what it wrote shows up in Review's queue.
 - **Installed with the app.** `just-ai-i18n-docgen <command> <config>` and `just-ai-i18n-docgen-server serve` sit beside the exe (on macOS in `Contents/Resources`) and run on it — nothing else to install.
 
 ### ✶ AI — local or online
@@ -74,7 +74,7 @@ A fresh install opens on a welcome screen — **1 Point · 2 Translate · 3 Revi
 - **A built-in local engine.** **Quick Setup** checks your computer, proposes a model that fits, and downloads llama.cpp and the model with progress and Cancel — private and free.
 - **Measured models only.** The catalog lists models this tool's checks were run against (a model that writes lovely prose can still mangle placeholders).
 - **Any provider.** OpenAI, Anthropic and Gemini directly, or any OpenAI-compatible server — Ollama, LM Studio and more.
-- **Routing by feature.** *Translate*, *review* (back-translation) and *confirm* each point at their own engine preset; the Lab shows the real prompt the pipeline builds.
+- **Routing by feature.** *Translate*, *review* (back-translation) and *confirm* each point at their own engine preset; each has one prompt, edited in the Lab and tried there on a live sample of your project.
 - **Safe engine updates.** A new llama.cpp build is checked — it starts and accepts the app's settings — before it replaces yours.
 - **Shared downloads.** If JustWrite or JustVoice already downloaded models on this computer, it offers to share them instead of downloading again.
 
@@ -218,7 +218,7 @@ just_ai_i18n_docgen/           ← a Quasar app (the family layout: the kit's do
 │   ├── App.vue                ← a bare <router-view>
 │   ├── layouts/MainLayout.vue ← the chrome: the title bar, the sidebar, the page
 │   ├── pages/                 ← one <Name>Page.vue per route; ConnectionErrorPage at /offline
-│   ├── router/ · stores/      ← routes.js · Pinia stores (project, review, jobs, ui)
+│   ├── router/ · stores/      ← routes.js · Pinia stores (project, review, jobs, settings, ui)
 │   ├── services/              ← native.js (the desktop shell's calls) · langs.js · helpDocs.js …
 │   ├── css/                   ← tokens.css · app.scss · quasar.variables.scss
 │   └── i18n/locales/          ← en.json · es.json
@@ -230,7 +230,7 @@ just_ai_i18n_docgen/           ← a Quasar app (the family layout: the kit's do
 
 ## How the desktop shell is reached
 
-The renderer reaches the desktop shell through ONE file, `src/services/native.js`: ordinary exports (`pickDirectory`, `storageGetRoot`, `storageRelocate`, `shellServerStatus`, `setKeepRunning`, `setTrayLabels`, `setContextMenuLabels`, `openUrl`, `openPath`, `onShellEvent`, `desktopUpdater`), each calling the kit's preload object `window.appShell`. The shell itself is the kit's shared Electron main module (`@delebash/core/shell`); `src-electron/electron-main.js` only names this app's settings — its id, port 8742, the server entry, the data-folder variable `JUST_AI_I18N_DOCGEN_DATA_DIR`. The window loads from `app://just-ai-i18n-docgen`, which the server's CORS and CSRF both allow. Outside the desktop app (a browser tab on `npm run dev:spa`, or the headless server's UI) every call answers the browser's way — null or a no-op.
+The renderer reaches the desktop shell through ONE file, `src/services/native.js`: ordinary exports (`shellVersion`, `pickDirectory`, `saveFile`, `saveFromUrl`, `storageGetRoot`, `storageRelocate`, `storageOldCopies`, `storageRemoveOldCopy`, `storageForgetOldCopy`, `storageUseDefault`, `shellServerUrl`, `shellServerStatus`, `setKeepRunning`, `setTrayLabels`, `setContextMenuLabels`, `openUrl`, `openPath`, `onShellEvent`, `desktopUpdater`), each calling the kit's preload object `window.appShell`. The shell itself is the kit's shared Electron main module (`@delebash/core/shell`); `src-electron/electron-main.js` only names this app's settings — its id, port 8742, the server entry, the data-folder variable `JUST_AI_I18N_DOCGEN_DATA_DIR`. The window loads from `app://just-ai-i18n-docgen`, which the server's CORS and CSRF both allow. Outside the desktop app (a browser tab on `npm run dev:spa`, or the headless server's UI) every call answers the browser's way — null or a no-op.
 
 A new shell command goes into the kit (its command list in `just-core/packages/core/src/shell/main.js` and `preload.js`), then is exported once from `native.js`.
 

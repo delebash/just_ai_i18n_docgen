@@ -39,7 +39,7 @@ finds nothing.
 ## The staged pile — read this once
 
 A run **writes no locale files**. It stages proposals. So after your very first
-run the language row may say `0 done` *and* `120 staged` — that is a **successful
+run the language row may say `0 / 120` *and* `120 staged` — that is a **successful
 run waiting for you**, not a failure. Open Review, look at the pile, and press
 **Apply all** when you're ready: *that* click is the first time anything touches
 `<lang>.json`.

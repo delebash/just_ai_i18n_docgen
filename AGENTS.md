@@ -88,7 +88,8 @@ acceptance start on your real data, `npm run build && node scripts/start-package
 - **The standard app chrome is mandatory** (`app-structure.md` §11): `/ai` =
   kit `AiModelsArea`, `AiStatusButton` in the TitleBar (JW parity — the smoke
   asserts it), Settings =
-  appearance/storage/server/logs/reviewer/about (Server = the headless/token
+  general/appearance/backups/storage/server/logs/updates/reviewer/about
+  (`src/services/settingsSections.js`; Server = the headless/token
   section, ruling 2026-08-04), server wires the platform log ring +
   file log + logs/disk routers. This app shipped without ALL of it once
   (2026-08-02) — that is why the section exists.
@@ -103,7 +104,7 @@ the connection-error screen its own route `/offline`, `router/routes.js`, `store
 settings, the preload, the icons in `electron-assets/icons/`), the server its own package in
 `server/` (`just-ai-i18n-docgen-server`, an npm workspace; the headless UI from `dist/spa`, the
 app folder when packaged) — domain modules flat, HTTP routes one file per area under `api/`
-(`health_api.js`, `server_auth_api.js`, `setup_api.js`, `workspace_api.js`), with
+(`health_api.js`, `server_auth_api.js`, `settings_api.js`, `setup_api.js`, `workspace_api.js`), with
 `serve.js`/`app.js`/`app_state.js`/`version.js` the family server skeleton — tests in
 `server/tests/*.test.js`, `build/launcher/` (the launchers), `data/` (dev data, gitignored).
 The server kit is the npm dependency `@delebash/core` (`file:../just-core/packages/core`);

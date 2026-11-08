@@ -1,7 +1,7 @@
 # Set up the AI engine
 
 Open **AI Settings** in the sidebar. The page is the family's shared AI area:
-providers & models, routing by feature, usage, and the server console.
+providers & models, routing by feature, usage, and the AI engine console.
 
 ## Quick Setup — the four steps
 
@@ -26,8 +26,8 @@ already downloaded AI files on this machine, the wizard offers to share them
 instead of downloading again. Saying yes re-points this app at the sibling's cache
 — **nothing on disk moves**, and the answer is reversible.
 
-**First contact is a one-time offer.** When a project is loaded and no AI provider
-is set up yet, the app shows the family's once-ever "Set up AI features" dialog —
+**First contact is a one-time offer.** When you save a project in Setup and no AI
+provider is set up yet, the app shows the family's once-ever "Set up AI features" dialog —
 Run Quick Setup (local, private & free), Connect an online provider, or Skip for
 now. Whatever you pick, it never appears again; the AI page remains the manual door.
 

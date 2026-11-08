@@ -11,14 +11,14 @@ Read in this order:
 3. **Closed plans** — `../plans/archive/` (history; the family-consistency sweep
    of 2026-08-04 among them, closed 2026-10-29 — its rows are the kit's now).
 4. **The family standard** — `../../../just-core/docs/app-structure.md`
-   (this app is its reference implementation; §11 the standard chrome, §13 the
+   (its reference app is the kit's `template/`; §11 the standard chrome, §13 the
    docs convention).
 5. **The shared stack** — `../../../just-core/docs/dev/README.md` (the kit +
    server this app embeds).
 6. **The measured evidence behind the checks** — the retired Node original's
    HANDOFF (archived: https://github.com/delebash/just-ai-help).
 7. **The review workspace API** — `../../server/src/api/workspace_api.js`
-   (routes; the Workspace class + write rules stay in `../workspace.js` — the one
+   (routes; the Workspace class + write rules stay in `../../server/src/workspace.js` — the one
    resolver, two doors: workspace + CLI).
 
 User-facing docs live at `../*.md`, indexed by `../toc.json` and served in-app via

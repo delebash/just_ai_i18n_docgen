@@ -14,7 +14,7 @@ failures, so it works as a CI gate.
 
 ## 2 · The probe — does the engine agree with itself?
 
-A probe re-translates a sample of keys with the same engine and compares. Keys
+A probe translates every key a second time with the same engine and compares. Keys
 where the two passes *disagree* get the advisory `disagreement` flag and rank the
 key as worth human eyes. Two honesty rules: the probe **refuses to run at
 temperature 0** (two identical passes prove nothing), and "every key agreed" is

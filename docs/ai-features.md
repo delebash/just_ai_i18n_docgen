@@ -24,9 +24,9 @@ used**; a second opinion from the same model about its own work is the point
 ## Confirm
 
 The second opinion on byte-identical targets — strings whose translation came
-back identical to the source. One key per call, by design. It annotates
-("plausibly identical in this language" vs "looks untranslated"); it never
-signs off a string by itself.
+back identical to the source. One key per call, by design. It annotates (the
+row in Review is marked "correct?" or "skipped?"); it never signs off a string
+by itself.
 
 ## What is deliberately not here
 

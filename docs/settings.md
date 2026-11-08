@@ -6,7 +6,8 @@
   app, a browser on this server, a phone) shows what the others change by itself; this is
   how often each one looks, in seconds (3 to start). A restore or a reset reloads every window.
 - **Appearance** — light/dark/system theme, interface size, UI font, accent hue.
-  (The title-bar moon button cycles the theme from anywhere.) Below them, **Language** — the
+  (The title bar's theme button — a screen, sun or moon, the mode it is on — cycles the theme
+  from anywhere.) Below them, **Language** — the
   interface language, each named in itself; the choice is kept and applies at once. The AI page's
   ready-made names (the Translate, Review and Confirm features, their presets, the built-in
   providers) follow it too until you rename one. English and

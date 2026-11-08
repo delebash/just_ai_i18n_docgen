@@ -38,7 +38,7 @@ Retry asks again.
 appears on a confirmed "no project loaded" answer from the server. If your
 config moved or the path in it broke, open Setup and re-check the path.
 
-**"Engine not configured" when translating.** No default AI provider yet — run
+**"The AI engine isn't set up" when translating.** No default AI provider yet — run
 Quick Setup on the AI Settings page, or add an online provider and set it as
 default.
 
@@ -62,7 +62,8 @@ preset or turn thinking off.
 committed — commit your applied translations and `<lang>.accepted.json`
 together. Advisory flags (`disagreement`, `terminology`) never fail `check`.
 
-**Back-translate shows an error.** "What does it say?" needs the engine; when
+**Back-translate shows an error.** "What it says in English" (**Read it back**) needs
+the engine; when
 the engine is down it fails soft and never blocks reviewing or saving. The message says
 which: the local model isn't ready (it's still loading, or stopped), the AI provider
 can't be reached, the engine isn't set up for the review feature, or its answer wasn't

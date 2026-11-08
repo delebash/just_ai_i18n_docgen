@@ -16,10 +16,11 @@ in a run resolves against that file, never against where you ran the command.
 
 ## Commands
 
-- **`translate <config>`** — a full run: translate what's pending, verify, stage
-  or write per your review state, run the probe sample and the confirmation pass.
-  A key that already has a translation is kept — unless its English changed since
-  that translation was made, then it's translated again. Changing the project's
+- **`translate <config>`** — a full run: translate what's missing straight into each
+  `<lang>.json` (the command line writes the file; only the app stages proposals), run
+  the confirmation pass, then the checks — exit 1 when a key failed every retry or a
+  check fails. A key that already has a translation is kept — unless its English
+  changed since that translation was made, then it's translated again. Changing the project's
   context sentence or glossary never re-translates (or overwrites) what you reviewed.
   - `--force` — retranslate every key.
   - `--probe` — the self-agreement pass (see
@@ -34,7 +35,8 @@ in a run resolves against that file, never against where you ran the command.
 - **`extract <config> [--check]`** — docs front-matter → locale keys
   ([details](docs-authoring.md)). Makes no engine call.
 
-Global: `--data-dir` points the tool at a different data folder. By default
+Global: `--data-dir <folder>`, before the command (`just-ai-i18n-docgen --data-dir
+<folder> check <config>`), points the tool at a different data folder. By default
 that folder sits inside the install directory (`data`), not in a per-user
 app-data location — see [Getting started](getting-started.md).
 
@@ -46,7 +48,8 @@ macOS in the app's `Contents/Resources`.
 
 ## One implementation, two doors
 
-The CLI and the app share every decision — the same checks, the same staging
-rules, the same acceptance records. A CLI run shows up in the app's Review page
-exactly like an app run. (One caveat while both are open at once: writes are
+The CLI and the app share every decision — the same checks, the same acceptance
+records, the same project files. What a CLI run translated is already in
+`<lang>.json`, so the app's Review page shows its findings in the queue — there is no
+staged pile to apply. (One caveat while both are open at once: writes are
 atomic but not locked — finish one door's action before using the other.)
