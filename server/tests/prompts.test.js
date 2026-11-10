@@ -9,11 +9,18 @@
 // SHIELDED BEFORE IT RENDERS: the model sees ⟦n⟧ tokens, never a placeholder or a glossary term, and the kit's
 // renderer never reads a value it inserts as a template — a context sentence holding "{{items}}" is sent as written.
 import { render } from "@delebash/core/llm";
-import { expect, test } from "vitest";
+import { fingerprint } from "@delebash/core/platform";
+import { afterEach, expect, test } from "vitest";
 import { confirmVariables } from "../src/confirm.js";
 import { placeholderRe } from "../src/jsonio.js";
 import { translateLanguage } from "../src/loop.js";
-import { BACKTRANSLATE_PROMPT, CONFIRM_PROMPT, TRANSLATE_PROMPT } from "../src/seed_feature_prompts.js";
+import {
+  BACKTRANSLATE_PROMPT,
+  CONFIRM_PROMPT,
+  DEFAULT_FEATURE_PROMPTS,
+  FEATURE_PROMPT_HEALS,
+  TRANSLATE_PROMPT,
+} from "../src/seed_feature_prompts.js";
 import { DEFAULT_TEST_SAMPLES } from "../src/seed_test_samples.js";
 import { backtranslateVariables, shield, translateVariables } from "../src/shieldlib.js";
 import { createApp, seedLlmStack } from "../src/app.js";
@@ -122,4 +129,48 @@ test("the_strings_are_shielded_before_the_row_renders_and_a_value_is_never_read_
   expect(out).not.toContain("{name}");
   expect(out).not.toMatch(/in JustWrite/);
   expect(out, "an inserted value is never rendered again").toContain("an app — {{items}} {{lang}}");
+});
+
+// A revised prompt reaches a database seeded before it; one its owner edited is never touched — and a prompt can't
+// change without its old text kept (seed_feature_prompts.js FEATURE_PROMPT_HEALS, the kit's featurePromptHeals; the
+// template's test, since 2026-11-10). Today's system text of EVERY prompt row: a change here means a prompt changed —
+// add its OLD text, byte for byte, to FEATURE_PROMPT_HEALS, then update this line.
+const TODAY = {
+  translate: "99dc7a5b7c4ba920",
+  confirm: "141c6d4198db8201",
+  review: "799ff1943c9f0f54",
+};
+
+test("todays_prompts_are_the_ones_this_test_knows_and_none_is_listed_as_an_earlier_text", () => {
+  expect(Object.fromEntries(Object.entries(DEFAULT_FEATURE_PROMPTS).map(([k, v]) => [k, fingerprint(v.system)]))).toEqual(TODAY);
+  for (const [key, olds] of Object.entries(FEATURE_PROMPT_HEALS)) {
+    expect(DEFAULT_FEATURE_PROMPTS[key], key).toBeTruthy();
+    expect(olds, key).not.toContain(DEFAULT_FEATURE_PROMPTS[key].system);
+  }
+});
+
+// The app hands its heals to the kit: an earlier text listed for a key (made up here — no prompt is revised yet) is
+// replaced at the next seed, and an edited prompt is left alone. The rows are set as the AI Lab sets them (the kit's
+// PUT /v1/ai/prompts/:key).
+const HEAL_KEY = "confirm";
+const EARLIER = "You check a translation. (an earlier text, for this test)";
+afterEach(() => {
+  delete FEATURE_PROMPT_HEALS[HEAL_KEY];
+});
+
+test("a_prompt_still_at_an_earlier_text_takes_todays_at_the_next_seed_and_an_edited_one_is_left_alone", async () => {
+  FEATURE_PROMPT_HEALS[HEAL_KEY] = [EARLIER];
+  const client = testClient(await createApp(tmpDir()));
+  seedLlmStack();
+  const today = DEFAULT_FEATURE_PROMPTS[HEAL_KEY];
+  const system = async () => (await client.get(`/v1/ai/prompts/${HEAL_KEY}`)).json().system;
+  const set = (text) => client.put(`/v1/ai/prompts/${HEAL_KEY}`, { json: { system: text, userTemplate: today.user_template } });
+  expect(await system()).toBe(today.system); // a fresh install holds today's
+  await set(EARLIER); // as a database seeded before the revision
+  seedLlmStack();
+  expect(await system()).toBe(today.system);
+  const edited = `${EARLIER} Keep it short.`; // the owner's own words, never touched
+  await set(edited);
+  seedLlmStack();
+  expect(await system()).toBe(edited);
 });

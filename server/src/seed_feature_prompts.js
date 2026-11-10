@@ -25,6 +25,12 @@
 // names the four situations explicitly rather than asking "is this right?" (confirm.js says why).
 //
 // The prompt text is what the model reads, so it stays English on purpose (§Q.11).
+//
+// A revised prompt reaches a database seeded before it through FEATURE_PROMPT_HEALS (the kit's featurePromptHeals,
+// seed.js configureAppSeed): seeding is insert-if-missing, so each key lists the system texts it had, byte for byte, and
+// a row still holding one of them — never edited — takes today's; an edited prompt is never touched. A system text can't
+// change without its old text added there: tests/prompts.test.js holds today's fingerprints (the template's, since
+// 2026-11-10). The three rows are v0.1.0's text (unchanged since the tag), so none yet.
 
 import { RESPONSE_SCHEMA } from "./shieldlib.js";
 
@@ -73,6 +79,9 @@ const row = (feature, prompt) => ({
   json_mode: true,
   json_schema: SCHEMA,
 });
+
+/** {action id: [earlier system texts, byte for byte]} — empty until a prompt is revised. */
+export const FEATURE_PROMPT_HEALS = {};
 
 export const DEFAULT_FEATURE_PROMPTS = {
   translate: row("translate", TRANSLATE_PROMPT),

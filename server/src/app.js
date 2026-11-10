@@ -68,7 +68,7 @@ import * as appmeta from "./appmeta.js";
 import { readAuth } from "./auth.js";
 import { router as dataRouter } from "./data_admin.js";
 import { isDir } from "./paths.js";
-import { DEFAULT_FEATURE_PROMPTS } from "./seed_feature_prompts.js";
+import { DEFAULT_FEATURE_PROMPTS, FEATURE_PROMPT_HEALS } from "./seed_feature_prompts.js";
 import { DEFAULT_TEST_SAMPLES } from "./seed_test_samples.js";
 import { PRODUCT } from "./version.js";
 import { getAppSetting, seedSettings, setAppSetting, upgradeSettings } from "./settings.js";
@@ -381,6 +381,8 @@ const llmArgs = (h, dataDir) => ({
   db: h,
   featureCatalog: FEATURE_CATALOG,
   featurePrompts: DEFAULT_FEATURE_PROMPTS, // one row per feature — see the header
+  // a revised prompt reaches a database seeded before it (seed_feature_prompts.js)
+  featurePromptHeals: FEATURE_PROMPT_HEALS,
   testSamples: DEFAULT_TEST_SAMPLES, // the Lab's Sample input for each row (seed_test_samples.js)
   enginePresets: DEFAULT_ENGINE_PRESETS,
   featurePresets: DEFAULT_FEATURE_PRESETS,
