@@ -1,5 +1,11 @@
 # What's new
 
+## Next release
+
+- **Easier to read.** The quieter greys and the dark theme's red are a little darker or lighter, so all text
+  meets the WCAG 2.2 AA contrast minimum in both themes; checkboxes, progress bars and the review fields now have
+  names a screen reader reads out.
+
 ## v0.1.0
 
 - **Your project opens with the app.** The app reopens the project you set up last instead of asking for

@@ -198,8 +198,10 @@ function lastRunLabel(l) {
           </template>
           <template #sel="{ row }">
             <span @click.stop>
+              <!-- named by its row's language: a box alone in a cell has no label of its own (axe's
+                   aria-toggle-field-name, the accessibility test's first run, 2026-11-10) -->
               <UiCheckbox
-                :model-value="selected.includes(row.code)"
+                :model-value="selected.includes(row.code)" :aria-label="row.name"
                 @update:model-value="(on) => toggle(row.code, on)"
               />
             </span>
@@ -211,7 +213,8 @@ function lastRunLabel(l) {
           </template>
           <template #progress="{ row }">
             <span class="progresscell">
-              <UiProgress bare :value="row.done" :max="row.total" />
+              <!-- a bare bar shows no caption, but its label still names it (aria-progressbar-name) -->
+              <UiProgress bare :value="row.done" :max="row.total" :label="`${row.name} — ${t('home.colProgress')}`" />
               <span class="mono muted">{{ n(row.done) }} / {{ n(row.total) }}</span>
             </span>
           </template>

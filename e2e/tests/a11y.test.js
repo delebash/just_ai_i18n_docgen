@@ -1,0 +1,76 @@
+// SPDX-License-Identifier: MIT
+// Accessibility — every page of the REAL desktop app against WCAG 2.2 AA (app-structure §17), checked by axe-core,
+// Deque's engine and the standard automated check (playwright.dev/docs/accessibility-testing), in the light theme
+// and the dark one. axe finds what a machine can — names, roles, contrast, ARIA misuse; the keyboard path through a
+// screen and its reading order stay a person's review. Hermetic like the smoke suite (lib/driver.js), on the smoke
+// suite's project fixture (lib/fixture.js), so Review, Runs and Docs show a project's rows, not only their empty state.
+// The kit template's file (template/e2e/tests/a11y.test.js) with this app's pages — added 2026-11-10: docgen had none.
+//
+// Before: `npm run build:unpacked` (the harness drives what was last built). Run: `npm test` from the app's root.
+
+import { strict as assert } from "node:assert";
+import { after, before, test } from "node:test";
+import { AxeBuilder } from "@axe-core/playwright";
+import { Driver } from "../lib/driver.js";
+import { loadFixture } from "../lib/fixture.js";
+
+// WCAG 2.0, 2.1 and 2.2, levels A and AA — axe's tags (github.com/dequelabs/axe-core/blob/develop/doc/API.md)
+const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
+// the nav's pages (MainLayout.vue's rows)
+const PAGES = [
+  { nav: "Home", url: /#\/$/ },
+  { nav: "Review", url: /#\/review/ },
+  { nav: "Runs", url: /#\/runs/ },
+  { nav: "Docs", url: /#\/docs/ },
+  { nav: "AI Settings", url: /#\/ai$/ },
+  { nav: "App Settings", url: /#\/settings/ },
+  { nav: "Setup", url: /#\/setup/ },
+];
+
+const d = new Driver();
+let page;
+
+before(async () => {
+  await d.startServer();
+  await loadFixture(d);
+  await d.launch();
+  page = d.page;
+  await d.maximize();
+  await page.waitForSelector(".shell", { timeout: 30_000 });
+});
+
+after(async () => {
+  await d.close();
+});
+
+/** axe's violations on what the window shows now, as lines a failure can be read from. Legacy mode: axe otherwise
+ *  gathers its results in a blank page it opens, and Playwright's Electron opens none ("Target.createTarget: Not
+ *  supported" — measured by docgen's session on its built app, 2026-10-29); legacy mode skips that page and only
+ *  loses cross-origin frames, which the app has none of (axe-core-npm's playwright README, setLegacyMode). */
+async function violations() {
+  // every finite animation and transition ended first (the Web Animations API's document.getAnimations): a nav row
+  // that just stopped being the current one read mid-fade in the dark run (2026-10-29), as a toast did in JustWrite's
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().endTime !== Number.POSITIVE_INFINITY)
+        .map((a) => a.finished.catch(() => {})),
+    ),
+  );
+  const { violations: found } = await new AxeBuilder({ page }).withTags(TAGS).setLegacyMode().analyze();
+  return found.map((v) => `${v.id} (${v.impact}): ${v.help} — ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`);
+}
+
+for (const scheme of ["light", "dark"]) {
+  test(`every page meets WCAG 2.2 AA in the ${scheme} theme`, async () => {
+    await page.emulateMedia({ colorScheme: scheme }); // the theme follows the system until a user picks one
+    for (const p of PAGES) {
+      await page.locator(".navlink", { hasText: p.nav }).first().click();
+      await page.waitForURL(p.url);
+      await page.locator(".pane-h1").first().waitFor();
+      assert.equal(await page.evaluate(() => document.documentElement.getAttribute("data-theme")), scheme);
+      assert.deepEqual(await violations(), [], `${p.nav}, ${scheme}`);
+    }
+  });
+}

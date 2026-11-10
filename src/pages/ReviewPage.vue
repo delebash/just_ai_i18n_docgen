@@ -442,7 +442,7 @@ async function discardAll() {
     <!-- ── the detail pane — where the reviewing actually happens ── -->
     <div class="review-detail" v-if="review.activeRow && review.bucket !== 'accepted'">
       <div class="card">
-        <h2 class="mono" style="font-size: 13px">{{ review.activeRow.key }}</h2>
+        <h2 id="review-detail-key" class="mono" style="font-size: 13px">{{ review.activeRow.key }}</h2>
         <p class="hint">
           {{ review.activeRow.lang }} ·
           {{ review.activeRow.key.split('.').slice(0, -1).join(' › ') || t('review.root') }}
@@ -467,8 +467,9 @@ async function discardAll() {
           </template>
         </div>
         <q-form greedy @submit="saveDraft">
+          <!-- each field named by its card's own heading (axe's label rule, the accessibility test's first run, 2026-11-10) -->
           <UiTextarea
-            v-model="draft" class="detail-text" lazy-rules :rules="draftRules"
+            v-model="draft" class="detail-text" aria-labelledby="review-detail-key" lazy-rules :rules="draftRules"
             :error="!!draftError" :error-message="draftError" @update:model-value="draftError = ''"
           />
           <div class="row" style="margin-top: 8px">
@@ -527,12 +528,12 @@ async function discardAll() {
       </div>
 
       <div class="card">
-        <h2>{{ t("review.noteTitle") }}</h2>
+        <h2 id="review-note-title">{{ t("review.noteTitle") }}</h2>
         <p class="hint">{{ t("review.noteHint") }}</p>
         <q-form greedy @submit="saveNote">
           <div class="row">
             <UiTextarea
-              v-model="noteDraft" class="detail-text" style="min-height: 40px" lazy-rules :rules="noteRules"
+              v-model="noteDraft" class="detail-text" aria-labelledby="review-note-title" style="min-height: 40px" lazy-rules :rules="noteRules"
               :placeholder="t('review.notePlaceholder')" :error="!!noteError" :error-message="noteError"
               @update:model-value="noteError = ''"
             />

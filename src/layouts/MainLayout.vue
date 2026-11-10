@@ -99,7 +99,11 @@ onBeforeUnmount(() => {
           <span class="brand-mark">{{ t("app.mark") }}</span>
           <span class="brand-name">{{ t("app.wordmark") }}</span>
         </div>
-        <q-list class="shell__links">
+        <!-- role="none": QList is a list by default, and its children here are links, a button and a separator, never
+             list items (axe's aria-required-children, critical — the template's fix of 2026-10-29, which this copy
+             lacked until its accessibility test's first run, 2026-11-10); in the <nav> they read as the links and the
+             button they are (Quasar's QList `role` prop). -->
+        <q-list class="shell__links" role="none">
           <q-item
             v-for="n in NAV" :key="n.to" :to="n.to" :exact="n.exact"
             class="navlink" active-class="navlink--active" dense

@@ -14,8 +14,10 @@
   --on-accent: #fff;
   --ink: #1a1a1a;
   --ink-2: #4a4a4a;
-  --ink-3: #777;
-  --muted: #888;
+  /* the quiet greys pass WCAG 2.2 AA (4.5:1) on all three surfaces — #777 and #888 measured 3.3–4.5:1 (the app's
+     accessibility test's first run, 2026-11-10); --muted is the template's, --ink-3 sits between it and --ink-2 */
+  --ink-3: #5c5c5c;
+  --muted: #6b6b6b;
   --surface: #fff;
   --surface-2: #f7f8fa;
   --surface-3: #eff1f4;
@@ -68,15 +70,18 @@
   --on-accent: #1a1a1a;
   --ink: #e6e6e6;
   --ink-2: #b8b8b8;
-  --ink-3: #8a8a8a;
-  --muted: #7d7d7d;
+  /* 4.5:1 or more on all three dark surfaces (#7d7d7d measured 3.65:1 on --surface-2) */
+  --ink-3: #a8a8a8;
+  --muted: #9a9a9a;
   --surface: #1d2126;
   --surface-2: #22272d;
   --surface-3: #2a3038;
   --border: #343a42;
   --border-strong: #4a515b;
   --border-field: #787c78;
-  --danger: #d06a53;
+  /* light enough to read as the kit's danger tag (its 14% tint over the surface) at 4.5:1 or more — #d06a53
+     measured 3.55:1 there (2026-11-10) */
+  --danger: oklch(0.750 0.110 var(--danger-hue));
   --danger-bg: #3a2622;
   --danger-ink: oklch(0.800 0.090 var(--danger-hue));
   --success: #5aa886;
